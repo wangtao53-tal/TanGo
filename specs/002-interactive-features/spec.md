@@ -17,6 +17,7 @@
 - Q: 数据存储的实现方式？ → A: 服务端存储到内存缓存中，前端存储在本地缓存（IndexedDB + localStorage），支持数据同步
 - Q: AI模型调用的实现方式？ → A: 使用eino框架搭建Agent系统，可以用单Agent，用graph图串联整个流程，区分拍照图片识别、三个卡片图片生成、文本生成等不同功能
 - Q: 继续追问的意图识别逻辑？ → A: 支持文本、语音、图片输入，根据意图识别决定输出文本或三个卡片，三个卡片是明确的意图（如"帮我生成小卡片"）
+- Q: AI模型调用的具体API规范？ → A: 通过go-zero + eino框架调用，AI服务地址和认证信息存储在根目录的.env配置文件中，使用Bearer Token认证（`${TAL_MLOPS_APP_ID}:${TAL_MLOPS_APP_KEY}`），不将具体域名写入MD文档
 
 ## 用户场景与测试 *(必填)*
 
@@ -247,12 +248,17 @@
 - 用户设备支持现代浏览器（支持IndexedDB和localStorage）
 - 网络连接稳定（AI模型调用需要网络）
 - eino框架已正确配置，可以调用AI模型
+- AI服务地址和认证信息已配置在根目录的.env配置文件中，使用Bearer Token认证（不将具体域名写入MD文档）
 
 ### 依赖
 
 - 前端框架：React 18 + Vite + Tailwind CSS
 - 后端框架：go-zero + eino框架
-- AI模型：图片识别模型、文本生成模型、图片生成模型
+- AI模型服务：通过go-zero + eino框架调用
+  - AI服务地址：存储在根目录的.env配置文件中（不将具体域名写入MD文档）
+  - 认证方式：`Authorization: Bearer ${TAL_MLOPS_APP_ID}:${TAL_MLOPS_APP_KEY}`（存储在.env文件中）
+  - 模型类型：图片识别模型、文本生成模型、图片生成模型
+  - 配置方式：域名和认证信息存储在根目录的.env配置文件中，通过环境变量读取
 - 存储：前端IndexedDB + localStorage，后端内存缓存
 - 通信：WebSocket或SSE（流式传输）
 
