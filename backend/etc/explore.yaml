@@ -1,0 +1,20 @@
+Name: explore
+Host: 0.0.0.0
+Port: 8877
+# CORS配置
+CorsConf:
+  AccessControlAllowOrigin: "*"
+  AccessControlAllowMethods: "GET,POST,PUT,DELETE,OPTIONS"
+  AccessControlAllowHeaders: "Content-Type,Authorization"
+  AccessControlExposeHeaders: "Content-Length"
+  AccessControlAllowCredentials: true
+  AccessControlMaxAge: 86400
+# 日志配置
+Log:
+  ServiceName: explore
+  Mode: file
+  Path: logs
+  Level: info
+  Compress: true
+  KeepDays: 7
+  StackCooldownMillis: 100
