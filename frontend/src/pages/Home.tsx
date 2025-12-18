@@ -4,14 +4,52 @@
  */
 
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { Header } from '../components/common/Header';
 import { LittleStar } from '../components/common/LittleStar';
 
 export default function Home() {
   const navigate = useNavigate();
+  const [isListening, setIsListening] = useState(false);
 
   const handlePhotoClick = () => {
     navigate('/capture');
+  };
+
+  const handleVoiceClick = () => {
+    // 启动语音识别
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'zh-CN';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        console.log('语音识别结果:', transcript);
+        // TODO: 处理语音识别结果，可以导航到对话页面或触发搜索
+        setIsListening(false);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('语音识别错误:', event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } else {
+      // 如果不支持Web Speech API，导航到拍照页面使用语音输入功能
+      navigate('/capture');
+    }
   };
 
   return (
@@ -38,9 +76,15 @@ export default function Home() {
 
           {/* 语音触发按钮 */}
           <div className="relative z-10 -mt-8 sm:-mt-12 ml-32 sm:ml-48 animate-float">
-            <button className="flex items-center gap-3 rounded-full bg-[var(--color-sky-blue)] hover:bg-[#60d0ff] text-white py-3 px-6 sm:py-4 sm:px-8 shadow-[var(--shadow-glow-blue)] transition-transform hover:scale-105 active:scale-95 border-2 border-white/20">
-              <span className="material-symbols-outlined text-2xl">mic</span>
-              <span className="text-base sm:text-lg font-bold whitespace-nowrap font-display">Voice Trigger</span>
+            <button
+              onClick={handleVoiceClick}
+              disabled={isListening}
+              className={`flex items-center gap-3 rounded-full bg-[var(--color-sky-blue)] hover:bg-[#60d0ff] text-white py-3 px-6 sm:py-4 sm:px-8 shadow-[var(--shadow-glow-blue)] transition-transform hover:scale-105 active:scale-95 border-2 border-white/20 ${isListening ? 'animate-pulse' : ''}`}
+            >
+              <span className="material-symbols-outlined text-2xl">{isListening ? 'mic' : 'mic'}</span>
+              <span className="text-base sm:text-lg font-bold whitespace-nowrap font-display">
+                {isListening ? 'Listening...' : 'Voice Trigger'}
+              </span>
             </button>
           </div>
         </div>

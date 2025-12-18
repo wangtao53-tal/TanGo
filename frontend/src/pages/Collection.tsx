@@ -7,11 +7,14 @@ import { useState, useEffect } from 'react';
 import { Header } from '../components/common/Header';
 import { CollectionGrid } from '../components/collection/CollectionGrid';
 import { CategoryFilter, type Category } from '../components/collection/CategoryFilter';
-import { explorationStorage } from '../services/storage';
+import { explorationStorage, cardStorage } from '../services/storage';
+import { exportCardAsImage } from '../utils/export';
 import type { ExplorationRecord } from '../types/exploration';
+import type { KnowledgeCard } from '../types/exploration';
 
 export default function Collection() {
   const [records, setRecords] = useState<ExplorationRecord[]>([]);
+  const [cards, setCards] = useState<KnowledgeCard[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category>('all');
   const [loading, setLoading] = useState(true);
 
@@ -25,6 +28,10 @@ export default function Collection() {
       // 只显示已收藏的记录
       const collectedRecords = allRecords.filter((r) => r.collected);
       setRecords(collectedRecords);
+      
+      // 加载所有收藏的卡片
+      const allCards = await cardStorage.getAll();
+      setCards(allCards);
     } catch (error) {
       console.error('加载收藏记录失败:', error);
     } finally {
@@ -40,6 +47,28 @@ export default function Collection() {
   const handleClearAll = () => {
     // TODO: 实现清空所有收藏功能（需要家长模式）
     console.log('清空所有收藏');
+  };
+
+  const handleExportCard = async (cardId: string) => {
+    try {
+      await exportCardAsImage(`card-${cardId}`, `card-${cardId}`);
+    } catch (error) {
+      console.error('导出卡片失败:', error);
+      alert('导出失败，请重试');
+    }
+  };
+
+  const handleExportAll = async () => {
+    try {
+      for (const card of cards) {
+        await exportCardAsImage(`card-${card.id}`, `card-${card.id}`);
+        // 添加延迟，避免浏览器阻止多个下载
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    } catch (error) {
+      console.error('批量导出失败:', error);
+      alert('导出失败，请重试');
+    }
   };
 
   if (loading) {

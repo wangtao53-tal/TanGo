@@ -15,6 +15,12 @@ import type {
   GenerateReportRequest,
   GenerateReportResponse,
   ErrorResponse,
+  IntentRequest,
+  IntentResponse,
+  ConversationRequest,
+  ConversationStreamEvent,
+  VoiceRequest,
+  VoiceResponse,
 } from '../types/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8877';
@@ -155,5 +161,79 @@ export async function generateReport(
 ): Promise<GenerateReportResponse> {
   const response = await apiClient.post<GenerateReportResponse>('/api/share/report', request);
   return response as unknown as GenerateReportResponse;
+}
+
+/**
+ * 意图识别API
+ */
+export async function recognizeIntent(
+  request: IntentRequest
+): Promise<IntentResponse> {
+  try {
+    const response = await apiClient.post<IntentResponse>('/api/conversation/intent', request);
+    return response as unknown as IntentResponse;
+  } catch (error: any) {
+    // 如果后端不可用，降级到Mock数据
+    console.warn('后端API调用失败，使用Mock数据:', error.message);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    
+    // 简单的关键词匹配作为Mock
+    const text = request.text.toLowerCase();
+    if (text.includes('卡片') || text.includes('card') || text.includes('生成')) {
+      return {
+        intent: 'generate_cards',
+        confidence: 0.9,
+        parameters: {},
+      };
+    }
+    return {
+      intent: 'text_response',
+      confidence: 0.8,
+      parameters: {},
+    };
+  }
+}
+
+/**
+ * 对话API（非流式）
+ */
+export async function sendConversationMessage(
+  request: ConversationRequest
+): Promise<any> {
+  try {
+    const response = await apiClient.post('/api/conversation/message', request);
+    return response;
+  } catch (error: any) {
+    console.warn('后端API调用失败，使用Mock数据:', error.message);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    
+    // Mock响应
+    return {
+      type: 'text',
+      content: '这是一个Mock响应。',
+    };
+  }
+}
+
+/**
+ * 语音识别API
+ */
+export async function recognizeVoice(
+  request: VoiceRequest
+): Promise<VoiceResponse> {
+  try {
+    const response = await apiClient.post<VoiceResponse>('/api/conversation/voice', request);
+    return response as unknown as VoiceResponse;
+  } catch (error: any) {
+    // 如果后端不可用，降级到Mock数据
+    console.warn('后端API调用失败，使用Mock数据:', error.message);
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    
+    return {
+      text: '这是语音识别的Mock结果',
+      intent: 'text_response',
+      confidence: 0.8,
+    };
+  }
 }
 

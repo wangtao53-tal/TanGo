@@ -9,6 +9,7 @@ import { Header } from '../components/common/Header';
 import { CardCarousel } from '../components/cards/CardCarousel';
 import type { KnowledgeCard } from '../types/exploration';
 import { useState, useEffect } from 'react';
+import { cardStorage } from '../services/storage';
 
 interface LocationState {
   objectName: string;
@@ -46,21 +47,39 @@ export default function Result() {
     }
   }, [location, navigate]);
 
-  const handleCollect = (cardId: string) => {
+  const handleCollect = async (cardId: string) => {
+    const card = cards.find((c) => c.id === cardId);
+    if (!card) return;
+
     setCollectedCards((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(cardId)) {
+        // 取消收藏
         newSet.delete(cardId);
+        cardStorage.delete(cardId).catch(console.error);
       } else {
+        // 收藏
         newSet.add(cardId);
+        const cardToSave = {
+          ...card,
+          collectedAt: new Date().toISOString(),
+        };
+        cardStorage.save(cardToSave).catch(console.error);
       }
       return newSet;
     });
   };
 
-  const handleCollectAll = () => {
+  const handleCollectAll = async () => {
     const allCardIds = cards.map((c) => c.id);
     setCollectedCards(new Set(allCardIds));
+    
+    // 批量保存到本地存储
+    const cardsToSave = cards.map((card) => ({
+      ...card,
+      collectedAt: new Date().toISOString(),
+    }));
+    await cardStorage.saveBatch(cardsToSave);
   };
 
   return (
