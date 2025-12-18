@@ -125,18 +125,18 @@
 
 ### 4.1 前端语言切换组件
 
-- [ ] T039 [P] [US2] 创建语言切换组件 `frontend/src/components/common/LanguageSwitcher.tsx`
-- [ ] T040 [P] [US2] 创建语言切换Hook `frontend/src/hooks/useLanguage.ts`
-- [ ] T041 [P] [US2] 创建设置页面 `frontend/src/pages/Settings.tsx`
+- [X] T039 [P] [US2] 创建语言切换组件 `frontend/src/components/common/LanguageSwitcher.tsx`
+- [X] T040 [P] [US2] 创建语言切换Hook `frontend/src/hooks/useLanguage.ts`
+- [X] T041 [P] [US2] 创建设置页面 `frontend/src/pages/Settings.tsx`
 - [X] T042 [US2] 在App.tsx中集成i18n `frontend/src/App.tsx`（初始化i18n，监听语言变化）
 
 ### 4.2 前端页面国际化
 
-- [ ] T043 [P] [US2] 在Home.tsx中使用i18n翻译 `frontend/src/pages/Home.tsx`
-- [ ] T044 [P] [US2] 在Capture.tsx中使用i18n翻译 `frontend/src/pages/Capture.tsx`
-- [ ] T045 [P] [US2] 在Result.tsx中使用i18n翻译 `frontend/src/pages/Result.tsx`
+- [X] T043 [P] [US2] 在Home.tsx中使用i18n翻译 `frontend/src/pages/Home.tsx`
+- [X] T044 [P] [US2] 在Capture.tsx中使用i18n翻译 `frontend/src/pages/Capture.tsx`
+- [X] T045 [P] [US2] 在Result.tsx中使用i18n翻译 `frontend/src/pages/Result.tsx`
 - [ ] T046 [P] [US2] 在Collection.tsx中使用i18n翻译 `frontend/src/pages/Collection.tsx`
-- [ ] T047 [P] [US2] 在所有组件中使用i18n翻译（Button, Header等）
+- [X] T047 [P] [US2] 在所有组件中使用i18n翻译（Button, Header等）
 
 ### 4.3 语言设置持久化
 
@@ -155,18 +155,18 @@
 
 ### 5.1 前端对话组件
 
-- [ ] T050 [P] [US3] 创建对话消息列表组件 `frontend/src/components/conversation/ConversationList.tsx`
-- [ ] T051 [P] [US3] 创建单条消息组件 `frontend/src/components/conversation/ConversationMessage.tsx`（支持文本、卡片、图片、语音消息）
-- [ ] T052 [P] [US3] 创建消息输入组件 `frontend/src/components/conversation/MessageInput.tsx`（支持文本输入）
-- [ ] T053 [P] [US3] 创建语音输入组件 `frontend/src/components/conversation/VoiceInput.tsx`（支持语音识别）
-- [ ] T054 [P] [US3] 创建图片输入组件 `frontend/src/components/conversation/ImageInput.tsx`（支持图片上传）
-- [ ] T055 [US3] 创建对话页面 `frontend/src/pages/Conversation.tsx`（整合消息列表和输入组件，或修改Result.tsx）
+- [X] T050 [P] [US3] 创建对话消息列表组件 `frontend/src/components/conversation/ConversationList.tsx`
+- [X] T051 [P] [US3] 创建单条消息组件 `frontend/src/components/conversation/ConversationMessage.tsx`（支持文本、卡片、图片、语音消息）
+- [X] T052 [P] [US3] 创建消息输入组件 `frontend/src/components/conversation/MessageInput.tsx`（支持文本输入）
+- [X] T053 [P] [US3] 创建语音输入组件 `frontend/src/components/conversation/VoiceInput.tsx`（支持语音识别）
+- [X] T054 [P] [US3] 创建图片输入组件 `frontend/src/components/conversation/ImageInput.tsx`（支持图片上传）
+- [X] T055 [US3] 创建对话页面 `frontend/src/pages/Conversation.tsx`（整合消息列表和输入组件，或修改Result.tsx）
 
 ### 5.2 前端对话服务
 
-- [ ] T056 [P] [US3] 创建对话服务 `frontend/src/services/conversation.ts`（处理消息发送和接收）
-- [ ] T057 [US3] 实现对话消息的本地存储 `frontend/src/services/storage.ts`（IndexedDB）
-- [ ] T058 [US3] 实现WebSocket或SSE连接，接收流式返回 `frontend/src/services/conversation.ts`
+- [X] T056 [P] [US3] 创建对话服务 `frontend/src/services/conversation.ts`（处理消息发送和接收）
+- [X] T057 [US3] 实现对话消息的本地存储 `frontend/src/services/storage.ts`（IndexedDB）
+- [X] T058 [US3] 实现WebSocket或SSE连接，接收流式返回 `frontend/src/services/conversation.ts`
 
 ### 5.3 后端对话处理
 
@@ -182,7 +182,7 @@
 
 ### 5.5 修改Result页面为对话形式
 
-- [ ] T065 [US3] 修改Result页面，将卡片显示改为对话消息列表形式 `frontend/src/pages/Result.tsx`
+- [X] T065 [US3] 修改Result页面，将卡片显示改为对话消息列表形式 `frontend/src/pages/Result.tsx`
 
 **检查点**: 用户故事3完成，对话式交互功能可用，可以独立测试
 
@@ -196,21 +196,21 @@
 
 ### 6.1 前端卡片组件增强
 
-- [ ] T066 [P] [US4] 完善科学认知卡组件的收藏功能 `frontend/src/components/cards/ScienceCard.tsx`（确保点击后立即更新状态）
-- [ ] T067 [P] [US4] 完善古诗词/人文卡组件的收藏功能 `frontend/src/components/cards/PoetryCard.tsx`
-- [ ] T068 [P] [US4] 完善英语表达卡组件的收藏功能 `frontend/src/components/cards/EnglishCard.tsx`
-- [ ] T069 [P] [US4] 创建卡片详情组件 `frontend/src/components/cards/CardDetail.tsx`（展示卡片完整细节）
-- [ ] T070 [P] [US4] 优化卡片样式，确保卡片大小符合设计规范，不被压缩 `frontend/src/components/cards/*.tsx`
+- [X] T066 [P] [US4] 完善科学认知卡组件的收藏功能 `frontend/src/components/cards/ScienceCard.tsx`（确保点击后立即更新状态）
+- [X] T067 [P] [US4] 完善古诗词/人文卡组件的收藏功能 `frontend/src/components/cards/PoetryCard.tsx`
+- [X] T068 [P] [US4] 完善英语表达卡组件的收藏功能 `frontend/src/components/cards/EnglishCard.tsx`
+- [X] T069 [P] [US4] 创建卡片详情组件 `frontend/src/components/cards/CardDetail.tsx`（展示卡片完整细节）
+- [X] T070 [P] [US4] 优化卡片样式，确保卡片大小符合设计规范，不被压缩 `frontend/src/components/cards/*.tsx`
 
 ### 6.2 前端收藏页面增强
 
-- [ ] T071 [US4] 在收藏页面添加导出按钮 `frontend/src/pages/Collection.tsx`
-- [ ] T072 [US4] 实现收藏卡片的导出功能 `frontend/src/pages/Collection.tsx`（使用export.ts工具函数）
+- [X] T071 [US4] 在收藏页面添加导出按钮 `frontend/src/pages/Collection.tsx`
+- [X] T072 [US4] 实现收藏卡片的导出功能 `frontend/src/pages/Collection.tsx`（使用export.ts工具函数）
 
 ### 6.3 前端导出优化
 
-- [ ] T073 [US4] 优化导出工具函数，确保导出时图片清晰 `frontend/src/utils/export.ts`
-- [ ] T074 [US4] 确保卡片样式在导出时完整显示 `frontend/src/components/cards/*.tsx`
+- [X] T073 [US4] 优化导出工具函数，确保导出时图片清晰 `frontend/src/utils/export.ts`
+- [X] T074 [US4] 确保卡片样式在导出时完整显示 `frontend/src/components/cards/*.tsx`
 
 **检查点**: 用户故事4完成，卡片收藏和导出功能可用，可以独立测试
 
@@ -224,9 +224,9 @@
 
 ### 7.1 前端数据存储完善
 
-- [ ] T075 [P] [US5] 完善对话消息存储实现 `frontend/src/services/storage.ts`（IndexedDB，支持查询、删除等操作）
-- [ ] T076 [P] [US5] 完善用户设置存储实现 `frontend/src/services/storage.ts`（localStorage，支持语言、年级等设置）
-- [ ] T077 [P] [US5] 完善收藏卡片存储实现 `frontend/src/services/storage.ts`（IndexedDB，支持批量操作、查询、删除）
+- [X] T075 [P] [US5] 完善对话消息存储实现 `frontend/src/services/storage.ts`（IndexedDB，支持查询、删除等操作）
+- [X] T076 [P] [US5] 完善用户设置存储实现 `frontend/src/services/storage.ts`（localStorage，支持语言、年级等设置）
+- [X] T077 [P] [US5] 完善收藏卡片存储实现 `frontend/src/services/storage.ts`（IndexedDB，支持批量操作、查询、删除）
 
 ### 7.2 后端数据存储完善
 

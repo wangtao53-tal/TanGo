@@ -203,6 +203,45 @@ export const cardStorage = {
   },
 
   /**
+   * 根据探索ID获取卡片
+   */
+  async getByExplorationId(explorationId: string): Promise<KnowledgeCard[]> {
+    const db = await initDB();
+    const transaction = db.transaction('cards', 'readonly');
+    const store = transaction.objectStore('cards');
+    const index = store.index('explorationId');
+    
+    return new Promise((resolve, reject) => {
+      const request = index.getAll(explorationId);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  /**
+   * 检查卡片是否存在
+   */
+  async exists(id: string): Promise<boolean> {
+    const card = await this.getById(id);
+    return !!card;
+  },
+
+  /**
+   * 根据ID获取卡片
+   */
+  async getById(id: string): Promise<KnowledgeCard | null> {
+    const db = await initDB();
+    const transaction = db.transaction('cards', 'readonly');
+    const store = transaction.objectStore('cards');
+    
+    return new Promise((resolve, reject) => {
+      const request = store.get(id);
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  /**
    * 删除卡片
    */
   async delete(id: string): Promise<void> {
@@ -292,6 +331,19 @@ export const userSettingsStorage = {
       language: 'zh',
       lastUpdated: new Date().toISOString(),
     };
+  },
+
+  /**
+   * 更新设置的部分字段
+   */
+  update(updates: Partial<UserSettings>): void {
+    const current = this.get() || this.getDefault();
+    const updated = {
+      ...current,
+      ...updates,
+      lastUpdated: new Date().toISOString(),
+    };
+    this.save(updated);
   },
 };
 
@@ -414,6 +466,40 @@ export const conversationStorage = {
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
+  },
+
+  /**
+   * 批量保存消息
+   */
+  async saveBatch(messages: ConversationMessage[]): Promise<void> {
+    const db = await initDB();
+    const transaction = db.transaction('conversations', 'readwrite');
+    const store = transaction.objectStore('conversations');
+    
+    await Promise.all(
+      messages.map(
+        (message) =>
+          new Promise<void>((resolve, reject) => {
+            const request = store.put(message);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+          })
+      )
+    );
+  },
+
+  /**
+   * 根据时间范围查询消息
+   */
+  async getMessagesByTimeRange(
+    sessionId: string,
+    startTime: string,
+    endTime: string
+  ): Promise<ConversationMessage[]> {
+    const messages = await this.getMessagesBySessionId(sessionId);
+    return messages.filter(
+      (msg) => msg.timestamp >= startTime && msg.timestamp <= endTime
+    );
   },
 };
 

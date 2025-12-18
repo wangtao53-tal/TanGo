@@ -5,11 +5,18 @@
  */
 
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Header } from '../components/common/Header';
-import { CardCarousel } from '../components/cards/CardCarousel';
+import { ConversationList } from '../components/conversation/ConversationList';
+import { MessageInput } from '../components/conversation/MessageInput';
+import { VoiceInput } from '../components/conversation/VoiceInput';
+import { ImageInput } from '../components/conversation/ImageInput';
 import type { KnowledgeCard } from '../types/exploration';
+import type { ConversationMessage } from '../types/conversation';
 import { useState, useEffect } from 'react';
 import { cardStorage } from '../services/storage';
+import { sendMessage, createStreamConnection, recognizeUserIntent } from '../services/conversation';
+import { fileToBase64, extractBase64Data } from '../utils/image';
 
 interface LocationState {
   objectName: string;
@@ -22,10 +29,14 @@ interface LocationState {
 export default function Result() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const [cards, setCards] = useState<KnowledgeCard[]>([]);
   const [objectName, setObjectName] = useState<string>('Unknown');
   const [objectCategory, setObjectCategory] = useState<'自然类' | '生活类' | '人文类'>('自然类');
-  const [, setCollectedCards] = useState<Set<string>>(new Set());
+  const [messages, setMessages] = useState<ConversationMessage[]>([]);
+  const [sessionId, setSessionId] = useState<string>('');
+  const [isSending, setIsSending] = useState(false);
+  const [sseConnection, setSseConnection] = useState<EventSource | null>(null);
 
   useEffect(() => {
     const state = location.state as LocationState;
@@ -34,59 +45,123 @@ export default function Result() {
       setObjectName(state.objectName || 'Unknown');
       setObjectCategory(state.objectCategory || '自然类');
       
-      // 如果有图片数据，保存到卡片中
-      if (state.imageData) {
-        setCards(prevCards => prevCards.map(card => ({
-          ...card,
-          imageData: state.imageData,
-        })));
-      }
+      // 生成会话ID
+      const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      setSessionId(newSessionId);
+
+      // 创建初始消息：将卡片作为对话消息
+      const initialMessages: ConversationMessage[] = [
+        {
+          id: `msg-init-${Date.now()}`,
+          type: 'text',
+          content: `${t('result.identifiedAs')} ${state.objectName}!`,
+          timestamp: new Date().toISOString(),
+          sender: 'assistant',
+          sessionId: newSessionId,
+        },
+        ...state.cards.map((card, index) => ({
+          id: `msg-card-${index}`,
+          type: 'card' as const,
+          content: card,
+          timestamp: new Date().toISOString(),
+          sender: 'assistant' as const,
+          sessionId: newSessionId,
+        })),
+      ];
+      setMessages(initialMessages);
     } else {
       // 如果没有数据，返回首页
       navigate('/');
     }
-  }, [location, navigate]);
+
+    // 清理函数：关闭SSE连接
+    return () => {
+      if (sseConnection) {
+        sseConnection.close();
+      }
+    };
+  }, [location, navigate, t]);
 
   const handleCollect = async (cardId: string) => {
-    const card = cards.find((c) => c.id === cardId);
+    const card = cards.find((c) => c.id === cardId) || 
+                 messages.find((m) => m.type === 'card' && (m.content as KnowledgeCard).id === cardId)?.content as KnowledgeCard;
     if (!card) return;
 
-    setCollectedCards((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(cardId)) {
-        // 取消收藏
-        newSet.delete(cardId);
-        cardStorage.delete(cardId).catch(console.error);
-      } else {
-        // 收藏
-        newSet.add(cardId);
-        const cardToSave = {
-          ...card,
-          collectedAt: new Date().toISOString(),
-        };
-        cardStorage.save(cardToSave).catch(console.error);
-      }
-      return newSet;
-    });
+    // 收藏或取消收藏
+    const existingCard = await cardStorage.getAll().then(cards => cards.find(c => c.id === cardId));
+    if (existingCard) {
+      await cardStorage.delete(cardId);
+    } else {
+      const cardToSave = {
+        ...card,
+        collectedAt: new Date().toISOString(),
+      };
+      await cardStorage.save(cardToSave);
+    }
   };
 
-  const handleCollectAll = async () => {
-    const allCardIds = cards.map((c) => c.id);
-    setCollectedCards(new Set(allCardIds));
-    
-    // 批量保存到本地存储
-    const cardsToSave = cards.map((card) => ({
-      ...card,
-      collectedAt: new Date().toISOString(),
-    }));
-    await cardStorage.saveBatch(cardsToSave);
+  const handleSendMessage = async (text: string) => {
+    if (!text.trim() || isSending) return;
+
+    setIsSending(true);
+    try {
+      // 识别意图
+      const intent = await recognizeUserIntent(text, sessionId);
+      
+      // 发送消息
+      const result = await sendMessage(text, 'text', sessionId);
+      setMessages((prev) => [...prev, result.message]);
+
+      // 如果是生成卡片意图，使用流式返回
+      if (intent.intent === 'generate_cards') {
+        const connection = createStreamConnection(sessionId, {
+          onMessage: (message) => {
+            setMessages((prev) => [...prev, message]);
+          },
+          onError: (error) => {
+            console.error('流式返回错误:', error);
+            setIsSending(false);
+          },
+          onClose: () => {
+            setIsSending(false);
+          },
+        });
+        setSseConnection(connection);
+      } else {
+        setIsSending(false);
+      }
+    } catch (error) {
+      console.error('发送消息失败:', error);
+      setIsSending(false);
+    }
+  };
+
+  const handleVoiceResult = async (text: string) => {
+    await handleSendMessage(text);
+  };
+
+  const handleImageSelect = async (file: File) => {
+    if (isSending) return;
+
+    setIsSending(true);
+    try {
+      const base64 = await fileToBase64(file);
+      const imageData = extractBase64Data(base64);
+      
+      const result = await sendMessage(imageData, 'image', sessionId);
+      setMessages((prev) => [...prev, result.message]);
+      setIsSending(false);
+    } catch (error) {
+      console.error('发送图片失败:', error);
+      setIsSending(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-cloud-white font-display">
+    <div className="min-h-screen bg-cloud-white font-display flex flex-col">
       <Header />
       
-      <main className="flex flex-col items-center px-4 py-6 w-full max-w-7xl mx-auto">
+      <main className="flex-1 flex flex-col items-center px-4 py-6 w-full max-w-7xl mx-auto overflow-hidden">
         {/* 对象信息展示区域 */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8 w-full">
           <div className="flex flex-col items-start gap-2 relative">
@@ -127,7 +202,7 @@ export default function Result() {
                 AI Companion says:
               </p>
               <p className="text-base font-bold text-slate-800 leading-tight font-display">
-                "Wow! A {objectName}! Let's explore its secrets!"
+                {t('result.continueChat', `"Wow! A ${objectName}! Let's explore its secrets!"`)}
               </p>
             </div>
             <button className="absolute -top-2 -right-2 size-10 rounded-full bg-sky-blue text-white shadow-md border-4 border-white flex items-center justify-center hover:bg-sky-blue-dark transition-colors">
@@ -136,39 +211,21 @@ export default function Result() {
           </div>
         </div>
 
-        {/* 卡片轮播区域 */}
-        <CardCarousel cards={cards} onCollect={handleCollect} onCollectAll={handleCollectAll} />
+        {/* 对话消息列表 */}
+        <div className="flex-1 w-full max-w-4xl mx-auto mb-24">
+          <ConversationList messages={messages} onCollect={handleCollect} />
+        </div>
 
-        {/* 底部固定栏 */}
-        <footer className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t-2 border-slate-100 p-4 z-50 rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-          <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
-            <button
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2 px-6 py-3 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition-all border-2 border-slate-200 group"
-            >
-              <span className="material-symbols-outlined group-hover:-translate-x-1 transition-transform">
-                undo
-              </span>
-              <span className="hidden sm:inline">Back to Map</span>
-            </button>
-
-            {/* 进度指示器 */}
-            <div className="flex-1 flex justify-center">
-              <div className="flex gap-3 bg-slate-100 px-4 py-2 rounded-full">
-                <div className="w-10 h-2.5 rounded-full bg-science-green" />
-                <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
-                <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+        {/* 底部输入栏 */}
+        <footer className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t-2 border-slate-100 z-50">
+          <div className="max-w-4xl mx-auto px-4 py-3">
+            <div className="flex items-center gap-2">
+              <VoiceInput onResult={handleVoiceResult} disabled={isSending} />
+              <ImageInput onImageSelect={handleImageSelect} disabled={isSending} />
+              <div className="flex-1">
+                <MessageInput onSend={handleSendMessage} disabled={isSending} />
               </div>
             </div>
-
-            {/* 收藏所有卡片按钮 */}
-            <button
-              onClick={handleCollectAll}
-              className="flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-science-green to-primary text-white font-display font-extrabold text-lg transition-all shadow-lg shadow-science-green/40 transform hover:-translate-y-1 hover:scale-105 border-b-4 border-green-600 active:border-b-0 active:translate-y-0.5"
-            >
-              <span className="material-symbols-outlined text-2xl animate-bounce">style</span>
-              COLLECT CARDS!
-            </button>
           </div>
         </footer>
       </main>

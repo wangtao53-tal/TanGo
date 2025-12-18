@@ -5,6 +5,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { identifyImage, generateCards } from '../services/api';
 import { userProfileStorage } from '../services/storage';
 import { fileToBase64, extractBase64Data } from '../utils/image';
@@ -13,6 +14,7 @@ import type { KnowledgeCard } from '../types/exploration';
 
 export default function Capture() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -134,7 +136,7 @@ export default function Capture() {
       <div className="flex-1 flex flex-col items-center justify-center w-full px-4 relative z-10">
         <div className="mb-6 text-center">
           <h2 className="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight drop-shadow-sm font-display">
-            Align the target inside the frame!
+            {t('capture.title')}
           </h2>
         </div>
 
@@ -169,7 +171,7 @@ export default function Capture() {
               <span className="material-symbols-outlined text-[36px]">mic</span>
             </div>
             <span className="text-xs font-bold text-slate-500 bg-white px-2 py-1 rounded-md shadow-sm opacity-0 group-hover:opacity-100 transition transform -translate-x-2">
-              Voice Mode
+              {t('capture.voiceInput')}
             </span>
           </button>
         </div>
@@ -180,7 +182,7 @@ export default function Capture() {
             <div className="size-8 rounded-full bg-gradient-to-tr from-yellow-300 to-orange-400 flex items-center justify-center shadow-inner ring-2 ring-white">
               <span className="material-symbols-outlined text-white text-lg fill-1">star</span>
             </div>
-            <p className="text-sm font-bold text-slate-600">Little Star is identifying...</p>
+            <p className="text-sm font-bold text-slate-600">{t('capture.processing')}</p>
           </div>
         )}
       </div>
@@ -199,7 +201,7 @@ export default function Capture() {
                   <span className="material-symbols-outlined text-gray-400">photo_library</span>
                 </div>
               </div>
-              <span className="text-xs font-bold text-slate-500 group-hover:text-warm-yellow transition-colors">Album</span>
+              <span className="text-xs font-bold text-slate-500 group-hover:text-warm-yellow transition-colors">{t('capture.selectFromAlbum')}</span>
             </button>
           </div>
 
@@ -238,7 +240,7 @@ export default function Capture() {
               <div className="size-16 flex items-center justify-center rounded-full bg-white border-4 border-white shadow-soft group-hover:shadow-md transition-all group-hover:scale-105 duration-200">
                 <span className="material-symbols-outlined text-slate-400 text-3xl group-hover:text-slate-600 transition-colors">arrow_back</span>
               </div>
-              <span className="text-xs font-bold text-slate-500 group-hover:text-slate-600 transition-colors">Return</span>
+              <span className="text-xs font-bold text-slate-500 group-hover:text-slate-600 transition-colors">{t('common.back')}</span>
             </button>
           </div>
         </div>

@@ -101,22 +101,37 @@ export default function Collection() {
               </p>
             </div>
 
-            {/* 家长模式控制 */}
-            <div className="flex items-center gap-2 bg-white p-1.5 pr-3 rounded-full border border-gray-100 shadow-sm">
-              <div className="flex items-center gap-2 pl-3 pr-3 py-1.5 bg-gray-100 rounded-full">
-                <span className="material-symbols-outlined text-gray-500 text-sm">lock_open</span>
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider font-display">
-                  Parent Mode
-                </span>
+            {/* 操作按钮组 */}
+            <div className="flex items-center gap-2">
+              {/* 导出所有按钮 */}
+              {cards.length > 0 && (
+                <button
+                  onClick={handleExportAll}
+                  className="group flex items-center justify-center gap-2 bg-[var(--color-primary)] hover:bg-[#5aff2b] text-white px-4 py-2 rounded-full transition-all shadow-md hover:shadow-lg"
+                  title="导出所有卡片"
+                >
+                  <span className="material-symbols-outlined text-lg">download</span>
+                  <span className="text-sm font-bold font-display hidden sm:inline">导出全部</span>
+                </button>
+              )}
+              
+              {/* 家长模式控制 */}
+              <div className="flex items-center gap-2 bg-white p-1.5 pr-3 rounded-full border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-2 pl-3 pr-3 py-1.5 bg-gray-100 rounded-full">
+                  <span className="material-symbols-outlined text-gray-500 text-sm">lock_open</span>
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider font-display">
+                    Parent Mode
+                  </span>
+                </div>
+                <button
+                  onClick={handleClearAll}
+                  className="group flex items-center justify-center gap-1.5 text-red-400 hover:text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-full transition-all cursor-pointer"
+                  title="Only available in Parent Mode"
+                >
+                  <span className="material-symbols-outlined text-lg">delete</span>
+                  <span className="text-sm font-bold font-display">Clear All</span>
+                </button>
               </div>
-              <button
-                onClick={handleClearAll}
-                className="group flex items-center justify-center gap-1.5 text-red-400 hover:text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-full transition-all cursor-pointer"
-                title="Only available in Parent Mode"
-              >
-                <span className="material-symbols-outlined text-lg">delete</span>
-                <span className="text-sm font-bold font-display">Clear All</span>
-              </button>
             </div>
           </header>
 
@@ -126,8 +141,10 @@ export default function Collection() {
           {/* 收藏卡片网格 */}
           <CollectionGrid
             records={records}
+            cards={cards}
             category={selectedCategory}
             onReExplore={handleReExplore}
+            onExport={handleExportCard}
           />
 
           {/* Little Star 鼓励消息 */}

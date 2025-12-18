@@ -5,11 +5,13 @@
 
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Header } from '../components/common/Header';
 import { LittleStar } from '../components/common/LittleStar';
 
 export default function Home() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [isListening, setIsListening] = useState(false);
 
   const handlePhotoClick = () => {
@@ -69,7 +71,7 @@ export default function Home() {
                 photo_camera
               </span>
               <span className="text-lg sm:text-2xl font-bold tracking-tight drop-shadow-sm font-display">
-                Photo Explore
+                {t('home.photoButton')}
               </span>
             </button>
           </div>
@@ -83,7 +85,7 @@ export default function Home() {
             >
               <span className="material-symbols-outlined text-2xl">{isListening ? 'mic' : 'mic'}</span>
               <span className="text-base sm:text-lg font-bold whitespace-nowrap font-display">
-                {isListening ? 'Listening...' : 'Voice Trigger'}
+                {isListening ? t('conversation.thinking', 'Listening...') : t('home.voiceButton')}
               </span>
             </button>
           </div>
