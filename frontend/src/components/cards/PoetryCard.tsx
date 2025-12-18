@@ -3,34 +3,60 @@
  * 橙色主题，基于设计稿
  */
 
-import React, { useState } from 'react';
-import type { KnowledgeCard } from '@/types/exploration';
-import type { PoetryCardContent } from '@/types/exploration';
+import React, { useState, useEffect } from 'react';
+import { cardStorage } from '../../services/storage';
+import type { KnowledgeCard } from '../../types/exploration';
+import type { PoetryCardContent } from '../../types/exploration';
 
 export interface PoetryCardProps {
   card: KnowledgeCard;
   onCollect?: (cardId: string) => void;
   className?: string;
+  id?: string; // 用于导出功能
 }
 
 export const PoetryCard: React.FC<PoetryCardProps> = ({
   card,
   onCollect,
   className = '',
+  id,
 }) => {
   const [isCollected, setIsCollected] = useState(false);
   const content = card.content as PoetryCardContent;
 
-  const handleCollect = () => {
-    setIsCollected(!isCollected);
+  // 检查卡片是否已收藏
+  useEffect(() => {
+    cardStorage.getAll().then((cards) => {
+      const found = cards.find((c) => c.id === card.id);
+      setIsCollected(!!found);
+    });
+  }, [card.id]);
+
+  const handleCollect = async () => {
+    const newCollectedState = !isCollected;
+    setIsCollected(newCollectedState);
+    
     if (onCollect) {
       onCollect(card.id);
+    }
+
+    // 立即保存到本地存储
+    if (newCollectedState) {
+      const cardToSave = {
+        ...card,
+        collectedAt: new Date().toISOString(),
+      };
+      await cardStorage.save(cardToSave);
+    } else {
+      await cardStorage.delete(card.id);
     }
   };
 
   return (
     <article
-      className={`flex flex-col rounded-[2.5rem] bg-white border-4 border-sunny-orange shadow-card relative transition-transform hover:-translate-y-2 duration-300 group overflow-hidden ${className}`}
+      id={id || `card-${card.id}`}
+      className={`flex flex-col rounded-[2.5rem] bg-white border-4 border-sunny-orange shadow-card relative transition-transform hover:-translate-y-2 duration-300 group overflow-hidden w-full max-w-md mx-auto ${className}`}
+      style={{ minHeight: '600px', maxHeight: '800px' }}
     >
       {/* 顶部图片区域（45%高度） */}
       <div className="h-[45%] w-full relative overflow-hidden rounded-t-[2.2rem]">

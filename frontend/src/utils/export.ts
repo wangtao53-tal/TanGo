@@ -20,12 +20,30 @@ export async function exportCardAsImage(
   }
 
   try {
-    // 使用 html2canvas 捕获元素
+    // 使用 html2canvas 捕获元素，优化配置确保清晰度
     const canvas = await html2canvas(element, {
       backgroundColor: '#ffffff',
-      scale: 2, // 提高图片清晰度
+      scale: 3, // 提高图片清晰度（从2提升到3）
       useCORS: true,
+      allowTaint: false,
       logging: false,
+      width: element.scrollWidth,
+      height: element.scrollHeight,
+      windowWidth: element.scrollWidth,
+      windowHeight: element.scrollHeight,
+      // 确保所有样式都被渲染
+      onclone: (clonedDoc) => {
+        const clonedElement = clonedDoc.getElementById(elementId);
+        if (clonedElement) {
+          // 确保所有图片都已加载
+          const images = clonedElement.getElementsByTagName('img');
+          Array.from(images).forEach((img) => {
+            if (!img.complete) {
+              img.style.display = 'none';
+            }
+          });
+        }
+      },
     });
 
     // 转换为 blob
