@@ -1,0 +1,62 @@
+/**
+ * 页面头部组件
+ * 参考设计稿中的header样式
+ */
+
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+export interface HeaderProps {
+  title?: string;
+  showFavorites?: boolean;
+  showReport?: boolean;
+}
+
+export const Header: React.FC<HeaderProps> = ({
+  title = 'Little Explorer',
+  showFavorites = true,
+  showReport = true,
+}) => {
+  return (
+    <header className="w-full max-w-[1024px] px-4 py-6 z-10">
+      <div className="flex items-center justify-between rounded-full bg-white/80 backdrop-blur-md border border-white shadow-lg px-4 py-2">
+        <div className="flex items-center gap-3">
+          <div className="size-12 rounded-full border-2 border-warm-yellow overflow-hidden bg-white shadow-sm">
+            {/* 头像占位符 */}
+            <div className="w-full h-full bg-gradient-to-br from-yellow-200 to-orange-200 flex items-center justify-center">
+              <span className="text-xl">🚀</span>
+            </div>
+          </div>
+          <h2 className="hidden sm:block text-text-main text-lg font-bold tracking-tight font-display">
+            {title}
+          </h2>
+        </div>
+        <div className="flex items-center gap-3">
+          {showFavorites && (
+            <Link
+              to="/collection"
+              className="group flex items-center gap-2 rounded-full bg-white hover:bg-gray-50 border border-gray-100 px-4 py-2 transition-all shadow-sm"
+            >
+              <span className="material-symbols-outlined text-warm-yellow group-hover:scale-110 transition-transform">
+                star
+              </span>
+              <span className="text-sm font-medium text-text-main hidden sm:block">My Favorites</span>
+            </Link>
+          )}
+          {showReport && (
+            <Link
+              to="/report"
+              className="group flex items-center gap-2 rounded-full bg-white hover:bg-gray-50 border border-gray-100 px-4 py-2 transition-all shadow-sm"
+            >
+              <span className="material-symbols-outlined text-sky-blue group-hover:scale-110 transition-transform">
+                menu_book
+              </span>
+              <span className="text-sm font-medium text-text-main hidden sm:block">Learning Report</span>
+            </Link>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+};
+
