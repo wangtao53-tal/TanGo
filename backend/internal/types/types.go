@@ -83,3 +83,54 @@ type ErrorResponse struct {
 	Message string `json:"message"`         // 错误信息
 	Detail  string `json:"detail,optional"` // 错误详情
 }
+
+// 对话相关类型（从 explore.api 定义）
+type ConversationMessage struct {
+	Id        string      `json:"id"`                  // 消息ID
+	Type      string      `json:"type"`                // 消息类型：user/assistant/system
+	Content   interface{} `json:"content"`             // 消息内容（文本、图片、语音、卡片等）
+	Timestamp string      `json:"timestamp"`           // 消息时间戳
+	SessionId string      `json:"sessionId,optional"`  // 会话ID
+}
+
+type ConversationSession struct {
+	Id        string               `json:"id"`        // 会话ID
+	Messages  []ConversationMessage `json:"messages"` // 消息列表
+	CreatedAt string               `json:"createdAt"` // 创建时间
+	UpdatedAt string               `json:"updatedAt"` // 更新时间
+}
+
+type IntentRequest struct {
+	Message   string               `json:"message"`                 // 用户消息（文本）
+	SessionId string               `json:"sessionId,optional"`     // 会话ID（可选，用于上下文理解）
+	Context   []ConversationMessage `json:"context,optional"` // 上下文消息（可选）
+}
+
+type IntentResult struct {
+	Intent     string  `json:"intent"`     // 意图类型：generate_cards/text_response
+	Confidence float64 `json:"confidence"` // 置信度 0-1
+	Reason     string  `json:"reason,optional"` // 识别原因（可选）
+}
+
+type ConversationRequest struct {
+	Message   string `json:"message"`                 // 用户消息（文本）
+	Image     string `json:"image,optional"`          // 图片（base64，可选）
+	Voice     string `json:"voice,optional"`          // 语音（base64，可选）
+	SessionId string `json:"sessionId,optional"`      // 会话ID（可选）
+}
+
+type ConversationResponse struct {
+	Message   ConversationMessage `json:"message"`   // 回复消息
+	SessionId string              `json:"sessionId"`  // 会话ID
+	Type      string              `json:"type"`       // 响应类型：text/cards
+}
+
+type VoiceRequest struct {
+	Audio     string `json:"audio"`                  // base64编码的音频数据
+	SessionId string `json:"sessionId,optional"`     // 会话ID（可选）
+}
+
+type VoiceResponse struct {
+	Text      string `json:"text"`                  // 识别的文本
+	SessionId string `json:"sessionId,optional"`    // 会话ID（可选）
+}

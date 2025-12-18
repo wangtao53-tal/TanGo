@@ -37,6 +37,26 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/api/share/report",
 				Handler: GenerateReportHandler(serverCtx),
 			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/api/conversation/intent",
+				Handler: IntentHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/api/conversation/message",
+				Handler: ConversationHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/api/conversation/voice",
+				Handler: VoiceHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/api/conversation/stream",
+				Handler: StreamHandler(serverCtx),
+			},
 		},
 	)
 }
