@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Noto+Sans:wght@400;500;700&family=Quicksand:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+@theme {
+  --color-primary: #4cdf20;
+  --color-cloud-white: #F8F8F8;
+  --color-science-green: #76FF7A;
+  --color-sunny-orange: #FF9E64;
+  --color-sky-blue: #40C4FF;
+  --color-warm-yellow: #FFE580;
+  --color-peach-pink: #FFB7C5;
+  --color-text-main: #1F2937;
+  --color-text-sub: #6B7280;
+  --color-white-card: #FFFFFF;
+  
+  /* 拍照页面使用的金色 */
+  --color-secondary: #FFD700;
+  
+  /* 文本颜色别名 */
+  --color-text-dark: #2D3748;
+
+  --font-display: Manrope, "Noto Sans SC", sans-serif;
+  --font-body: "Noto Sans", Quicksand, sans-serif;
+
+  --radius-default: 1rem;
+  --radius-lg: 2rem;
+  --radius-xl: 3rem;
+  --radius-2xl: 4rem;
+  --radius-full: 9999px;
+
+  --shadow-soft: 0 20px 40px -15px rgba(0,0,0,0.05);
+  --shadow-card: 0 10px 30px -5px rgba(0,0,0,0.05);
+  --shadow-glow: 0 0 25px rgba(76, 223, 32, 0.4);
+  --shadow-glow-blue: 0 0 20px rgba(64, 196, 255, 0.4);
+  --shadow-card-hover-green: 0 15px 30px -10px rgba(118, 255, 122, 0.4);
+  --shadow-card-hover-orange: 0 15px 30px -10px rgba(255, 158, 100, 0.4);
+  --shadow-card-hover-blue: 0 15px 30px -10px rgba(64, 196, 255, 0.4);
+  --shadow-button: 0 8px 20px -5px rgba(255, 215, 0, 0.3);
+  --shadow-glow-yellow: 0 0 30px rgba(255, 215, 0, 0.6);
+
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-pulse-glow: pulse-glow 2s infinite;
+  --animate-scan: scan 3s infinite linear;
+  --animate-bounce-slow: bounce 3s infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(76, 223, 32, 0.4); }
+  70% { box-shadow: 0 0 0 20px rgba(76, 223, 32, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(76, 223, 32, 0); }
+}
+
+@keyframes scan {
+  0% { top: 10%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 90%; opacity: 0; }
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-cloud-white);
+  color: var(--color-text-main);
+}
+
+/* 自定义滚动条 */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: var(--color-cloud-white);
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}

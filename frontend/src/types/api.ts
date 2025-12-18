@@ -1,0 +1,101 @@
+/**
+ * API相关类型定义
+ * 基于 contracts/explore.api
+ */
+
+// 图像识别请求
+export interface IdentifyRequest {
+  image: string; // base64编码的图片数据
+  age?: number; // 可选：孩子年龄
+}
+
+// 图像识别响应
+export interface IdentifyResponse {
+  objectName: string; // 对象名称（中文）
+  objectCategory: '自然类' | '生活类' | '人文类';
+  confidence: number; // 识别置信度 0-1
+  keywords?: string[]; // 相关关键词
+}
+
+// 知识卡片生成请求
+export interface GenerateCardsRequest {
+  objectName: string;
+  objectCategory: '自然类' | '生活类' | '人文类';
+  age: number; // 必填
+  keywords?: string[];
+}
+
+// 知识卡片内容（API响应）
+export interface CardContentResponse {
+  type: 'science' | 'poetry' | 'english';
+  title: string;
+  content: Record<string, unknown>; // 根据类型不同结构不同
+}
+
+// 知识卡片生成响应
+export interface GenerateCardsResponse {
+  cards: CardContentResponse[];
+}
+
+// 创建分享链接请求
+export interface CreateShareRequest {
+  explorationRecords: ExplorationRecordForShare[];
+  collectedCards: KnowledgeCardForShare[];
+}
+
+// 探索记录（分享用）
+export interface ExplorationRecordForShare {
+  id: string;
+  timestamp: string;
+  objectName: string;
+  objectCategory: '自然类' | '生活类' | '人文类';
+  age: number;
+  cards: CardContentResponse[];
+}
+
+// 知识卡片（分享用）
+export interface KnowledgeCardForShare {
+  id: string;
+  explorationId: string;
+  type: 'science' | 'poetry' | 'english';
+  title: string;
+  content: Record<string, unknown>;
+  collectedAt?: string;
+}
+
+// 创建分享链接响应
+export interface CreateShareResponse {
+  shareId: string;
+  shareUrl: string;
+  expiresAt: string;
+}
+
+// 获取分享数据响应
+export interface GetShareResponse {
+  explorationRecords: ExplorationRecordForShare[];
+  collectedCards: KnowledgeCardForShare[];
+  createdAt: string;
+  expiresAt: string;
+}
+
+// 生成学习报告请求
+export interface GenerateReportRequest {
+  shareId: string;
+}
+
+// 学习报告响应
+export interface GenerateReportResponse {
+  totalExplorations: number;
+  totalCollectedCards: number;
+  categoryDistribution: Record<string, number>;
+  recentCards: KnowledgeCardForShare[];
+  generatedAt: string;
+}
+
+// 错误响应
+export interface ErrorResponse {
+  code: number;
+  message: string;
+  detail?: string;
+}
+
