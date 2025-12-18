@@ -21,6 +21,8 @@ Thumbs.db
 dist/
 build/
 bin/
+backend/explore
+backend/explore.exe
 
 # Dependencies
 go.sum
