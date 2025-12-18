@@ -17,6 +17,9 @@
 - Q: 数据存储的实现方式？ → A: 服务端存储到内存缓存中，前端存储在本地缓存（IndexedDB + localStorage），支持数据同步
 - Q: AI模型调用的实现方式？ → A: 使用eino框架搭建Agent系统，可以用单Agent，用graph图串联整个流程，区分拍照图片识别、三个卡片图片生成、文本生成等不同功能
 - Q: 继续追问的意图识别逻辑？ → A: 支持文本、语音、图片输入，根据意图识别决定输出文本或三个卡片，三个卡片是明确的意图（如"帮我生成小卡片"）
+- Q: AI模型调用的具体API规范？ → A: 通过go-zero + eino框架调用，AI服务地址和认证信息存储在根目录的.env配置文件中，使用Bearer Token认证（`${TAL_MLOPS_APP_ID}:${TAL_MLOPS_APP_KEY}`），不将具体域名写入MD文档
+- Q: 具体使用的AI模型列表和用途？ → A: 使用以下模型：gpt-5-nano（意图识别）、Gemini 3 Pro Image（图片小卡生成）、doubao-seed-1.6-vision和GLM-4.6v（图片识别）、doubao-seededit-3-0-i2i（待确认用途）
+- Q: 图片识别时两个模型的使用策略？ → A: 随机选择其中一个模型使用（doubao-seed-1.6-vision或GLM-4.6v）
 
 ## 用户场景与测试 *(必填)*
 
@@ -117,10 +120,10 @@
 
 **接受场景**：
 
-1. **Given** 用户拍照后，**When** 系统调用AI模型，**Then** 后端通过eino框架调用图片识别模型，返回识别结果
-2. **Given** 系统获得识别结果，**When** 生成三个卡片，**Then** 后端通过eino框架调用文本生成模型，生成三个卡片的内容
-3. **Given** 系统生成卡片内容，**When** 需要生成卡片图片，**Then** 后端通过eino框架调用图片生成模型，生成卡片配图
-4. **Given** 用户在对话中继续追问，**When** 系统识别意图，**Then** 后端通过eino框架的Agent系统，根据意图调用相应的模型，返回文本或生成卡片
+1. **Given** 用户拍照后，**When** 系统调用AI模型，**Then** 后端通过eino框架随机选择图片识别模型（doubao-seed-1.6-vision或GLM-4.6v），返回识别结果
+2. **Given** 系统获得识别结果，**When** 生成三个卡片，**Then** 后端通过eino框架调用文本生成模型（gpt-5-nano），生成三个卡片的内容
+3. **Given** 系统生成卡片内容，**When** 需要生成卡片图片，**Then** 后端通过eino框架调用图片生成模型（Gemini 3 Pro Image），生成卡片配图
+4. **Given** 用户在对话中继续追问，**When** 系统识别意图，**Then** 后端通过eino框架调用意图识别模型（gpt-5-nano），根据意图调用相应的模型，返回文本或生成卡片
 
 ---
 
@@ -176,6 +179,7 @@
 - **FR-018**: 系统必须支持流式返回文字和图片内容
 - **FR-019**: 系统必须支持意图识别，明确区分生成卡片意图和文本回答意图
 - **FR-020**: 系统必须支持多轮对话，保持上下文理解
+- **FR-021**: 系统必须使用指定的AI模型：gpt-5-nano（意图识别）、Gemini 3 Pro Image（图片小卡生成）、doubao-seed-1.6-vision和GLM-4.6v（图片识别）
 
 ### 非功能需求
 
@@ -247,12 +251,22 @@
 - 用户设备支持现代浏览器（支持IndexedDB和localStorage）
 - 网络连接稳定（AI模型调用需要网络）
 - eino框架已正确配置，可以调用AI模型
+- AI服务地址和认证信息已配置在根目录的.env配置文件中，使用Bearer Token认证（不将具体域名写入MD文档）
 
 ### 依赖
 
 - 前端框架：React 18 + Vite + Tailwind CSS
 - 后端框架：go-zero + eino框架
-- AI模型：图片识别模型、文本生成模型、图片生成模型
+- AI模型服务：通过go-zero + eino框架调用
+  - AI服务地址：存储在根目录的.env配置文件中（不将具体域名写入MD文档）
+  - 认证方式：`Authorization: Bearer ${TAL_MLOPS_APP_ID}:${TAL_MLOPS_APP_KEY}`（存储在.env文件中）
+  - 具体模型列表：
+    - **gpt-5-nano**：用于意图识别
+    - **Gemini 3 Pro Image**：用于图片小卡生成
+    - **doubao-seed-1.6-vision**：用于图片识别（随机选择）
+    - **GLM-4.6v**：用于图片识别（随机选择）
+    - **doubao-seededit-3-0-i2i**：待确认用途（暂不使用）
+  - 配置方式：域名和认证信息存储在根目录的.env配置文件中，通过环境变量读取
 - 存储：前端IndexedDB + localStorage，后端内存缓存
 - 通信：WebSocket或SSE（流式传输）
 

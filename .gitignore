@@ -4,7 +4,10 @@
 *.out
 vendor/
 *.log
-.env*
+.env
+.env.local
+.env.*.local
+!.env.example
 
 # IDE
 .idea/
