@@ -4,9 +4,80 @@
  */
 
 import { useNavigate } from 'react-router-dom';
+import { useState, useRef } from 'react';
+import { identifyImage, generateCards } from '../services/api';
+import { userProfileStorage } from '../services/storage';
+import { fileToBase64, extractBase64Data } from '../utils/image';
+import type { IdentifyResponse, GenerateCardsResponse } from '../types/api';
+import type { KnowledgeCard } from '../types/exploration';
 
 export default function Capture() {
   const navigate = useNavigate();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCaptureClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsProcessing(true);
+    try {
+      // 获取用户档案（年龄）
+      const profile = userProfileStorage.get();
+      const age = profile?.age || 8; // 默认8岁
+
+      // 转换图片为base64
+      const base64 = await fileToBase64(file);
+      const imageData = extractBase64Data(base64);
+
+      // 调用识别API
+      const identifyResult: IdentifyResponse = await identifyImage({
+        image: imageData,
+        age,
+      });
+
+      // 调用生成卡片API
+      const cardsResult: GenerateCardsResponse = await generateCards({
+        objectName: identifyResult.objectName,
+        objectCategory: identifyResult.objectCategory,
+        age,
+        keywords: identifyResult.keywords,
+      });
+
+      // 转换为KnowledgeCard格式
+      const knowledgeCards: KnowledgeCard[] = cardsResult.cards.map((card, index) => ({
+        id: `card-${card.type}-${Date.now()}-${index}`,
+        explorationId: `exp-${Date.now()}`,
+        type: card.type as 'science' | 'poetry' | 'english',
+        title: card.title,
+        content: card.content as any,
+      }));
+
+      // 跳转到结果页面，传递数据
+      navigate('/result', {
+        state: {
+          objectName: identifyResult.objectName,
+          objectCategory: identifyResult.objectCategory,
+          confidence: identifyResult.confidence,
+          cards: knowledgeCards,
+          imageData: base64, // 保存原始base64用于显示
+        },
+      });
+    } catch (error) {
+      console.error('处理图片失败:', error);
+      alert('识别失败，请重试');
+    } finally {
+      setIsProcessing(false);
+      // 清空input，允许重复选择同一文件
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   return (
     <div className="font-display antialiased overflow-hidden h-screen w-full bg-cloud-white text-text-main select-none flex flex-col">
@@ -63,12 +134,14 @@ export default function Capture() {
         </div>
 
         {/* AI识别提示 */}
-        <div className="mt-8 flex items-center gap-3 bg-white px-6 py-3 rounded-2xl border border-gray-100 shadow-soft animate-bounce-slow">
-          <div className="size-8 rounded-full bg-gradient-to-tr from-yellow-300 to-orange-400 flex items-center justify-center shadow-inner ring-2 ring-white">
-            <span className="material-symbols-outlined text-white text-lg fill-1">star</span>
+        {isProcessing && (
+          <div className="mt-8 flex items-center gap-3 bg-white px-6 py-3 rounded-2xl border border-gray-100 shadow-soft animate-bounce-slow">
+            <div className="size-8 rounded-full bg-gradient-to-tr from-yellow-300 to-orange-400 flex items-center justify-center shadow-inner ring-2 ring-white">
+              <span className="material-symbols-outlined text-white text-lg fill-1">star</span>
+            </div>
+            <p className="text-sm font-bold text-slate-600">Little Star is identifying...</p>
           </div>
-          <p className="text-sm font-bold text-slate-600">Little Star is identifying...</p>
-        </div>
+        )}
       </div>
 
       {/* 底部操作栏 */}
@@ -88,13 +161,26 @@ export default function Capture() {
 
           {/* 快门按钮 */}
           <div className="shrink-0 mx-6">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleImageSelect}
+            />
             <button
-              onClick={() => navigate('/result')}
-              className="relative size-28 rounded-full bg-white border border-gray-100 flex items-center justify-center shadow-button transition-transform cursor-pointer group hover:shadow-lg active:scale-95"
+              onClick={handleCaptureClick}
+              disabled={isProcessing}
+              className="relative size-28 rounded-full bg-white border border-gray-100 flex items-center justify-center shadow-button transition-transform cursor-pointer group hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="absolute inset-1 rounded-full border-[6px] border-warm-yellow opacity-30 group-hover:opacity-100 transition-opacity"></div>
               <div className="size-[84px] rounded-full bg-warm-yellow border-[4px] border-white shadow-inner flex items-center justify-center group-hover:scale-95 transition-all">
-                <span className="material-symbols-outlined text-white text-4xl opacity-90">photo_camera</span>
+                {isProcessing ? (
+                  <span className="material-symbols-outlined text-white text-4xl opacity-90 animate-spin">refresh</span>
+                ) : (
+                  <span className="material-symbols-outlined text-white text-4xl opacity-90">photo_camera</span>
+                )}
               </div>
             </button>
           </div>

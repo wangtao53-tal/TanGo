@@ -132,21 +132,21 @@
 
 ### 3.1 前端：首页实现
 
-- [ ] T052 [US1] 实现首页完整UI `frontend/src/pages/Home.tsx`（基于stitch_ui/homepage_设计稿）
+- [X] T052 [US1] 实现首页完整UI `frontend/src/pages/Home.tsx`（基于stitch_ui/homepage_设计稿）
   - 大圆形拍照按钮（带脉冲发光动画）
   - 语音触发按钮（浮动效果）
   - 三个功能卡片展示区域
   - Little Star对话气泡
   - 背景装饰动画
 - [ ] T053 [US1] 实现年龄/年级选择组件 `frontend/src/components/common/AgeSelector.tsx`（首次使用必选）
-- [ ] T054 [US1] 实现用户档案本地存储 `frontend/src/services/storage.ts`（UserProfile存储到localStorage）
+- [X] T054 [US1] 实现用户档案本地存储 `frontend/src/services/storage.ts`（UserProfile存储到localStorage）
 
 ### 3.2 前端：拍照功能实现
 
-- [ ] T055 [US1] 实现相机取景框组件 `frontend/src/components/camera/CameraView.tsx`（基于stitch_ui/capture_设计稿）
-- [ ] T056 [US1] 实现扫描线动画组件 `frontend/src/components/camera/ScanLine.tsx`
-- [ ] T057 [US1] 实现快门按钮组件 `frontend/src/components/camera/ShutterButton.tsx`
-- [ ] T058 [US1] 实现拍照页面完整功能 `frontend/src/pages/Capture.tsx`
+- [X] T055 [US1] 实现相机取景框组件 `frontend/src/components/camera/CameraView.tsx`（基于stitch_ui/capture_设计稿）
+- [X] T056 [US1] 实现扫描线动画组件 `frontend/src/components/camera/ScanLine.tsx`
+- [X] T057 [US1] 实现快门按钮组件 `frontend/src/components/camera/ShutterButton.tsx`
+- [X] T058 [US1] 实现拍照页面完整功能 `frontend/src/pages/Capture.tsx`（已实现拍照和API调用）
   - 调用设备摄像头
   - 拍照功能
   - 图片预览
