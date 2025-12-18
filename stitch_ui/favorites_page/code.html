@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Explorer - My Favorites</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&amp;family=Quicksand:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#FF9F1C","primary-hover": "#e88e0e",
+                        "secondary": "#2EC4B6","accent": "#FFBF69","background-light": "#FFF9F0","sidebar-bg": "#FFFFFF",
+                        "card-bg": "#FFFFFF",
+                        "text-main": "#2D334A",
+                        "text-muted": "#687187",
+                        "chip-bg": "#F0F4F8",
+                        "chip-active": "#FF9F1C",
+                        "soft-green": "#CBF3F0",
+                        "soft-purple": "#E0C3FC",
+                        "soft-orange": "#FFE5D9",
+                    },
+                    fontFamily: {
+                        "display": ["Fredoka", "sans-serif"],
+                        "body": ["Quicksand", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "1.5rem",
+                        "xl": "2rem",
+                        "2xl": "2.5rem",
+                        "3xl": "3rem",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        "soft": "0 8px 24px rgba(149, 157, 165, 0.1)",
+                        "card": "0 10px 30px rgba(0, 0, 0, 0.05)",
+                        "hover": "0 20px 40px rgba(255, 159, 28, 0.15)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+        }::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FFF9F0; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #FFBF69; 
+            border-radius: 5px;
+            border: 2px solid #FFF9F0;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #FF9F1C; 
+        }
+    </style>
+</head>
+<body class="bg-background-light text-text-main font-body h-screen w-full overflow-hidden selection:bg-primary selection:text-white">
+<div class="flex h-screen w-full">
+<aside class="hidden lg:flex flex-col w-72 h-full bg-sidebar-bg border-r border-orange-100 p-6 shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-20 rounded-r-3xl my-4 ml-4">
+<div class="flex items-center gap-4 mb-10 px-2">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-12 shadow-[0_4px_15px_rgba(255,159,28,0.3)] border-2 border-white" data-alt="Abstract star logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCdW41y65L-j-tBU-QEVaNmaxfNOcZAKiyVuvYDArFz67RkwCu-3tg08qcx3E7TLj6nhCYiFdOAWW2BpKsqdLqmLwk-uQv89-6saFbPpZF0izx-BrSSkLjtUaPrkrhazvv1AIItJRLTjFScwtK1-ZytfwYOOYRFjcK-Zjy4cIJ2JhKwnqqIqY961PBDXwPPhXb-DBDS-juPTj9H-knOS_U0R2YzhV7i1UFB6m6wpYZzYpl86JllDRrdBSaGHA8Z6mc4LsVJ5nv5MGg");'></div>
+<div>
+<h1 class="text-text-main text-xl font-bold font-display leading-tight">AI Explorer</h1>
+<p class="text-text-muted text-xs font-semibold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full inline-block mt-1">Little Explorers</p>
+</div>
+</div>
+<nav class="flex flex-col gap-3 flex-1">
+<a class="flex items-center gap-4 px-5 py-4 rounded-3xl hover:bg-orange-50 transition-all group" href="#">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">cottage</span>
+<p class="text-text-muted group-hover:text-primary font-bold text-base font-display">Home</p>
+</a>
+<a class="flex items-center gap-4 px-5 py-4 rounded-3xl bg-primary shadow-[0_8px_20px_rgba(255,159,28,0.3)] transform scale-105 transition-all" href="#">
+<span class="material-symbols-outlined text-white">star</span>
+<p class="text-white font-bold text-base font-display">Favorites</p>
+</a>
+<a class="flex items-center gap-4 px-5 py-4 rounded-3xl hover:bg-orange-50 transition-all group" href="#">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">photo_camera</span>
+<p class="text-text-muted group-hover:text-primary font-bold text-base font-display">Scan &amp; Learn</p>
+</a>
+<a class="flex items-center gap-4 px-5 py-4 rounded-3xl hover:bg-orange-50 transition-all group" href="#">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">account_circle</span>
+<p class="text-text-muted group-hover:text-primary font-bold text-base font-display">Profile</p>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-dashed border-gray-200">
+<div class="flex items-center gap-3 p-3 rounded-2xl bg-orange-50 border border-orange-100">
+<div class="bg-center bg-cover rounded-full size-12 border-2 border-white shadow-sm" data-alt="Cartoon avatar of a young astronaut boy" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDAvV9_wtbMpMydgC8Bv21hfXUgpBp5KIf0gVobccpsSJCcTnZTItqfClE7yaerU7ApYBV0a_kMaeTjqCt5LQHeXBQpQS4eDTRdjhFpimK6pmgUxtClWHgJHVB4aS7ayhaL3k6LFLIpqFqPKANtgqJYBnD6Vc3OP1eQTeCxoxl-ymZBUtJNkRnAxXrvizMSLI6zdPQX93QJgtySfRYrztRzOx4zqr-g3NlsiMfsr21dXUtlVRJIjy-s2y4NTEbZ8aseFKPdGg2Vrdw");'></div>
+<div class="flex flex-col">
+<span class="text-base font-bold text-text-main font-display">Alex's Space</span>
+<span class="text-xs text-orange-500 font-bold bg-white px-2 py-0.5 rounded-full shadow-sm mt-1 w-fit">Level 3</span>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col h-full overflow-hidden relative">
+<div class="absolute top-10 right-10 opacity-20 pointer-events-none">
+<span class="material-symbols-outlined text-6xl text-primary animate-bounce" style="animation-duration: 3s;">cloud</span>
+</div>
+<div class="absolute bottom-20 left-10 opacity-20 pointer-events-none">
+<span class="material-symbols-outlined text-6xl text-secondary animate-pulse" style="animation-duration: 4s;">wb_sunny</span>
+</div>
+<div class="lg:hidden flex items-center justify-between p-4 bg-white shadow-sm z-30 sticky top-0">
+<div class="flex items-center gap-2">
+<div class="bg-primary/10 p-2 rounded-full">
+<span class="material-symbols-outlined text-primary">star</span>
+</div>
+<h1 class="text-text-main font-bold text-xl font-display">My Favorites</h1>
+</div>
+<button class="p-2 text-text-main bg-gray-50 rounded-full">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto p-4 md:p-6 lg:px-10 lg:py-8 scroll-smooth z-10">
+<div class="max-w-6xl mx-auto flex flex-col gap-8 pb-10">
+<header class="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-white/60 backdrop-blur-sm p-6 rounded-3xl border border-white shadow-sm">
+<div class="flex flex-col gap-1">
+<h1 class="text-text-main text-3xl md:text-4xl font-extrabold tracking-tight flex items-center gap-3 font-display">
+<div class="bg-gradient-to-br from-orange-400 to-primary text-white p-3 rounded-2xl shadow-lg rotate-3">
+<span class="material-symbols-outlined text-3xl">stars</span>
+</div>
+<span class="bg-clip-text text-transparent bg-gradient-to-r from-text-main to-orange-800">My Favorites</span>
+</h1>
+<p class="text-text-muted text-sm md:text-base font-medium pl-1 mt-2">Keep exploring your collection of wonders!</p>
+</div>
+<div class="flex items-center gap-2 bg-white p-1.5 pr-3 rounded-full border border-gray-100 shadow-sm">
+<div class="flex items-center gap-2 pl-3 pr-3 py-1.5 bg-gray-100 rounded-full">
+<span class="material-symbols-outlined text-gray-500 text-sm">lock_open</span>
+<span class="text-xs font-bold text-gray-500 uppercase tracking-wider font-display">Parent Mode</span>
+</div>
+<button class="group flex items-center justify-center gap-1.5 text-red-400 hover:text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-full transition-all cursor-pointer" title="Only available in Parent Mode">
+<span class="material-symbols-outlined text-lg">delete</span>
+<span class="text-sm font-bold font-display">Clear All</span>
+</button>
+</div>
+</header>
+<div class="flex flex-wrap items-center gap-4 sticky top-0 md:relative z-20 py-2">
+<button class="flex items-center gap-2 px-6 py-3 rounded-full bg-text-main text-white shadow-lg shadow-text-main/20 hover:scale-105 transition-transform border-2 border-transparent">
+<span class="material-symbols-outlined text-yellow-300">grid_view</span>
+<span class="text-sm font-bold font-display">All</span>
+</button>
+<button class="flex items-center gap-2 px-6 py-3 rounded-full bg-white text-text-main hover:bg-green-50 border-2 border-transparent hover:border-green-200 shadow-sm hover:shadow-md transition-all group">
+<div class="bg-green-100 p-1 rounded-full group-hover:bg-green-200 transition-colors">
+<span class="material-symbols-outlined text-green-600 text-sm">forest</span>
+</div>
+<span class="text-sm font-bold font-display text-gray-600 group-hover:text-green-700">Natural</span>
+</button>
+<button class="flex items-center gap-2 px-6 py-3 rounded-full bg-white text-text-main hover:bg-orange-50 border-2 border-transparent hover:border-orange-200 shadow-sm hover:shadow-md transition-all group">
+<div class="bg-orange-100 p-1 rounded-full group-hover:bg-orange-200 transition-colors">
+<span class="material-symbols-outlined text-orange-500 text-sm">house</span>
+</div>
+<span class="text-sm font-bold font-display text-gray-600 group-hover:text-orange-700">Life</span>
+</button>
+<button class="flex items-center gap-2 px-6 py-3 rounded-full bg-white text-text-main hover:bg-purple-50 border-2 border-transparent hover:border-purple-200 shadow-sm hover:shadow-md transition-all group">
+<div class="bg-purple-100 p-1 rounded-full group-hover:bg-purple-200 transition-colors">
+<span class="material-symbols-outlined text-purple-500 text-sm">palette</span>
+</div>
+<span class="text-sm font-bold font-display text-gray-600 group-hover:text-purple-700">Humanities</span>
+</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+<div class="group relative flex flex-col bg-card-bg rounded-3xl p-4 border border-white shadow-card hover:shadow-hover transition-all duration-300 hover:-translate-y-2">
+<div class="absolute top-6 right-6 z-10 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 border border-green-100">
+<span class="material-symbols-outlined text-green-500 text-sm">forest</span>
+<span class="text-xs font-bold text-green-700 font-display">Natural</span>
+</div>
+<div class="w-full aspect-[4/3] rounded-2xl bg-gray-100 mb-4 overflow-hidden relative shadow-inner">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-110" data-alt="Cartoon illustration of a green Tyrannosaurus Rex" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCxkftxlzSthc5WMlMAoNP3EyqojfLmgSybPs9qPk6qV9Ju7xCG6Mnb8NCaa_0f7ibPpYMPvhUplWD5QrrX-AkK4P08YNSgKt7muGEKgajbV24dtiWzzEpwoTiuSQg8BATdQhk17Kc_MJu-CWGvW4vZuWz8SEowGVWnUm2utDVFsMfOYOe3JGvXz6q-EOsA-TZwK3IIWZuuYtOpTkctgLZlqCt8WoCGdnh_AWFX10xzwgtwXM09WdypfETGqbzsygY6S-F6JiGeM18");'></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<div class="flex flex-col gap-2 px-2 pb-2">
+<h3 class="text-text-main text-xl font-bold font-display tracking-tight group-hover:text-primary transition-colors">Tyrannosaurus Rex</h3>
+<div class="flex items-center justify-between mt-2">
+<span class="text-gray-400 text-xs font-semibold bg-gray-50 px-2 py-1 rounded-lg">2 days ago</span>
+<button class="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-md shadow-orange-200 active:scale-95">
+<span>Re-explore</span>
+<span class="material-symbols-outlined text-lg">rocket_launch</span>
+</button>
+</div>
+</div>
+</div>
+<div class="group relative flex flex-col bg-card-bg rounded-3xl p-4 border border-white shadow-card hover:shadow-hover transition-all duration-300 hover:-translate-y-2">
+<div class="absolute top-6 right-6 z-10 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 border border-purple-100">
+<span class="material-symbols-outlined text-purple-500 text-sm">palette</span>
+<span class="text-xs font-bold text-purple-700 font-display">Humanities</span>
+</div>
+<div class="w-full aspect-[4/3] rounded-2xl bg-gray-100 mb-4 overflow-hidden relative shadow-inner">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-110" data-alt="Illustration of a grand piano" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA0ClXOu_O05Kna2cPGRDImZU-185XdOqK6JEn--UYEkRsOc1i-5Av7GkHNsGJFgetVITCw06FNd4Td3xexXWKCJuxQcHyTn_pHkTIJaX-UiqrnQtkI9zP1bsXEGdqdH2Anoidbkb-p3jrtl9Av2MleJeAkiZDOmmGWUSsOuGkeOWPYrfE7dUvkLc-5J2nuJMc-cYnzHUOfjtgfETeubvBjleuuLK4uKOXRapL5vynT6MczkRhy_RNKgiN0E1xARI_kDyFAJWD_JeE");'></div>
+</div>
+<div class="flex flex-col gap-2 px-2 pb-2">
+<h3 class="text-text-main text-xl font-bold font-display tracking-tight group-hover:text-primary transition-colors">Grand Piano</h3>
+<div class="flex items-center justify-between mt-2">
+<span class="text-gray-400 text-xs font-semibold bg-gray-50 px-2 py-1 rounded-lg">5 days ago</span>
+<button class="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-md shadow-orange-200 active:scale-95">
+<span>Re-explore</span>
+<span class="material-symbols-outlined text-lg">rocket_launch</span>
+</button>
+</div>
+</div>
+</div>
+<div class="group relative flex flex-col bg-card-bg rounded-3xl p-4 border border-white shadow-card hover:shadow-hover transition-all duration-300 hover:-translate-y-2">
+<div class="absolute top-6 right-6 z-10 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 border border-orange-100">
+<span class="material-symbols-outlined text-orange-500 text-sm">house</span>
+<span class="text-xs font-bold text-orange-700 font-display">Life</span>
+</div>
+<div class="w-full aspect-[4/3] rounded-2xl bg-gray-100 mb-4 overflow-hidden relative shadow-inner">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-110" data-alt="Toy fire truck" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBwfMOz7uuxI32teWszy9JwwyIhohu2cZ6lkVvq8NbwyrqUtTgOYvXAQIlUMhxDeez38Zf1UX9biTIEzNqzD-t2gFG2q5QwA_zub7167f5tDePowDw-8bHrsUSgV-nqBCVwwnJCfLdCnCdzT_RxSr5dapb9yhcXqhnA1xV1dqpCe8Cz6hBcRt1xZyZ7ygXAsVE_fQL_XOZa9K43wvaw3aG2M7pFG8qCXjqZsKlZFClxtau7je2Qzxkts9aKjLCT8uD6wyCxr4Zl3fY");'></div>
+</div>
+<div class="flex flex-col gap-2 px-2 pb-2">
+<h3 class="text-text-main text-xl font-bold font-display tracking-tight group-hover:text-primary transition-colors">Fire Truck Safety</h3>
+<div class="flex items-center justify-between mt-2">
+<span class="text-gray-400 text-xs font-semibold bg-gray-50 px-2 py-1 rounded-lg">1 week ago</span>
+<button class="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-md shadow-orange-200 active:scale-95">
+<span>Re-explore</span>
+<span class="material-symbols-outlined text-lg">rocket_launch</span>
+</button>
+</div>
+</div>
+</div>
+<div class="group relative flex flex-col bg-card-bg rounded-3xl p-4 border border-white shadow-card hover:shadow-hover transition-all duration-300 hover:-translate-y-2">
+<div class="absolute top-6 right-6 z-10 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 border border-green-100">
+<span class="material-symbols-outlined text-green-500 text-sm">forest</span>
+<span class="text-xs font-bold text-green-700 font-display">Natural</span>
+</div>
+<div class="w-full aspect-[4/3] rounded-2xl bg-gray-100 mb-4 overflow-hidden relative shadow-inner">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-110" data-alt="Solar system illustration" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBH2UxcQgx3FYmU85EIJyDaHM5Gz6FlaHO93pldnJC0PImuMA9JhKrT09Csv1_CUcb05kj442S5G7w6wvFtmmSkI9Od5NTHeh9yQy-SSKGa6M9JmVPJKGFCDpW-wGaeolUroTR43QJB1xEoT7QdjDWJqXKEbIqjpDQhUwuj_1jk_Sx8qNaBDlZb-DdjR-tdldsuDLXg84pw7E03vKAfBb3DBBZZxprMijQdc2DnvNBnWyU5cvex_IU3MImYn-quU0NlSYU0xg4am30");'></div>
+</div>
+<div class="flex flex-col gap-2 px-2 pb-2">
+<h3 class="text-text-main text-xl font-bold font-display tracking-tight group-hover:text-primary transition-colors">Solar System</h3>
+<div class="flex items-center justify-between mt-2">
+<span class="text-gray-400 text-xs font-semibold bg-gray-50 px-2 py-1 rounded-lg">2 weeks ago</span>
+<button class="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-md shadow-orange-200 active:scale-95">
+<span>Re-explore</span>
+<span class="material-symbols-outlined text-lg">rocket_launch</span>
+</button>
+</div>
+</div>
+</div>
+<div class="col-span-1 md:col-span-2 xl:col-span-3 mt-8">
+<div class="flex flex-row items-end gap-4 max-w-2xl mx-auto">
+<div class="bg-center bg-contain bg-no-repeat size-24 shrink-0 drop-shadow-lg" data-alt="Mascot Avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBS17fzqJODDxkC3uGVp0y4RSnMdHBElkd6CiVHUpW8izmCQ6nRjf3G1YvvKm4xr_k7Alpa5ZmuVNKJ0_dEeNpK2RjcdrptbSCmQUgtNlDVG2ihumQDm2Zqs2A5TRsgFE2RDmI4IQRFMVI1htE1ljycqDBSsyRrV0hcNwfwqWWK-tc2rq5IgGlLE8PyvS7rMJadnJhJDXVniDKduQOZqtU_J2qnFV4zMgzY_oddjg9uv_NKB5IliaF0AktnOksvGTC7dJ4npsTTa6U"); border-radius: 50%;'>
+</div>
+<div class="relative mb-6">
+<div class="bg-white p-6 rounded-3xl rounded-bl-none border-2 border-primary/20 shadow-lg relative z-10 max-w-lg">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-3xl">lightbulb</span>
+<div>
+<h4 class="text-primary font-bold font-display text-lg mb-1">Little Star Says:</h4>
+<p class="text-text-main font-medium leading-relaxed">Go explore interesting knowledge and collect more favorite cards! I'm waiting for your discoveries! ✨</p>
+</div>
+</div>
+</div>
+<svg class="absolute -bottom-2 -left-2 w-8 h-8 text-white transform rotate-0 z-20" fill="currentColor" viewBox="0 0 24 24">
+<path d="M0 0 L24 0 L24 24 Z" transform="scale(1, -1) translate(0, -24)"></path>
+</svg>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>

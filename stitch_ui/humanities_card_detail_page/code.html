@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Humanities Card Detail Page - Sunny Minds</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff9e66",
+                        "primary-hover": "#ff8a47",
+                        "background-light": "#f8f6f5",
+                        "background-dark": "#23160f",
+                        "surface": "#ffffff",
+                        "text-main": "#181310",
+                        "text-muted": "#8d6f5e",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "1.5rem", "xl": "2rem", "2xl": "2.5rem", "full": "9999px"},
+                    boxShadow: {
+                        "soft": "0 10px 40px -10px rgba(24, 19, 16, 0.05)",
+                        "card": "0 20px 40px -12px rgba(24, 19, 16, 0.1)",
+                        "button": "0 10px 20px -5px rgba(255, 158, 102, 0.4)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e5e0dc;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #d4cdc7;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-text-main font-display antialiased overflow-x-hidden selection:bg-primary/30">
+<div class="relative flex min-h-screen w-full flex-col">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 w-full bg-surface/80 backdrop-blur-md border-b border-[#f0ebe8] transition-all">
+<div class="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
+<!-- Logo -->
+<div class="flex items-center gap-3 cursor-pointer group">
+<div class="size-10 bg-primary rounded-xl flex items-center justify-center text-text-main rotate-3 group-hover:rotate-6 transition-transform">
+<span class="material-symbols-outlined text-2xl">wb_sunny</span>
+</div>
+<h2 class="text-text-main text-xl font-extrabold tracking-tight">Sunny Minds</h2>
+</div>
+<!-- Desktop Nav -->
+<div class="hidden md:flex items-center gap-8">
+<nav class="flex items-center gap-6">
+<a class="text-text-main font-bold hover:text-primary transition-colors flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-[20px] text-text-muted">map</span>
+                            Map
+                        </a>
+<a class="text-text-main font-bold hover:text-primary transition-colors flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-[20px] text-text-muted">backpack</span>
+                            My Collection
+                        </a>
+</nav>
+<div class="h-8 w-px bg-gray-200"></div>
+<!-- User Actions -->
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-4 h-11 bg-surface border border-gray-200 hover:border-primary/50 hover:bg-primary/5 rounded-full text-sm font-bold transition-all">
+<div class="size-6 rounded-full bg-gray-100 overflow-hidden">
+<img alt="User Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_hybpMITAPZwopA0dXHG2z-akgpFVRnIttQwMbbblW1Onuku1SmtOzjJY0AgG9uftFOv6D9fHILf_B8VYLJ5FpslURYN2yATEca-66_ft3qj_aZ5EscCxfE3CZUXoAeI2dyD44GGHJ9WbgZlUOdJGacr5FT5foc4ubJ_XGTkhnPzJyXpH5VRt-ACRcxCJCEer-r3w0WnILeCv8jpnDClZySESbtxsGcpD3d3s96-PkeqXiaZemunpp4nxGyyQdmdQfOQ1ajQ5axg"/>
+</div>
+<span>Junior Explorer</span>
+</button>
+</div>
+</div>
+<!-- Mobile Menu Icon -->
+<button class="md:hidden p-2 text-text-main">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</header>
+<main class="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-10">
+<!-- Breadcrumbs -->
+<div class="mb-8 flex items-center gap-2 text-sm font-medium animate-fade-in-up">
+<a class="text-text-muted hover:text-primary transition-colors flex items-center gap-1" href="#">
+<span class="material-symbols-outlined text-[18px]">home</span>
+                    Home
+                </a>
+<span class="text-gray-300">/</span>
+<a class="text-text-muted hover:text-primary transition-colors" href="#">Humanities Literacy</a>
+<span class="text-gray-300">/</span>
+<span class="text-text-main font-bold bg-white px-3 py-1 rounded-full shadow-sm">The Goose (咏鹅)</span>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
+<!-- LEFT COLUMN: The Collectible Card -->
+<div class="lg:col-span-5 flex flex-col gap-6 sticky top-28">
+<!-- Card Visual Wrapper -->
+<div class="relative w-full aspect-[3.5/5] group perspective-1000">
+<!-- The Card Itself -->
+<div class="absolute inset-0 w-full h-full rounded-2xl bg-white p-3 shadow-card transition-transform duration-500 ease-out group-hover:scale-[1.02] group-hover:-rotate-1 border border-[#f0ebe8]">
+<!-- Inner Content -->
+<div class="w-full h-full rounded-xl overflow-hidden relative bg-blue-50">
+<!-- Background Image -->
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" data-alt="Cute watercolor illustration of a white goose floating on water with green lotus leaves" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA_GdIWKqK8LQMPuwW_zuhcVz_aWIi66y3i_dwh12TDQn9hMvrwqpNiv6jbrBXLi1A1TpS5x5kIRWMv_AJZT1XFafZ0xURfhGFw4005L1y3LtJuukJPgCxtWOmrkZ7uE6lmnSFmNsDAzpp-BVuTZCdt6gdFF69cKkwDi_KHBbhM_dXqZsfPLDxsQIxPJYi8odFrQwLdsVz8UZ3nbpjOGA03dYuwg_lTPkXb04-5Qr539IYaTc9hTRRimvlVhcDd3l2Q7l5aE0feWiU');">
+</div>
+<!-- Card Overlay Gradient -->
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80"></div>
+<!-- Top Badges -->
+<div class="absolute top-4 left-4 right-4 flex justify-between items-start">
+<div class="bg-surface/90 backdrop-blur text-xs font-bold px-3 py-1.5 rounded-full shadow-sm uppercase tracking-wider text-text-main flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-sm">auto_stories</span>
+                                        Humanities
+                                    </div>
+<div class="size-10 bg-surface/90 backdrop-blur rounded-full flex items-center justify-center shadow-sm text-yellow-500">
+<span class="material-symbols-outlined">stars</span>
+</div>
+</div>
+<!-- Bottom Text on Card -->
+<div class="absolute bottom-6 left-6 right-6 text-white">
+<h2 class="text-3xl font-black mb-1 drop-shadow-md">The Goose</h2>
+<p class="text-white/90 text-sm font-medium drop-shadow-md">By Luo Binwang • Tang Dynasty</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Card Stats / Gamification -->
+<div class="grid grid-cols-3 gap-4">
+<div class="bg-surface rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm border border-[#f0ebe8]">
+<span class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Rarity</span>
+<span class="text-primary font-black text-lg">Rare</span>
+</div>
+<div class="bg-surface rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm border border-[#f0ebe8]">
+<span class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">XP Value</span>
+<span class="text-green-600 font-black text-lg">+150</span>
+</div>
+<div class="bg-surface rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm border border-[#f0ebe8]">
+<span class="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Collected</span>
+<span class="text-text-main font-black text-lg">12k</span>
+</div>
+</div>
+</div>
+<!-- RIGHT COLUMN: Interactive Content -->
+<div class="lg:col-span-7 flex flex-col gap-8">
+<!-- Header Section -->
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<span class="bg-primary/10 text-orange-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Poetry Card #042</span>
+<span class="bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Age 3-8</span>
+</div>
+<h1 class="text-4xl md:text-5xl lg:text-6xl font-black text-text-main leading-[1.1] tracking-tight">
+                            The Goose (咏鹅)
+                        </h1>
+<p class="text-lg md:text-xl text-text-muted font-medium max-w-2xl leading-relaxed">
+                            Discover the beauty of ancient poetry through the eyes of a playful goose. A classic masterpiece written by a 7-year-old prodigy!
+                        </p>
+</div>
+<!-- Media Player (Styled as a Pill) -->
+<div class="w-full bg-surface p-2 pr-6 rounded-full shadow-soft border border-[#f0ebe8] flex items-center gap-4 transition-transform hover:scale-[1.01]">
+<button class="size-14 md:size-16 rounded-full bg-primary hover:bg-primary-hover text-text-main flex items-center justify-center shadow-button transition-colors shrink-0 group">
+<span class="material-symbols-outlined text-3xl group-hover:scale-110 transition-transform">play_arrow</span>
+</button>
+<div class="flex-1 flex flex-col justify-center gap-1 min-w-0">
+<div class="flex justify-between items-baseline pr-2">
+<span class="font-bold text-text-main truncate">Listen to Sunny read</span>
+<span class="text-xs font-bold text-text-muted">1:42</span>
+</div>
+<!-- Fake Progress Bar -->
+<div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+<div class="w-1/3 h-full bg-primary rounded-full relative"></div>
+</div>
+</div>
+<button class="hidden md:flex size-10 items-center justify-center rounded-full hover:bg-gray-100 text-text-muted transition-colors">
+<span class="material-symbols-outlined">volume_up</span>
+</button>
+</div>
+<!-- The Poem Content Block -->
+<div class="relative bg-[#FFF8F0] rounded-2xl p-8 md:p-12 border-2 border-primary/20 text-center shadow-sm">
+<div class="absolute -top-5 left-1/2 -translate-x-1/2 bg-white border border-primary/20 px-4 py-1 rounded-full shadow-sm">
+<span class="text-xs font-bold text-orange-800 uppercase tracking-widest">Recite with me</span>
+</div>
+<div class="font-display font-bold text-2xl md:text-3xl lg:text-4xl leading-relaxed text-text-main space-y-4">
+<p class="hover:text-primary transition-colors cursor-default">Goose, goose, goose,</p>
+<p class="hover:text-primary transition-colors cursor-default">You bend your neck towards the sky and sing.</p>
+<p class="hover:text-primary transition-colors cursor-default">Your white feathers float on the emerald water,</p>
+<p class="hover:text-primary transition-colors cursor-default">Your red feet push the clear waves.</p>
+</div>
+<div class="mt-8 pt-6 border-t border-orange-200/50 flex flex-wrap justify-center gap-4">
+<span class="inline-flex items-center gap-1 text-sm font-bold text-orange-800 bg-orange-100/50 px-3 py-1 rounded-lg cursor-help" title="Emerald means bright green!">
+<span class="material-symbols-outlined text-base">info</span> Emerald Water
+                            </span>
+<span class="inline-flex items-center gap-1 text-sm font-bold text-orange-800 bg-orange-100/50 px-3 py-1 rounded-lg cursor-help" title="Webbed feet help them swim!">
+<span class="material-symbols-outlined text-base">info</span> Red Feet
+                            </span>
+</div>
+</div>
+<!-- Bento Grid for Knowledge Details -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Explanation Card -->
+<div class="bg-surface p-6 rounded-xl border border-[#f0ebe8] shadow-soft hover:shadow-card transition-all group">
+<div class="size-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-2xl">school</span>
+</div>
+<h3 class="text-xl font-bold mb-2">What does it mean?</h3>
+<p class="text-text-muted leading-relaxed">
+                                This poem is like a painting with words! It captures the lively spirit of a goose. The colors "white", "emerald", and "red" make the scene super bright and happy.
+                            </p>
+</div>
+<!-- Situation Card -->
+<div class="bg-surface p-6 rounded-xl border border-[#f0ebe8] shadow-soft hover:shadow-card transition-all group">
+<div class="size-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-2xl">park</span>
+</div>
+<h3 class="text-xl font-bold mb-2">Real Life Spot</h3>
+<p class="text-text-muted leading-relaxed">
+                                Next time you go to the park, look at the pond! Can you see the geese paddling with their red feet under the water?
+                            </p>
+</div>
+</div>
+<!-- Bottom Action Bar (Mobile Sticky) -->
+<div class="fixed bottom-0 left-0 w-full p-4 bg-white/90 backdrop-blur-lg border-t border-gray-100 md:static md:bg-transparent md:p-0 md:border-0 z-40">
+<div class="max-w-7xl mx-auto flex items-center justify-between gap-4 md:justify-start">
+<button class="flex-1 md:flex-none md:w-auto h-14 md:h-16 px-8 bg-primary hover:bg-primary-hover text-text-main text-lg font-black rounded-full shadow-button flex items-center justify-center gap-3 transition-all active:scale-95 group">
+<span class="material-symbols-outlined filled text-2xl group-hover:animate-bounce">favorite</span>
+<span class="uppercase tracking-wide">Collect Card</span>
+</button>
+<button class="size-14 md:size-16 rounded-full bg-surface border border-gray-200 hover:bg-gray-50 flex items-center justify-center text-text-main transition-colors md:hidden">
+<span class="material-symbols-outlined">share</span>
+</button>
+</div>
+</div>
+<!-- Spacer for mobile only to prevent content being hidden behind fixed bottom bar -->
+<div class="h-20 md:hidden"></div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

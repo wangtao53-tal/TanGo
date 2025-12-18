@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Science Card Detail - Giant Panda</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#75ff7a",
+                        "primary-hover": "#64d968",
+                        "background-light": "#f5f8f5",
+                        "background-dark": "#0f2310",
+                        "text-main": "#101811",
+                        "text-muted": "#5e8d5f",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "2.5rem", "2xl": "3rem", "full": "9999px"},
+                    boxShadow: {
+                        'card': '0 20px 40px -10px rgba(117, 255, 122, 0.3)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for horizontal lists */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display min-h-screen flex flex-col overflow-x-hidden text-text-main dark:text-white transition-colors duration-200">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 bg-white/90 dark:bg-background-dark/90 backdrop-blur-md border-b border-[#f0f5f0] dark:border-white/10 px-6 py-4">
+<div class="max-w-7xl mx-auto flex items-center justify-between">
+<div class="flex items-center gap-8">
+<a class="flex items-center gap-3 text-text-main dark:text-white hover:opacity-80 transition-opacity" href="#">
+<div class="size-8 text-primary">
+<span class="material-symbols-outlined text-4xl">psychology</span>
+</div>
+<h2 class="text-xl font-bold tracking-tight">AI Kids Explore</h2>
+</a>
+<nav class="hidden md:flex items-center gap-8 ml-4">
+<a class="text-text-main dark:text-white text-sm font-medium hover:text-primary transition-colors" href="#">Home</a>
+<a class="text-text-main dark:text-white text-sm font-medium hover:text-primary transition-colors" href="#">My Collection</a>
+<a class="text-primary text-sm font-bold bg-primary/10 px-3 py-1 rounded-full" href="#">Explore</a>
+</nav>
+</div>
+<div class="flex items-center gap-4 md:gap-6">
+<div class="hidden sm:flex items-center bg-[#f0f5f0] dark:bg-white/10 rounded-xl h-10 px-3 w-64">
+<span class="material-symbols-outlined text-text-muted">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-full text-text-main dark:text-white placeholder:text-text-muted" placeholder="Search for animals, space..."/>
+</div>
+<div class="flex items-center gap-2 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 p-1 pr-3 rounded-full shadow-sm">
+<div class="bg-cover bg-center rounded-full size-8" data-alt="User avatar of a smiling child" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDnBmzou4kuwLmoSXoycxUi5LPePue8HAJT485YmbSK1VrQRNXx3LAbGKjPYEol_h43d7j0oh2Rs6Q7RdmjzqBXAT6eSbfUno0Vx0Fkpy93aT7qAj8mHilJ9obNB-kIB-R7djoKmLnV3rBDDD2QCPdFCUbwaAYjKYFxLE3wVVwOVqkvf9vLWddpi4qvpYWcT7LYnf42GNpmtVQuJAxvd1WJ05YAgg9sLyy9yzIZa1cLf6pwQJ30REYmUL0HjloLarqYM9o0m5nsHWg");'></div>
+<span class="text-xs font-bold">Explorer Leo</span>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-grow layout-container flex flex-col items-center py-6 px-4 md:px-8 w-full max-w-7xl mx-auto">
+<!-- Breadcrumbs -->
+<div class="w-full flex items-center gap-2 mb-8 text-sm overflow-x-auto whitespace-nowrap">
+<a class="text-text-muted hover:text-primary transition-colors flex items-center gap-1" href="#">
+<span class="material-symbols-outlined text-lg">home</span>
+                Home
+            </a>
+<span class="text-text-muted">/</span>
+<a class="text-text-muted hover:text-primary transition-colors" href="#">Explore</a>
+<span class="text-text-muted">/</span>
+<a class="text-text-muted hover:text-primary transition-colors" href="#">Science Cards</a>
+<span class="text-text-muted">/</span>
+<span class="text-text-main dark:text-white font-semibold">The Giant Panda</span>
+</div>
+<div class="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
+<!-- Left Column: The Collectible Card Visual -->
+<div class="lg:col-span-5 flex flex-col items-center">
+<div class="group relative w-full max-w-[400px] aspect-[3/4] rounded-2xl p-3 bg-gradient-to-br from-white to-[#f0f5f0] dark:from-white/10 dark:to-white/5 shadow-card hover:scale-[1.02] transition-transform duration-500 cursor-pointer">
+<!-- Holo shine effect -->
+<div class="absolute inset-0 rounded-2xl bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10"></div>
+<!-- Card Border/Frame -->
+<div class="h-full w-full border-4 border-primary rounded-xl overflow-hidden relative flex flex-col bg-white dark:bg-[#1a2e1b]">
+<!-- Card Image -->
+<div class="h-[65%] w-full bg-cover bg-center relative" data-alt="A cute giant panda sitting and eating bamboo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDWuOmLFuoxAUEuuE53JRBa_urzI7IGrlrJO_hlbC5gh9IEEn-RSiH6FTnCz0uEN-DIwpNf6CVe__4X_-z_xUqZ259LjTEYV8bxU6IfcPsAPotzRIaV9n-so9piJ0WoqRh4wYS0v5nl3pLkPMYHfWOpmJXbEM0_d6lhIIrxeYVx-PMSh94JCj0MHc8xRwzk2HnEsH4qA6Dk1-68CHqbIDpdgXxu-gosUBPcK54tf4ivr727wWhnneTjuvQQ7YYBRqNjcDqQ43SPHtU");'>
+<div class="absolute top-3 left-3 bg-black/40 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold border border-white/20">
+                                #1024
+                            </div>
+<div class="absolute top-3 right-3 text-white drop-shadow-md">
+<span class="material-symbols-outlined text-3xl filled" style="font-variation-settings: 'FILL' 1">stars</span>
+</div>
+</div>
+<!-- Card Bottom Info -->
+<div class="flex-1 p-5 flex flex-col justify-between bg-white dark:bg-[#1a2e1b]">
+<div>
+<div class="flex items-center justify-between mb-1">
+<h3 class="text-2xl font-bold text-text-main dark:text-white">Giant Panda</h3>
+<span class="text-xl">🐼</span>
+</div>
+<p class="text-text-muted text-sm font-medium">Ailuropoda melanoleuca</p>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-white/10">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-wider text-text-muted font-bold">Rarity</span>
+<div class="flex text-primary">
+<span class="material-symbols-outlined text-sm">star</span>
+<span class="material-symbols-outlined text-sm">star</span>
+<span class="material-symbols-outlined text-sm">star</span>
+<span class="material-symbols-outlined text-sm">star</span>
+<span class="material-symbols-outlined text-sm text-gray-300 dark:text-gray-600">star</span>
+</div>
+</div>
+<div class="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">eco</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<p class="mt-4 text-center text-sm text-text-muted flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">360</span>
+                    Hover card to see details
+                </p>
+</div>
+<!-- Right Column: Interactive Details -->
+<div class="lg:col-span-7 flex flex-col gap-8">
+<!-- Header Section -->
+<div class="flex flex-col gap-4">
+<div class="flex items-start justify-between gap-4 flex-wrap">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Mammal</span>
+<span class="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Science Card</span>
+</div>
+<h1 class="text-4xl md:text-5xl font-black tracking-tight text-text-main dark:text-white leading-tight">The Giant Panda</h1>
+</div>
+<!-- Audio Player Button -->
+<button class="flex items-center gap-3 bg-white dark:bg-white/10 border-2 border-gray-100 dark:border-white/10 pr-5 pl-2 py-2 rounded-full shadow-sm hover:shadow-md hover:border-primary transition-all group">
+<div class="size-10 bg-primary text-text-main rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined filled" style="font-variation-settings: 'FILL' 1">play_arrow</span>
+</div>
+<div class="flex flex-col items-start">
+<span class="text-xs font-bold text-text-muted uppercase">Listen</span>
+<span class="text-sm font-bold text-text-main dark:text-white">Narration</span>
+</div>
+</button>
+</div>
+<p class="text-xl md:text-2xl text-text-muted font-medium leading-relaxed">
+                        The bamboo-eating bear that lives in the misty mountains of central China!
+                    </p>
+</div>
+<!-- Facts Grid -->
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+<div class="bg-primary/10 dark:bg-primary/5 rounded-2xl p-4 flex flex-col items-center text-center gap-2 border border-primary/20">
+<div class="size-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-primary shadow-sm">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+<div>
+<span class="block text-xs font-bold text-text-muted uppercase">Diet</span>
+<span class="block text-lg font-bold text-text-main dark:text-white">Herbivore</span>
+</div>
+</div>
+<div class="bg-primary/10 dark:bg-primary/5 rounded-2xl p-4 flex flex-col items-center text-center gap-2 border border-primary/20">
+<div class="size-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-primary shadow-sm">
+<span class="material-symbols-outlined">landscape</span>
+</div>
+<div>
+<span class="block text-xs font-bold text-text-muted uppercase">Home</span>
+<span class="block text-lg font-bold text-text-main dark:text-white">Mountains</span>
+</div>
+</div>
+<div class="bg-primary/10 dark:bg-primary/5 rounded-2xl p-4 flex flex-col items-center text-center gap-2 border border-primary/20 col-span-2 md:col-span-1">
+<div class="size-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-primary shadow-sm">
+<span class="material-symbols-outlined">straighten</span>
+</div>
+<div>
+<span class="block text-xs font-bold text-text-muted uppercase">Size</span>
+<span class="block text-lg font-bold text-text-main dark:text-white">1.2 - 1.9m</span>
+</div>
+</div>
+</div>
+<!-- Fun Fact Bubble -->
+<div class="relative bg-yellow-50 dark:bg-yellow-900/10 border-2 border-yellow-200 dark:border-yellow-700/30 rounded-3xl rounded-tl-none p-6 mt-2">
+<div class="absolute -top-3 -left-1 bg-yellow-400 text-text-main text-xs font-black px-3 py-1 rounded-lg transform -rotate-3 shadow-sm border border-yellow-500">
+                        DID YOU KNOW?
+                    </div>
+<div class="flex gap-4 items-start">
+<span class="text-4xl">💡</span>
+<p class="text-lg font-medium text-gray-800 dark:text-gray-200">
+                            Pandas spend up to <span class="bg-yellow-200 dark:bg-yellow-800 px-1 rounded mx-1">12 hours</span> a day just eating! They have to eat 26 to 84 pounds of bamboo every single day.
+                        </p>
+</div>
+</div>
+<!-- Collect Action -->
+<div class="flex flex-col sm:flex-row items-center gap-6 mt-4 p-6 bg-white dark:bg-white/5 rounded-3xl shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-white/5">
+<button class="w-full sm:w-auto flex-1 h-14 bg-primary hover:bg-primary-hover text-text-main text-lg font-bold rounded-full shadow-[0_4px_0_0_#4bc950] active:shadow-none active:translate-y-[4px] transition-all flex items-center justify-center gap-3">
+<span class="material-symbols-outlined filled" style="font-variation-settings: 'FILL' 1">library_add</span>
+                        Add to Collection
+                    </button>
+<div class="flex items-center gap-3">
+<div class="flex -space-x-3">
+<img alt="User 1" class="w-8 h-8 rounded-full border-2 border-white dark:border-gray-800 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmPvUnvpAd4deobwz3DD43Jmh1eLPoU1D6zMwSKTswEHduheHzcsIQ8-nzdzNIpLfYZtiXTFHq8zCaa_0eEO8GdRI2j2QLVZVSYCos_v-rx5IZa91BB0VrjIJoVlYBDDbg8E6E5bY2YzU9m_-WY6w4rAqOlDB5pfeUTf9vVBgtWEumjua_YIQZiknaXTv6w1alZiKNj9sAfmfCpdFeXGWl8OHaU_WBGUYgwsusmJjTdkPbqgVfxNF178AxB8hg_hEgTC0joiH0qg4"/>
+<img alt="User 2" class="w-8 h-8 rounded-full border-2 border-white dark:border-gray-800 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXkr_86UYM-Qzslp7x42EVVy9DiK7jlWAX1d6_7hNf5hJPn6lb4bl7yuD3D8sKyf7_vfnXJwPdcJzKuGO58QvXuCTBl58HOzPm0cBqyaAeUmH6Wk3vg8d3VtAW7IaXMg-Zg3peJ3zp7OeRd3EzepKa7U1G5b6_SZByZyZQMbceV1jBnWqQ5SLWmlYjtkDX_R9EFcVh_llqdl_T4rA_oTYFYf-uR3gclxA67tDLu-8A8Fxlqw3Ok2cXTL3s-zySzr_d0xni9Uqn-IM"/>
+<img alt="User 3" class="w-8 h-8 rounded-full border-2 border-white dark:border-gray-800 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuKrEB_zBNPBq6QxK-oCgFG4AX6gEEy8CsZ0dqtQXspF5IlP6nP7rnQBOQKU2mbVlQgb3DiRehqxVTiHqqVTPfLCYBZGINlcNkQS57U0wC-xSRB_ihen0a-KzUmKFrdrYG3NAqyyi5Jk_6X08xEdRAyiPIsJTUdnzL2MrsyOIPHpHS4ksOfDsC6WBeoOi7l8pT2J0g6RABXGnLIdX9fxBptea6R7j6x-iAWeA8e8Fc-MrpCFeW4b_r9gJchnG2GBnvSKqr-dEk1m4"/>
+</div>
+<span class="text-sm font-medium text-text-muted">Collected by <strong>1,204</strong> kids</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Related/Suggested Cards -->
+<div class="w-full mt-24 mb-12">
+<div class="flex items-center justify-between mb-8 px-2">
+<h3 class="text-2xl font-bold text-text-main dark:text-white">More to Explore</h3>
+<a class="text-primary font-bold hover:underline flex items-center gap-1" href="#">
+                    View All
+                    <span class="material-symbols-outlined">arrow_forward</span>
+</a>
+</div>
+<div class="flex overflow-x-auto gap-6 pb-8 hide-scrollbar snap-x">
+<!-- Related Card 1 -->
+<a class="snap-center shrink-0 w-64 group" href="#">
+<div class="aspect-[3/4] rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-3 shadow-sm hover:shadow-lg transition-all hover:-translate-y-2">
+<div class="w-full h-3/5 rounded-xl bg-cover bg-center mb-3 relative" data-alt="Red Panda on a tree branch" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBodBQYCeLBKe4l-jBcPrXzRf4lDdbxlPcuVmpgfNilt8RFSUFJXOzaq8eCF7YVoRjoQzx-d6LuQuAuGi_F3ildel7f8vup_Jx2NHv9752HDnRm7yoHv4JX_Tx-x2r-IoZ-v_L1qGEkHXW7A8b_rCZ2SDTker3DxxK4wLX64hGnDN_12qsBuZh-l0d1jh77J2tcWKWRk2d6_vwd-owB9BTRNnVG8GXsOQVYdZY-sEjBq0OUS3kVg9Lt8Pq4MlBPxhC13Ty4Fz8qjuM");'>
+<div class="absolute top-2 right-2 bg-white/90 backdrop-blur rounded-full p-1 shadow-sm">
+<span class="material-symbols-outlined text-green-600 text-sm">check_circle</span>
+</div>
+</div>
+<div class="px-1">
+<div class="flex gap-1 mb-1">
+<span class="bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Rare</span>
+</div>
+<h4 class="font-bold text-lg text-text-main dark:text-white leading-tight mb-1">Red Panda</h4>
+<p class="text-sm text-text-muted line-clamp-2">The original panda, smaller and reddish-brown.</p>
+</div>
+</div>
+</a>
+<!-- Related Card 2 -->
+<a class="snap-center shrink-0 w-64 group" href="#">
+<div class="aspect-[3/4] rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-3 shadow-sm hover:shadow-lg transition-all hover:-translate-y-2">
+<div class="w-full h-3/5 rounded-xl bg-cover bg-center mb-3 relative" data-alt="Leopard in the wild" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDazbly3DIr-23toA9Bb7kCIn5enMBLZbEjAkSLAzTR3af556Y4FNAh-tgKaMAU7jWyUQGSskEwlzCwF5iZBgg3GjWKkxipJtmS1OL9c6h6jZuk7KdoF87KKeB-RsNBL1r-t0C-xqyDBqQJtx1f7NOKZ3RIV3Quh7_tRXvrjem3GBUaBHlihZ7BMxVrv_UDNwqTgZ2uWzTouF_CvZPCcz_8eums5Ti9HubD5NHtixM_3CTNOZZgVF1ulV8pwdXNbOt9_ekQvfxGmNQ");'>
+</div>
+<div class="px-1">
+<div class="flex gap-1 mb-1">
+<span class="bg-primary/20 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Common</span>
+</div>
+<h4 class="font-bold text-lg text-text-main dark:text-white leading-tight mb-1">Snow Leopard</h4>
+<p class="text-sm text-text-muted line-clamp-2">Ghost of the mountains, master of camouflage.</p>
+</div>
+</div>
+</a>
+<!-- Related Card 3 -->
+<a class="snap-center shrink-0 w-64 group" href="#">
+<div class="aspect-[3/4] rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-3 shadow-sm hover:shadow-lg transition-all hover:-translate-y-2">
+<div class="w-full h-3/5 rounded-xl bg-cover bg-center mb-3 relative" data-alt="Golden Snub-nosed Monkey" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCTt86WDMrgZHhRUX16yqJENvkCC-GofFgU9v0eNv8yjIeLr9uSwOYE_zbTo2cnSVO7QMtxh_MFHovi6X3SUvgR3r6P_C36JiuGIPzOALqBuqasoezn8eUBTq1gub8kpslGobE3-Fq_k4jB8xqnQPwCM_UpBbcNmdIgwDL-Z37uY6GHs9qaQNXefmlbnZPN93JiIqQPohgo8Z3_v4rAh7Zp5jaklu9MjYkYctusWis7BMuSUFN_Yye4zSl64bZFG0gBznajn-Gku-s");'>
+</div>
+<div class="px-1">
+<div class="flex gap-1 mb-1">
+<span class="bg-purple-100 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Epic</span>
+</div>
+<h4 class="font-bold text-lg text-text-main dark:text-white leading-tight mb-1">Golden Monkey</h4>
+<p class="text-sm text-text-muted line-clamp-2">Famous for their blue faces and golden fur.</p>
+</div>
+</div>
+</a>
+<!-- Related Card 4 -->
+<a class="snap-center shrink-0 w-64 group" href="#">
+<div class="aspect-[3/4] rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-3 shadow-sm hover:shadow-lg transition-all hover:-translate-y-2">
+<div class="w-full h-3/5 rounded-xl bg-cover bg-center mb-3 relative" data-alt="Asian Elephant in the forest" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC6mcSjvuy3XxGYl3O3CIFMrDDg1jzeFv6WiwEURxJcOJtz6dFcNw2SW9aSr8zRJHUM6zJzjpnJ07L18nzXzZJcDQQkgOnINfFAYqySWpjMQAP4lQoMbsgYbCjNbZmuoJpCWudDWMgTVufuwkCCRBn3c8jE2YvmGqeLBGXnVB3UnTeMSmZfE3-Lkf899I16eWGRrSSHvBxVbTffTvJt54WZgdNaU2UNdaFVRps2mgs_EUwJog-NT5k5joXLfxg1rmab32JfyBBu0u0");'>
+</div>
+<div class="px-1">
+<div class="flex gap-1 mb-1">
+<span class="bg-primary/20 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Common</span>
+</div>
+<h4 class="font-bold text-lg text-text-main dark:text-white leading-tight mb-1">Asian Elephant</h4>
+<p class="text-sm text-text-muted line-clamp-2">Smaller ears than African cousins, but very smart!</p>
+</div>
+</div>
+</a>
+</div>
+</div>
+</main>
+</body></html>

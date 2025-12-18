@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Learning Report Page</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "cream": "#FDFBF7",
+                        "surface": "#FFFFFF",
+                        "primary": "#FF9F1C", // Cheerful Orange
+                        "secondary": "#FFD166", // Sunny Yellow
+                        "accent-green": "#06D6A0", // Mint Green
+                        "accent-blue": "#4D96FF", // Sky Blue
+                        "accent-pink": "#FF6B6B", // Coral Pink
+                        "text-main": "#2D334A", // Dark Navy
+                        "text-muted": "#7A8299", // Muted Blue-Grey
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "xl": "1rem",
+                        "2xl": "1.5rem",
+                        "3xl": "2rem",
+                        "4xl": "2.5rem",
+                    },
+                    boxShadow: {
+                        'comic': '4px 4px 0px 0px rgba(45, 51, 74, 0.1)',
+                        'comic-hover': '6px 6px 0px 0px rgba(45, 51, 74, 0.15)',
+                        'comic-sm': '2px 2px 0px 0px rgba(45, 51, 74, 0.1)',
+                    },
+                    backgroundImage: {
+                        'pattern-dots': "radial-gradient(#E2E8F0 2px, transparent 2px)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #FDFBF7;
+            background-image: radial-gradient(#E5E7EB 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
+        .animate-bounce-slow {
+            animation: bounce 3s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(-5%); }
+            50% { transform: translateY(0); }
+        }::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FDFBF7; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #FFD166; 
+            border-radius: 10px;
+            border: 2px solid #FDFBF7;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #FF9F1C; 
+        }
+    </style>
+</head>
+<body class="font-display text-text-main antialiased selection:bg-secondary selection:text-text-main">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<header class="sticky top-0 z-50 px-6 py-4 md:px-10">
+<div class="mx-auto max-w-[1024px] rounded-full bg-surface/90 backdrop-blur-md border-2 border-gray-100 shadow-sm px-6 py-3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="flex h-10 w-10 items-center justify-center rounded-full bg-accent-blue text-white shadow-comic-sm">
+<span class="material-symbols-outlined filled">rocket_launch</span>
+</div>
+<h2 class="text-lg font-extrabold tracking-tight text-text-main">Little Explorer</h2>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden md:flex items-center gap-2 rounded-full bg-cream px-4 py-1.5 border-2 border-gray-100">
+<span class="text-xs font-bold uppercase text-primary tracking-wider">Lvl 5</span>
+<span class="h-4 w-[2px] bg-gray-200 rounded-full"></span>
+<span class="text-sm font-bold text-text-main">Space Cadet</span>
+</div>
+<div class="h-10 w-10 overflow-hidden rounded-full border-2 border-white shadow-md bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAbf_HR1ylG9fVZHT6vrDOIOsHTJZ4ZRt3BOCjbkXhbkM78qCu3-ETmXJoZxEv9G4A3Q9081NT8C_C_t1Nyo_pLT_9vap4XcjpOGKjWP7JD6SvbNagxjY9QYDIm9B_Ckgy8MqOMNPFlEuOnYLnOVglwIFdCj5dIYxWHZVRyaQk9FVUMHlN7zyf4_x-RAJgt8R_UzySALxZ6RuDoZX9t-Oh8oZqspJzluLWGDBzOpNblPIsmtTJ1j3N7tnU7uo4PswKma4HbdHbd5eE");'></div>
+</div>
+</div>
+</header>
+<main class="flex-1 px-4 py-8 md:px-10 lg:px-20">
+<div class="mx-auto flex max-w-[1024px] flex-col gap-8">
+<div class="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between p-6 bg-surface rounded-3xl border-2 border-gray-100 shadow-comic">
+<div class="absolute top-0 right-0 p-10 opacity-5 pointer-events-none">
+<span class="material-symbols-outlined text-9xl rotate-12">sunny</span>
+</div>
+<div class="relative z-10">
+<div class="flex items-center gap-2 mb-2">
+<span class="inline-flex items-center justify-center rounded-full bg-accent-blue/10 px-3 py-1 text-xs font-extrabold text-accent-blue uppercase tracking-wide">
+                                Weekly Report
+                            </span>
+</div>
+<h1 class="text-4xl font-black leading-tight tracking-tight text-text-main md:text-5xl">
+                            Hi, <span class="text-accent-blue inline-block hover:scale-105 transition-transform cursor-default">Leo!</span> 🌟
+                        </h1>
+<p class="mt-2 text-lg font-medium text-text-muted">
+                            You're doing great! Look at your growth this week.
+                        </p>
+</div>
+<div class="relative z-10 mt-4 md:mt-0">
+<span class="inline-flex items-center gap-2 rounded-2xl bg-secondary/20 px-5 py-3 text-sm font-bold text-text-main border-2 border-secondary/30">
+<span class="material-symbols-outlined text-[20px] text-primary">calendar_month</span>
+                            Week of Oct 24
+                        </span>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+<div class="group relative overflow-hidden rounded-3xl bg-surface p-6 transition-all hover:-translate-y-1 shadow-comic border-2 border-secondary/20 hover:border-secondary">
+<div class="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-secondary/10 transition-all group-hover:scale-110"></div>
+<div class="flex items-start justify-between relative z-10">
+<div class="flex flex-col gap-2">
+<p class="text-xs font-bold uppercase tracking-wider text-text-muted">Exploration Stars</p>
+<p class="text-5xl font-black text-text-main">128</p>
+<div class="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-3 py-1 text-xs font-bold text-text-main w-fit">
+<span class="material-symbols-outlined text-sm font-bold">arrow_upward</span>
+                                    +5 this week
+                                </div>
+</div>
+<div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary text-white shadow-md rotate-3 group-hover:rotate-12 transition-transform">
+<span class="material-symbols-outlined text-4xl filled">star</span>
+</div>
+</div>
+</div>
+<div class="group relative overflow-hidden rounded-3xl bg-surface p-6 transition-all hover:-translate-y-1 shadow-comic border-2 border-accent-pink/20 hover:border-accent-pink">
+<div class="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-accent-pink/10 transition-all group-hover:scale-110"></div>
+<div class="flex items-start justify-between relative z-10">
+<div class="flex flex-col gap-2">
+<p class="text-xs font-bold uppercase tracking-wider text-text-muted">Total Favorites</p>
+<p class="text-5xl font-black text-text-main">42</p>
+<div class="inline-flex items-center gap-1 rounded-full bg-accent-pink/20 px-3 py-1 text-xs font-bold text-accent-pink w-fit">
+<span class="material-symbols-outlined text-sm font-bold">favorite</span>
+                                    +2 new!
+                                </div>
+</div>
+<div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-pink text-white shadow-md -rotate-3 group-hover:-rotate-12 transition-transform">
+<span class="material-symbols-outlined text-4xl filled">emoji_events</span>
+</div>
+</div>
+</div>
+<div class="group relative overflow-hidden rounded-3xl bg-surface p-6 transition-all hover:-translate-y-1 shadow-comic border-2 border-accent-green/20 hover:border-accent-green">
+<div class="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-accent-green/10 transition-all group-hover:scale-110"></div>
+<div class="flex items-start justify-between relative z-10">
+<div class="flex flex-col gap-2">
+<p class="text-xs font-bold uppercase tracking-wider text-text-muted">Little Expert</p>
+<p class="text-3xl font-black leading-tight text-text-main mt-1">Nature<br/>Master</p>
+<div class="mt-1 inline-flex items-center gap-1 rounded-full bg-accent-green/20 px-3 py-1 text-xs font-bold text-accent-green w-fit">
+                                    Level Max! 🚀
+                                </div>
+</div>
+<div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-green text-white shadow-md rotate-3 group-hover:rotate-6 transition-transform">
+<span class="material-symbols-outlined text-4xl filled">forest</span>
+</div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+<div class="flex flex-col justify-between rounded-3xl bg-surface p-8 shadow-comic border-2 border-gray-100">
+<div class="mb-8 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="h-8 w-2 rounded-full bg-primary"></div>
+<h3 class="text-xl font-extrabold text-text-main">Knowledge Map</h3>
+</div>
+<button class="rounded-full bg-gray-100 p-2 text-text-muted hover:bg-gray-200 hover:text-text-main transition-colors">
+<span class="material-symbols-outlined text-xl">info</span>
+</button>
+</div>
+<div class="flex flex-col items-center sm:flex-row sm:justify-center gap-10">
+<div class="relative flex h-52 w-52 shrink-0 items-center justify-center rounded-full shadow-lg ring-8 ring-gray-50" style="background: conic-gradient(#06D6A0 0% 50%, #EF476F 50% 80%, #4D96FF 80% 100%);">
+<div class="absolute h-36 w-36 rounded-full bg-surface flex items-center justify-center flex-col shadow-inner">
+<span class="text-xs text-text-muted font-bold uppercase tracking-widest">Total</span>
+<span class="text-4xl font-black text-text-main">100%</span>
+</div>
+<div class="absolute -left-4 top-8 flex h-10 w-10 items-center justify-center rounded-full bg-accent-green text-white shadow-md border-4 border-surface animate-bounce-slow" style="animation-delay: 0s;">
+<span class="material-symbols-outlined text-lg">eco</span>
+</div>
+<div class="absolute -right-4 top-8 flex h-10 w-10 items-center justify-center rounded-full bg-accent-pink text-white shadow-md border-4 border-surface animate-bounce-slow" style="animation-delay: 1s;">
+<span class="material-symbols-outlined text-lg">pets</span>
+</div>
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-accent-blue text-white shadow-md border-4 border-surface animate-bounce-slow" style="animation-delay: 2s;">
+<span class="material-symbols-outlined text-lg">menu_book</span>
+</div>
+</div>
+<div class="flex flex-col gap-3 w-full max-w-[200px]">
+<div class="flex items-center justify-between rounded-xl bg-accent-green/10 p-3 border border-accent-green/20">
+<div class="flex items-center gap-2">
+<div class="h-3 w-3 rounded-full bg-accent-green"></div>
+<span class="font-bold text-text-main text-sm">Nature</span>
+</div>
+<span class="font-extrabold text-accent-green">50%</span>
+</div>
+<div class="flex items-center justify-between rounded-xl bg-accent-pink/10 p-3 border border-accent-pink/20">
+<div class="flex items-center gap-2">
+<div class="h-3 w-3 rounded-full bg-accent-pink"></div>
+<span class="font-bold text-text-main text-sm">Life</span>
+</div>
+<span class="font-extrabold text-accent-pink">30%</span>
+</div>
+<div class="flex items-center justify-between rounded-xl bg-accent-blue/10 p-3 border border-accent-blue/20">
+<div class="flex items-center gap-2">
+<div class="h-3 w-3 rounded-full bg-accent-blue"></div>
+<span class="font-bold text-text-main text-sm">Culture</span>
+</div>
+<span class="font-extrabold text-accent-blue">20%</span>
+</div>
+</div>
+</div>
+</div>
+<div class="relative flex flex-col justify-end overflow-hidden rounded-3xl bg-gradient-to-br from-[#E0F2FE] to-[#F0F9FF] border-2 border-accent-blue/20 p-6 shadow-comic">
+<div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#4D96FF 2px, transparent 2px); background-size: 24px 24px;"></div>
+<div class="absolute top-10 left-10 h-10 w-10 rounded-full bg-white/40 blur-lg"></div>
+<div class="absolute top-20 right-20 h-20 w-20 rounded-full bg-accent-blue/10 blur-xl"></div>
+<div class="relative z-10 flex flex-col gap-6 h-full justify-center">
+<div class="relative self-start max-w-[90%] md:max-w-[85%] rounded-3xl rounded-bl-none bg-surface p-6 shadow-lg text-text-main border-2 border-accent-blue/10 transform transition-transform hover:scale-[1.02]">
+<div class="mb-2 flex gap-1">
+<span class="material-symbols-outlined text-yellow-400 filled text-lg">star</span>
+<span class="material-symbols-outlined text-yellow-400 filled text-lg">star</span>
+<span class="material-symbols-outlined text-yellow-400 filled text-lg">star</span>
+</div>
+<p class="text-lg font-bold leading-relaxed text-text-main">
+                                    "Wow! You found <span class="text-accent-pink">5 new bugs</span> today! 🐞 Try taking a photo of a flower next to become a Nature Master!"
+                                </p>
+<div class="absolute -bottom-4 left-[0px] h-0 w-0 border-l-[24px] border-t-[24px] border-l-transparent border-t-white drop-shadow-sm"></div>
+<div class="absolute -bottom-[18px] left-[-2px] h-0 w-0 border-l-[26px] border-t-[26px] border-l-transparent border-t-accent-blue/10 -z-10"></div>
+</div>
+<div class="flex items-center gap-4 mt-2 ml-4">
+<div class="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border-4 border-surface bg-blue-100 shadow-md ring-4 ring-accent-blue/20" data-alt="Little Star Explorer Mascot">
+<div class="absolute inset-0 bg-center bg-cover" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA-kgW5_HyIxZagvteABdNqNJvqIxBDIikxgILdFAobcpGlfERJmvtjz6tHfMFnf-AHNFQauJMpsZ92VXvMaZGznTmULQWaHipGyZEHLZFedG__bkA7XW8BZWd8XcOg6hjLqxaBQOwkPAC8usyP9qe8Yc35eUBiTwPlRkynEhKn7KJCk3lar4Yr6_DKdL590rOTkmJMWgMk2AkfwJ9Njlez7ijrnXhF7S9lZBtJ4BcUoGjEcxjX_HqSD78OqLX_g3uo6juWgzpDJzM");'></div>
+</div>
+<div class="flex flex-col">
+<span class="text-lg font-black text-text-main">Little Star Explorer</span>
+<span class="text-sm font-bold text-accent-blue bg-white px-2 py-0.5 rounded-full w-fit mt-1 shadow-sm border border-accent-blue/20">Your AI Buddy</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-center justify-center gap-6 rounded-3xl border-2 border-dashed border-primary/30 bg-primary/5 p-8 md:flex-row md:justify-between relative overflow-hidden">
+<div class="absolute -left-10 -bottom-10 h-32 w-32 rounded-full bg-primary/10 blur-2xl"></div>
+<div class="flex items-center gap-5 relative z-10">
+<div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-primary shadow-comic border-2 border-primary/20 rotate-3">
+<span class="material-symbols-outlined text-3xl">auto_fix_high</span>
+</div>
+<div class="flex flex-col">
+<h4 class="text-xl font-black text-text-main">Ready to share?</h4>
+<p class="text-sm font-bold text-text-muted">Create a cute image to save!</p>
+</div>
+</div>
+<div class="flex w-full flex-col gap-4 sm:w-auto sm:flex-row relative z-10">
+<button class="flex items-center justify-center gap-2 rounded-2xl border-2 border-gray-200 bg-surface px-6 py-3.5 text-sm font-extrabold text-text-muted transition-all hover:bg-gray-50 hover:text-text-main hover:border-gray-300 shadow-sm sm:w-auto">
+<span class="material-symbols-outlined">share</span>
+                            Share with Parents
+                        </button>
+<button class="group flex items-center justify-center gap-2 rounded-2xl bg-primary px-8 py-3.5 text-sm font-extrabold text-white shadow-comic transition-all hover:-translate-y-1 hover:shadow-comic-hover sm:w-auto border-2 border-primary">
+<span class="material-symbols-outlined group-hover:animate-spin">photo_camera</span>
+                            Generate Fun Report
+                        </button>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>
