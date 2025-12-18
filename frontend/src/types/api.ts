@@ -99,3 +99,45 @@ export interface ErrorResponse {
   detail?: string;
 }
 
+// 意图识别请求
+export interface IntentRequest {
+  text: string; // 用户输入的文本
+  sessionId?: string; // 对话会话ID
+  context?: any[]; // 上下文消息（可选）
+}
+
+// 意图识别响应
+export interface IntentResponse {
+  intent: 'generate_cards' | 'text_response' | 'image_recognition'; // 意图类型
+  confidence: number; // 置信度 0-1
+  parameters?: Record<string, any>; // 意图参数
+}
+
+// 对话请求
+export interface ConversationRequest {
+  sessionId?: string; // 对话会话ID（可选，首次请求不传）
+  type: 'text' | 'voice' | 'image'; // 输入类型
+  content: string; // 内容（文本、base64音频、base64图片）
+  inputType: 'text' | 'voice' | 'image'; // 输入类型
+}
+
+// 对话响应（流式返回）
+export interface ConversationStreamEvent {
+  type: 'text' | 'card' | 'image' | 'error' | 'done'; // 事件类型
+  content?: any; // 内容（根据类型不同）
+  message?: string; // 错误消息
+}
+
+// 语音识别请求
+export interface VoiceRequest {
+  audio: string; // base64编码的音频数据
+  sessionId?: string; // 对话会话ID
+}
+
+// 语音识别响应
+export interface VoiceResponse {
+  text: string; // 识别出的文本
+  intent?: 'generate_cards' | 'text_response' | 'image_recognition'; // 识别出的意图（可选）
+  confidence?: number; // 置信度（可选）
+}
+

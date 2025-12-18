@@ -14,6 +14,7 @@ import type { KnowledgeCard } from '../types/exploration';
 export default function Capture() {
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCaptureClick = () => {
@@ -79,6 +80,43 @@ export default function Capture() {
     }
   };
 
+  const handleVoiceInput = () => {
+    // 启动语音识别
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'zh-CN';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = async (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        console.log('语音识别结果:', transcript);
+        setIsListening(false);
+        
+        // TODO: 将语音识别结果发送到后端进行意图识别和处理
+        // 这里可以导航到对话页面或直接处理
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('语音识别错误:', event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } else {
+      alert('您的浏览器不支持语音识别功能');
+    }
+  };
+
   return (
     <div className="font-display antialiased overflow-hidden h-screen w-full bg-cloud-white text-text-main select-none flex flex-col">
       {/* 顶部栏 */}
@@ -123,8 +161,11 @@ export default function Capture() {
           </div>
 
           {/* 语音模式按钮 */}
-          <button className="absolute -right-2 md:-right-20 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-2 group">
-            <div className="size-16 flex items-center justify-center bg-white rounded-full border-2 border-gray-100 text-slate-400 hover:text-warm-yellow hover:border-warm-yellow transition-all duration-300 shadow-soft group-hover:scale-110 group-hover:shadow-glow-yellow">
+          <button
+            onClick={handleVoiceInput}
+            className="absolute -right-2 md:-right-20 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-2 group"
+          >
+            <div className={`size-16 flex items-center justify-center bg-white rounded-full border-2 border-gray-100 text-slate-400 hover:text-warm-yellow hover:border-warm-yellow transition-all duration-300 shadow-soft group-hover:scale-110 group-hover:shadow-glow-yellow ${isListening ? 'animate-pulse border-warm-yellow text-warm-yellow' : ''}`}>
               <span className="material-symbols-outlined text-[36px]">mic</span>
             </div>
             <span className="text-xs font-bold text-slate-500 bg-white px-2 py-1 rounded-md shadow-sm opacity-0 group-hover:opacity-100 transition transform -translate-x-2">
@@ -149,7 +190,10 @@ export default function Capture() {
         <div className="flex items-center justify-between w-full max-w-4xl gap-8">
           {/* 相册按钮 */}
           <div className="flex-1 flex justify-end">
-            <button className="flex flex-col items-center gap-2 group">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex flex-col items-center gap-2 group"
+            >
               <div className="size-16 rounded-2xl overflow-hidden border-4 border-white shadow-soft group-hover:shadow-md transition-all relative bg-gray-100 group-hover:scale-105 duration-200">
                 <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                   <span className="material-symbols-outlined text-gray-400">photo_library</span>
