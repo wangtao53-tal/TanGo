@@ -1,0 +1,176 @@
+package agent
+
+import (
+	"context"
+
+	"github.com/tango/explore/internal/agent/nodes"
+	"github.com/tango/explore/internal/config"
+	"github.com/zeromicro/go-zero/core/logx"
+)
+
+// Graph AI调用流程图
+type Graph struct {
+	ctx    context.Context
+	config config.AIConfig
+	logger logx.Logger
+
+	// 节点实例
+	imageRecognitionNode  *nodes.ImageRecognitionNode
+	textGenerationNode    *nodes.TextGenerationNode
+	imageGenerationNode   *nodes.ImageGenerationNode
+	intentRecognitionNode *nodes.IntentRecognitionNode
+}
+
+// NewGraph 创建新的Graph实例
+func NewGraph(ctx context.Context, cfg config.AIConfig, logger logx.Logger) (*Graph, error) {
+	graph := &Graph{
+		ctx:    ctx,
+		config: cfg,
+		logger: logger,
+	}
+
+	// 初始化各个节点
+	var err error
+
+	graph.imageRecognitionNode, err = nodes.NewImageRecognitionNode(ctx, cfg, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	graph.textGenerationNode, err = nodes.NewTextGenerationNode(ctx, cfg, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	graph.imageGenerationNode, err = nodes.NewImageGenerationNode(ctx, cfg, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	graph.intentRecognitionNode, err = nodes.NewIntentRecognitionNode(ctx, cfg, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Info("Graph初始化完成")
+	return graph, nil
+}
+
+// ExecuteImageRecognition 执行图片识别流程
+// 输入: 图片 -> 输出: 对象名称、类别、关键词
+func (g *Graph) ExecuteImageRecognition(image string, age int) (*nodes.GraphData, error) {
+	data := &nodes.GraphData{
+		Image: image,
+		Age:   age,
+	}
+
+	// 调用图片识别节点
+	result, err := g.imageRecognitionNode.Execute(data)
+	if err != nil {
+		return nil, err
+	}
+
+	data.ObjectName = result.ObjectName
+	data.ObjectCategory = result.ObjectCategory
+	data.Keywords = result.Keywords
+
+	g.logger.Infow("图片识别完成",
+		logx.Field("objectName", data.ObjectName),
+		logx.Field("category", data.ObjectCategory),
+	)
+
+	return data, nil
+}
+
+// ExecuteCardGeneration 执行卡片生成流程
+// 输入: 对象名称、类别、年龄 -> 输出: 三张卡片（科学、诗词、英语）
+func (g *Graph) ExecuteCardGeneration(objectName, category string, age int, keywords []string) (*nodes.GraphData, error) {
+	data := &nodes.GraphData{
+		ObjectName:     objectName,
+		ObjectCategory: category,
+		Age:            age,
+		Keywords:       keywords,
+	}
+
+	// 生成三张卡片
+	cards := make([]interface{}, 0, 3)
+
+	// 1. 科学认知卡（文本生成）
+	scienceCard, err := g.textGenerationNode.GenerateScienceCard(data)
+	if err != nil {
+		return nil, err
+	}
+	cards = append(cards, scienceCard)
+
+	// 2. 古诗词/人文卡（文本生成）
+	poetryCard, err := g.textGenerationNode.GeneratePoetryCard(data)
+	if err != nil {
+		return nil, err
+	}
+	cards = append(cards, poetryCard)
+
+	// 3. 英语表达卡（文本生成）
+	englishCard, err := g.textGenerationNode.GenerateEnglishCard(data)
+	if err != nil {
+		return nil, err
+	}
+	cards = append(cards, englishCard)
+
+	// 4. 为每张卡片生成配图（图片生成）
+	// TODO: 待APP ID提供后，启用图片生成
+	// for i := range cards {
+	// 	imageURL, err := g.imageGenerationNode.GenerateCardImage(data, cards[i])
+	// 	if err != nil {
+	// 		g.logger.Errorw("生成卡片配图失败", logx.Field("error", err))
+	// 		continue
+	// 	}
+	// 	// 将图片URL添加到卡片数据中
+	// }
+
+	data.Cards = cards
+
+	g.logger.Infow("卡片生成完成", logx.Field("cardCount", len(cards)))
+	return data, nil
+}
+
+// ExecuteIntentRecognition 执行意图识别流程
+// 输入: 文本消息、上下文 -> 输出: 意图类型
+func (g *Graph) ExecuteIntentRecognition(message string, context []interface{}) (*nodes.GraphData, error) {
+	data := &nodes.GraphData{
+		Text: message,
+	}
+
+	// 调用意图识别节点
+	result, err := g.intentRecognitionNode.Execute(data, context)
+	if err != nil {
+		return nil, err
+	}
+
+	data.Intent = result.Intent
+
+	g.logger.Infow("意图识别完成",
+		logx.Field("intent", data.Intent),
+		logx.Field("confidence", result.Confidence),
+	)
+
+	return data, nil
+}
+
+// ExecuteTextGeneration 执行文本生成流程
+// 输入: 消息、上下文 -> 输出: 文本回答
+func (g *Graph) ExecuteTextGeneration(message string, context []interface{}) (*nodes.GraphData, error) {
+	data := &nodes.GraphData{
+		Text: message,
+	}
+
+	// 调用文本生成节点
+	result, err := g.textGenerationNode.GenerateText(data, context)
+	if err != nil {
+		return nil, err
+	}
+
+	data.TextResult = result
+
+	g.logger.Infow("文本生成完成", logx.Field("length", len(result)))
+	return data, nil
+}

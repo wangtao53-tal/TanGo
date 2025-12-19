@@ -24,7 +24,7 @@ func NewVoiceLogic(ctx context.Context, svcCtx *svc.ServiceContext) *VoiceLogic 
 // RecognizeVoice 识别语音
 func (l *VoiceLogic) RecognizeVoice(req *types.VoiceRequest) (*types.VoiceResponse, error) {
 	// 解码音频数据
-	audioData, err := base64.StdEncoding.DecodeString(req.Audio)
+	_, err := base64.StdEncoding.DecodeString(req.Audio)
 	if err != nil {
 		return nil, err
 	}
@@ -39,14 +39,13 @@ func (l *VoiceLogic) RecognizeVoice(req *types.VoiceRequest) (*types.VoiceRespon
 		sessionId = uuid.New().String()
 	}
 
-	// 可选：调用意图识别
-	intentLogic := NewIntentLogic(l.ctx, l.svcCtx)
-	intentReq := &types.IntentRequest{
-		Message:   recognizedText,
-		SessionId: sessionId,
-	}
-
-	intentResult, _ := intentLogic.RecognizeIntent(intentReq)
+	// 可选：调用意图识别（当前未使用结果，待后续实现）
+	// intentLogic := NewIntentLogic(l.ctx, l.svcCtx)
+	// intentReq := &types.IntentRequest{
+	// 	Message:   recognizedText,
+	// 	SessionId: sessionId,
+	// }
+	// _, _ = intentLogic.RecognizeIntent(intentReq)
 
 	return &types.VoiceResponse{
 		Text:      recognizedText,

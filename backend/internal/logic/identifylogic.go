@@ -32,10 +32,39 @@ func (l *IdentifyLogic) Identify(req *types.IdentifyRequest) (resp *types.Identi
 		return nil, utils.ErrImageRequired
 	}
 
-	// TODO: 待APP ID提供后，接入真实AI模型
-	// 当前使用Mock数据
 	l.Infow("识别图片", logx.Field("imageLength", len(req.Image)))
 
+	// 使用Agent系统进行图片识别
+	if l.svcCtx.Agent != nil {
+		graph := l.svcCtx.Agent.GetGraph()
+		data, err := graph.ExecuteImageRecognition(req.Image, req.Age)
+		if err != nil {
+			l.Errorw("Agent图片识别失败，回退到Mock", logx.Field("error", err))
+			// 回退到Mock实现
+			return l.identifyMock(req)
+		}
+
+		resp = &types.IdentifyResponse{
+			ObjectName:     data.ObjectName,
+			ObjectCategory: data.ObjectCategory,
+			Confidence:     0.95, // Agent返回的置信度
+			Keywords:       data.Keywords,
+		}
+
+		l.Infow("识别完成（Agent）",
+			logx.Field("objectName", resp.ObjectName),
+			logx.Field("category", resp.ObjectCategory),
+			logx.Field("confidence", resp.Confidence),
+		)
+		return resp, nil
+	}
+
+	// 如果Agent未初始化，使用Mock数据
+	return l.identifyMock(req)
+}
+
+// identifyMock Mock实现（保留作为回退方案）
+func (l *IdentifyLogic) identifyMock(req *types.IdentifyRequest) (*types.IdentifyResponse, error) {
 	// Mock识别结果 - 随机返回一个常见对象
 	mockObjects := []struct {
 		name     string
@@ -58,13 +87,17 @@ func (l *IdentifyLogic) Identify(req *types.IdentifyRequest) (resp *types.Identi
 	// 生成随机置信度（0.85-0.99）
 	confidence := 0.85 + rand.Float64()*0.14
 
-	resp = &types.IdentifyResponse{
+	resp := &types.IdentifyResponse{
 		ObjectName:     selected.name,
 		ObjectCategory: selected.category,
 		Confidence:     confidence,
 		Keywords:       selected.keywords,
 	}
 
-	l.Infow("识别完成", logx.Field("objectName", resp.ObjectName), logx.Field("category", resp.ObjectCategory), logx.Field("confidence", resp.Confidence))
+	l.Infow("识别完成（Mock）",
+		logx.Field("objectName", resp.ObjectName),
+		logx.Field("category", resp.ObjectCategory),
+		logx.Field("confidence", resp.Confidence),
+	)
 	return resp, nil
 }

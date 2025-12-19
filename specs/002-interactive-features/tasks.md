@@ -249,24 +249,24 @@
 
 ### 8.1 后端eino框架集成
 
-- [ ] T081 安装eino框架依赖 `backend/go.mod`
-- [ ] T082 [P] 创建Agent系统目录结构 `backend/internal/agent/`
-- [ ] T083 [P] 实现Agent主文件 `backend/internal/agent/agent.go`（使用eino框架初始化）
-- [ ] T084 [P] 实现Graph图定义 `backend/internal/agent/graph.go`（串联整个AI调用流程）
+- [X] T081 安装eino框架依赖 `backend/go.mod`
+- [X] T082 [P] 创建Agent系统目录结构 `backend/internal/agent/`
+- [X] T083 [P] 实现Agent主文件 `backend/internal/agent/agent.go`（使用eino框架初始化）
+- [X] T084 [P] 实现Graph图定义 `backend/internal/agent/graph.go`（串联整个AI调用流程）
 
 ### 8.2 后端Agent节点实现
 
-- [ ] T085 [P] [US6] 实现图片识别节点 `backend/internal/agent/nodes/image_recognition.go`（调用图片识别模型，当前使用Mock）
-- [ ] T086 [P] [US6] 实现文本生成节点 `backend/internal/agent/nodes/text_generation.go`（调用文本生成模型，当前使用Mock）
-- [ ] T087 [P] [US6] 实现图片生成节点 `backend/internal/agent/nodes/image_generation.go`（调用图片生成模型，当前使用Mock）
-- [ ] T088 [P] [US6] 实现意图识别节点 `backend/internal/agent/nodes/intent_recognition.go`（识别用户意图，当前使用Mock）
+- [X] T085 [P] [US6] 实现图片识别节点 `backend/internal/agent/nodes/image_recognition.go`（调用图片识别模型，当前使用Mock）
+- [X] T086 [P] [US6] 实现文本生成节点 `backend/internal/agent/nodes/text_generation.go`（调用文本生成模型，当前使用Mock）
+- [X] T087 [P] [US6] 实现图片生成节点 `backend/internal/agent/nodes/image_generation.go`（调用图片生成模型，当前使用Mock）
+- [X] T088 [P] [US6] 实现意图识别节点 `backend/internal/agent/nodes/intent_recognition.go`（识别用户意图，当前使用Mock）
 
 ### 8.3 后端配置和集成
 
-- [ ] T089 [US6] 配置eino框架 `backend/internal/config/config.go`（添加eino配置）
-- [ ] T090 [US6] 实现节点间的数据流转逻辑 `backend/internal/agent/graph.go`
-- [ ] T091 [US6] 集成Agent系统到现有逻辑 `backend/internal/logic/identifylogic.go`（图片识别使用Agent）
-- [ ] T092 [US6] 集成Agent系统到现有逻辑 `backend/internal/logic/generatecardslogic.go`（卡片生成使用Agent）
+- [X] T089 [US6] 配置eino框架 `backend/internal/config/config.go`（添加eino配置）
+- [X] T090 [US6] 实现节点间的数据流转逻辑 `backend/internal/agent/graph.go`
+- [X] T091 [US6] 集成Agent系统到现有逻辑 `backend/internal/logic/identifylogic.go`（图片识别使用Agent）
+- [X] T092 [US6] 集成Agent系统到现有逻辑 `backend/internal/logic/generatecardslogic.go`（卡片生成使用Agent）
 
 **检查点**: 用户故事6完成，AI模型调用和Agent系统可用，可以独立测试
 
