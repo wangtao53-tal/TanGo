@@ -142,3 +142,17 @@ export interface VoiceResponse {
   confidence?: number; // 置信度（可选）
 }
 
+// 图片上传请求
+export interface UploadRequest {
+  imageData: string; // base64编码的图片数据（不含 data URL 前缀）
+  filename?: string; // 可选：文件名
+}
+
+// 图片上传响应
+export interface UploadResponse {
+  url: string; // 图片的访问URL（GitHub raw URL 或 base64 data URL）
+  filename: string; // 实际存储的文件名
+  size?: number; // 图片大小（字节）
+  uploadMethod?: 'github' | 'base64'; // 上传方式
+}
+

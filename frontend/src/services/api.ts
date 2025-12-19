@@ -21,6 +21,8 @@ import type {
   ConversationStreamEvent,
   VoiceRequest,
   VoiceResponse,
+  UploadRequest,
+  UploadResponse,
 } from '../types/api';
 
 // 从环境变量读取API基础地址，如果没有配置则使用默认值
@@ -53,10 +55,20 @@ apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
     // 统一错误处理
+    console.error('API请求错误:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      baseURL: error.config?.baseURL,
+    });
+    
     const errorResponse: ErrorResponse = {
       code: error.response?.status || 500,
       message: error.response?.data?.message || error.message || '请求失败',
-      detail: error.response?.data?.detail,
+      detail: error.response?.data?.detail || error.response?.statusText,
     };
     return Promise.reject(errorResponse);
   }
@@ -187,6 +199,39 @@ export async function recognizeVoice(
       intent: 'text_response',
       confidence: 0.8,
     };
+  }
+}
+
+/**
+ * 图片上传API
+ */
+export async function uploadImage(
+  request: UploadRequest
+): Promise<UploadResponse> {
+  try {
+    console.log('开始上传图片，请求数据:', {
+      imageDataLength: request.imageData?.length || 0,
+      filename: request.filename,
+      baseURL: API_BASE_URL,
+    });
+    
+    const response = await apiClient.post<UploadResponse>('/api/upload/image', request);
+    
+    console.log('图片上传成功:', response);
+    return response as unknown as UploadResponse;
+  } catch (error: any) {
+    console.error('图片上传失败:', {
+      error,
+      code: error?.code,
+      message: error?.message,
+      detail: error?.detail,
+      response: error?.response,
+      request: {
+        imageDataLength: request.imageData?.length || 0,
+        filename: request.filename,
+      },
+    });
+    throw error;
   }
 }
 

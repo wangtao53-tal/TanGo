@@ -6,6 +6,8 @@ type Config struct {
 	rest.RestConf
 	// AI模型配置
 	AI AIConfig
+	// 图片上传配置
+	Upload UploadConfig
 }
 
 // AIConfig AI模型配置
@@ -29,4 +31,16 @@ type AIConfig struct {
 
 	// 文本生成模型（从环境变量 TEXT_GENERATION_MODEL 读取，未设置则使用默认值）
 	TextGenerationModel string `json:",optional,env=TEXT_GENERATION_MODEL"`
+}
+
+// UploadConfig 图片上传配置
+type UploadConfig struct {
+	// GitHub 配置
+	GitHubToken  string `json:",optional,env=GITHUB_TOKEN"`  // GitHub Personal Access Token
+	GitHubOwner  string `json:",optional,env=GITHUB_OWNER"`  // GitHub 用户名或组织名
+	GitHubRepo   string `json:",optional,env=GITHUB_REPO"`   // GitHub 仓库名
+	GitHubBranch string `json:",optional,env=GITHUB_BRANCH"` // GitHub 分支名，默认 "main"
+	GitHubPath   string `json:",optional,env=GITHUB_PATH"`   // 图片存储路径，默认 "images/"
+	// 图片大小限制（字节），默认 10MB
+	MaxImageSize int64 `json:",optional,env=MAX_IMAGE_SIZE"`
 }

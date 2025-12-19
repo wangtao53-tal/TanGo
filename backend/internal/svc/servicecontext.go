@@ -10,9 +10,10 @@ import (
 )
 
 type ServiceContext struct {
-	Config  config.Config
-	Storage *storage.MemoryStorage
-	Agent   *agent.Agent
+	Config        config.Config
+	Storage       *storage.MemoryStorage
+	Agent         *agent.Agent
+	GitHubStorage *storage.GitHubStorage
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -51,9 +52,29 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		logger.Info("如需使用真实模型，请在.env文件中配置：EINO_BASE_URL、TAL_MLOPS_APP_ID、TAL_MLOPS_APP_KEY")
 	}
 
+	// 初始化 GitHub 存储
+	var githubStorage *storage.GitHubStorage
+	if c.Upload.GitHubToken != "" && c.Upload.GitHubOwner != "" && c.Upload.GitHubRepo != "" {
+		githubStorage = storage.NewGitHubStorage(c.Upload, logger)
+		logger.Info("GitHub 存储初始化成功",
+			logx.Field("owner", c.Upload.GitHubOwner),
+			logx.Field("repo", c.Upload.GitHubRepo),
+			logx.Field("branch", c.Upload.GitHubBranch),
+			logx.Field("path", c.Upload.GitHubPath),
+		)
+	} else {
+		logger.Infow("未配置 GitHub 上传参数，图片上传将使用 base64 降级方案",
+			logx.Field("hasToken", c.Upload.GitHubToken != ""),
+			logx.Field("hasOwner", c.Upload.GitHubOwner != ""),
+			logx.Field("hasRepo", c.Upload.GitHubRepo != ""),
+		)
+		logger.Info("如需使用 GitHub 存储，请在.env文件中配置：GITHUB_TOKEN、GITHUB_OWNER、GITHUB_REPO")
+	}
+
 	return &ServiceContext{
-		Config:  c,
-		Storage: storage.NewMemoryStorage(),
-		Agent:   aiAgent,
+		Config:        c,
+		Storage:       storage.NewMemoryStorage(),
+		Agent:         aiAgent,
+		GitHubStorage: githubStorage,
 	}
 }

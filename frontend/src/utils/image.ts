@@ -23,13 +23,14 @@ export async function fileToBase64(file: File): Promise<string> {
  * @param maxWidth 最大宽度
  * @param maxHeight 最大高度
  * @param quality 压缩质量 0-1
+ * @returns 压缩后的 Blob（JPEG 格式）
  */
 export async function compressImage(
   file: File,
   maxWidth: number = 1920,
-  maxHeight: number = 1080,
+  maxHeight: number = 1920,
   quality: number = 0.8
-): Promise<File> {
+): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -55,19 +56,16 @@ export async function compressImage(
 
       ctx.drawImage(img, 0, 0, width, height);
 
+      // 统一转换为 JPEG 格式
       canvas.toBlob(
         (blob) => {
           if (!blob) {
             reject(new Error('图片压缩失败'));
             return;
           }
-          const compressedFile = new File([blob], file.name, {
-            type: file.type,
-            lastModified: Date.now(),
-          });
-          resolve(compressedFile);
+          resolve(blob);
         },
-        file.type,
+        'image/jpeg', // 统一使用 JPEG 格式
         quality
       );
     };

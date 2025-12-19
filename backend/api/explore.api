@@ -1,196 +1,190 @@
 // TanGo 探索服务 API 定义
 // 使用 go-zero API 定义格式
-
 syntax = "v1"
 
 info (
-	title: "TanGo 探索服务 API"
-	desc: "TanGo（小探号）多模态探索核心功能API"
+	title:   "TanGo 探索服务 API"
+	desc:    "TanGo（小探号）多模态探索核心功能API"
 	version: "1.0.0"
-	author: "TanGo Team"
+	author:  "TanGo Team"
 )
 
 type (
 	// 图像识别请求
 	IdentifyRequest {
-		Image string `json:"image"`        // base64编码的图片数据
+		Image string `json:"image"` // base64编码的图片数据
 		Age   int    `json:"age,optional"` // 可选：孩子年龄，用于优化识别
 	}
-
 	// 图像识别响应
 	IdentifyResponse {
-		ObjectName     string   `json:"objectName"`        // 对象名称（中文）
-		ObjectCategory string   `json:"objectCategory"`    // 对象类别：自然类/生活类/人文类
-		Confidence     float64  `json:"confidence"`        // 识别置信度 0-1
+		ObjectName     string   `json:"objectName"` // 对象名称（中文）
+		ObjectCategory string   `json:"objectCategory"` // 对象类别：自然类/生活类/人文类
+		Confidence     float64  `json:"confidence"` // 识别置信度 0-1
 		Keywords       []string `json:"keywords,optional"` // 相关关键词
 	}
-
 	// 知识卡片生成请求
 	GenerateCardsRequest {
-		ObjectName     string   `json:"objectName"`        // 对象名称
-		ObjectCategory string   `json:"objectCategory"`    // 对象类别
-		Age            int      `json:"age"`               // 孩子年龄（必填，用于内容分级）
+		ObjectName     string   `json:"objectName"` // 对象名称
+		ObjectCategory string   `json:"objectCategory"` // 对象类别
+		Age            int      `json:"age"` // 孩子年龄（必填，用于内容分级）
 		Keywords       []string `json:"keywords,optional"` // 相关关键词
 	}
-
 	// 知识卡片内容
 	CardContent {
-		Type    string      `json:"type"`    // 卡片类型：science/poetry/english
-		Title   string      `json:"title"`   // 卡片标题
+		Type    string      `json:"type"` // 卡片类型：science/poetry/english
+		Title   string      `json:"title"` // 卡片标题
 		Content interface{} `json:"content"` // 卡片内容（根据类型不同结构不同）
 	}
-
 	// 知识卡片生成响应
 	GenerateCardsResponse {
 		Cards []CardContent `json:"cards"` // 三张知识卡片
 	}
-
 	// 创建分享链接请求
 	CreateShareRequest {
 		ExplorationRecords []ExplorationRecord `json:"explorationRecords"` // 探索记录列表
-		CollectedCards     []KnowledgeCard     `json:"collectedCards"`     // 收藏的卡片列表
+		CollectedCards     []KnowledgeCard     `json:"collectedCards"` // 收藏的卡片列表
 	}
-
 	// 探索记录（分享用，不包含原始图片）
 	ExplorationRecord {
-		Id             string        `json:"id"`             // 探索记录ID
-		Timestamp      string        `json:"timestamp"`      // 探索时间
-		ObjectName     string        `json:"objectName"`     // 对象名称
+		Id             string        `json:"id"` // 探索记录ID
+		Timestamp      string        `json:"timestamp"` // 探索时间
+		ObjectName     string        `json:"objectName"` // 对象名称
 		ObjectCategory string        `json:"objectCategory"` // 对象类别
-		Age            int           `json:"age"`            // 探索时的年龄
-		Cards          []CardContent `json:"cards"`          // 生成的知识卡片
+		Age            int           `json:"age"` // 探索时的年龄
+		Cards          []CardContent `json:"cards"` // 生成的知识卡片
 	}
-
 	// 知识卡片（分享用）
 	KnowledgeCard {
-		Id            string      `json:"id"`                   // 卡片ID
-		ExplorationId string      `json:"explorationId"`        // 关联的探索记录ID
-		Type          string      `json:"type"`                 // 卡片类型
-		Title         string      `json:"title"`                // 卡片标题
-		Content       interface{} `json:"content"`              // 卡片内容
+		Id            string      `json:"id"` // 卡片ID
+		ExplorationId string      `json:"explorationId"` // 关联的探索记录ID
+		Type          string      `json:"type"` // 卡片类型
+		Title         string      `json:"title"` // 卡片标题
+		Content       interface{} `json:"content"` // 卡片内容
 		CollectedAt   string      `json:"collectedAt,optional"` // 收藏时间
 	}
-
 	// 创建分享链接响应
 	CreateShareResponse {
-		ShareId   string `json:"shareId"`   // 分享链接ID
-		ShareUrl  string `json:"shareUrl"`  // 分享链接URL
+		ShareId   string `json:"shareId"` // 分享链接ID
+		ShareUrl  string `json:"shareUrl"` // 分享链接URL
 		ExpiresAt string `json:"expiresAt"` // 过期时间
 	}
-
 	// 获取分享数据响应
 	GetShareResponse {
 		ExplorationRecords []ExplorationRecord `json:"explorationRecords"` // 探索记录列表
-		CollectedCards     []KnowledgeCard     `json:"collectedCards"`     // 收藏的卡片列表
-		CreatedAt          string              `json:"createdAt"`          // 创建时间
-		ExpiresAt          string              `json:"expiresAt"`          // 过期时间
+		CollectedCards     []KnowledgeCard     `json:"collectedCards"` // 收藏的卡片列表
+		CreatedAt          string              `json:"createdAt"` // 创建时间
+		ExpiresAt          string              `json:"expiresAt"` // 过期时间
 	}
-
 	// 生成学习报告请求
 	GenerateReportRequest {
 		ShareId string `json:"shareId"` // 分享链接ID
 	}
-
 	// 学习报告响应
 	GenerateReportResponse {
-		TotalExplorations    int             `json:"totalExplorations"`    // 总探索次数
-		TotalCollectedCards  int             `json:"totalCollectedCards"`  // 总收藏卡片数
+		TotalExplorations    int             `json:"totalExplorations"` // 总探索次数
+		TotalCollectedCards  int             `json:"totalCollectedCards"` // 总收藏卡片数
 		CategoryDistribution map[string]int  `json:"categoryDistribution"` // 类别分布
-		RecentCards          []KnowledgeCard `json:"recentCards"`          // 最近收藏的卡片（最多10张）
-		GeneratedAt          string          `json:"generatedAt"`          // 生成时间
+		RecentCards          []KnowledgeCard `json:"recentCards"` // 最近收藏的卡片（最多10张）
+		GeneratedAt          string          `json:"generatedAt"` // 生成时间
 	}
-
 	// 错误响应
 	ErrorResponse {
-		Code    int    `json:"code"`            // 错误码
-		Message string `json:"message"`         // 错误信息
+		Code    int    `json:"code"` // 错误码
+		Message string `json:"message"` // 错误信息
 		Detail  string `json:"detail,optional"` // 错误详情
 	}
-
 	// 对话消息
 	ConversationMessage {
-		Id        string      `json:"id"`                  // 消息ID
-		Type      string      `json:"type"`                // 消息类型：user/assistant/system
-		Content   interface{} `json:"content"`             // 消息内容（文本、图片、语音、卡片等）
-		Timestamp string      `json:"timestamp"`           // 消息时间戳
-		SessionId string      `json:"sessionId,optional"`  // 会话ID
+		Id        string      `json:"id"` // 消息ID
+		Type      string      `json:"type"` // 消息类型：user/assistant/system
+		Content   interface{} `json:"content"` // 消息内容（文本、图片、语音、卡片等）
+		Timestamp string      `json:"timestamp"` // 消息时间戳
+		SessionId string      `json:"sessionId,optional"` // 会话ID
 	}
-
 	// 对话会话
 	ConversationSession {
-		Id        string               `json:"id"`        // 会话ID
+		Id        string                `json:"id"` // 会话ID
 		Messages  []ConversationMessage `json:"messages"` // 消息列表
-		CreatedAt string               `json:"createdAt"` // 创建时间
-		UpdatedAt string               `json:"updatedAt"` // 更新时间
+		CreatedAt string                `json:"createdAt"` // 创建时间
+		UpdatedAt string                `json:"updatedAt"` // 更新时间
 	}
-
 	// 意图识别请求
 	IntentRequest {
-		Message   string `json:"message"`                 // 用户消息（文本）
-		SessionId string `json:"sessionId,optional"`     // 会话ID（可选，用于上下文理解）
+		Message   string                `json:"message"` // 用户消息（文本）
+		SessionId string                `json:"sessionId,optional"` // 会话ID（可选，用于上下文理解）
 		Context   []ConversationMessage `json:"context,optional"` // 上下文消息（可选）
 	}
-
 	// 意图识别响应
 	IntentResult {
-		Intent     string  `json:"intent"`     // 意图类型：generate_cards/text_response
+		Intent     string  `json:"intent"` // 意图类型：generate_cards/text_response
 		Confidence float64 `json:"confidence"` // 置信度 0-1
 		Reason     string  `json:"reason,optional"` // 识别原因（可选）
 	}
-
 	// 对话请求
 	ConversationRequest {
-		Message   string `json:"message"`                 // 用户消息（文本）
-		Image     string `json:"image,optional"`          // 图片（base64，可选）
-		Voice     string `json:"voice,optional"`          // 语音（base64，可选）
-		SessionId string `json:"sessionId,optional"`      // 会话ID（可选）
+		Message   string `json:"message"` // 用户消息（文本）
+		Image     string `json:"image,optional"` // 图片（base64，可选）
+		Voice     string `json:"voice,optional"` // 语音（base64，可选）
+		SessionId string `json:"sessionId,optional"` // 会话ID（可选）
 	}
-
 	// 对话响应
 	ConversationResponse {
-		Message   ConversationMessage `json:"message"`   // 回复消息
-		SessionId string              `json:"sessionId"`  // 会话ID
-		Type      string              `json:"type"`       // 响应类型：text/cards
+		Message   ConversationMessage `json:"message"` // 回复消息
+		SessionId string              `json:"sessionId"` // 会话ID
+		Type      string              `json:"type"` // 响应类型：text/cards
 	}
-
 	// 语音识别请求
 	VoiceRequest {
-		Audio     string `json:"audio"`                  // base64编码的音频数据
-		SessionId string `json:"sessionId,optional"`     // 会话ID（可选）
+		Audio     string `json:"audio"` // base64编码的音频数据
+		SessionId string `json:"sessionId,optional"` // 会话ID（可选）
 	}
-
 	// 语音识别响应
 	VoiceResponse {
-		Text      string `json:"text"`                  // 识别的文本
-		SessionId string `json:"sessionId,optional"`    // 会话ID（可选）
+		Text      string `json:"text"` // 识别的文本
+		SessionId string `json:"sessionId,optional"` // 会话ID（可选）
+	}
+	// 图片上传请求
+	UploadRequest {
+		ImageData string `json:"imageData"` // base64编码的图片数据（不含 data URL 前缀）
+		Filename  string `json:"filename,optional"` // 可选：文件名（如果不提供，后端自动生成）
+	}
+	// 图片上传响应
+	UploadResponse {
+		Url          string `json:"url"` // 图片的访问URL（GitHub raw URL 或 base64 data URL）
+		Filename     string `json:"filename"` // 实际存储的文件名
+		Size         int    `json:"size,optional"` // 图片大小（字节）
+		UploadMethod string `json:"uploadMethod,optional"` // 上传方式（"github" 或 "base64"）
 	}
 )
 
 service explore {
 	@handler IdentifyHandler
 	post /api/explore/identify (IdentifyRequest) returns (IdentifyResponse)
-	
+
 	@handler GenerateCardsHandler
 	post /api/explore/generate-cards (GenerateCardsRequest) returns (GenerateCardsResponse)
-	
+
 	@handler CreateShareHandler
 	post /api/share/create (CreateShareRequest) returns (CreateShareResponse)
-	
+
 	@handler GetShareHandler
 	get /api/share/:shareId returns (GetShareResponse)
-	
+
 	@handler GenerateReportHandler
 	post /api/share/report (GenerateReportRequest) returns (GenerateReportResponse)
-	
+
 	@handler IntentHandler
 	post /api/conversation/intent (IntentRequest) returns (IntentResult)
-	
+
 	@handler ConversationHandler
 	post /api/conversation/message (ConversationRequest) returns (ConversationResponse)
-	
+
 	@handler VoiceHandler
 	post /api/conversation/voice (VoiceRequest) returns (VoiceResponse)
-	
-	@handler StreamHandler
-	get /api/conversation/stream returns (stream)
+
+	// @handler StreamHandler
+	// get /api/conversation/stream returns (stream)
+	@handler UploadHandler
+	post /api/upload/image (UploadRequest) returns (UploadResponse)
 }
+
