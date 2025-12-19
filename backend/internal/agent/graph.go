@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"sync"
 
 	"github.com/tango/explore/internal/agent/nodes"
 	"github.com/tango/explore/internal/config"
@@ -84,6 +85,7 @@ func (g *Graph) ExecuteImageRecognition(image string, age int) (*nodes.GraphData
 
 // ExecuteCardGeneration 执行卡片生成流程
 // 输入: 对象名称、类别、年龄 -> 输出: 三张卡片（科学、诗词、英语）
+// 优化：并行生成三张卡片以减少响应时间
 func (g *Graph) ExecuteCardGeneration(ctx context.Context, objectName, category string, age int, keywords []string) (*nodes.GraphData, error) {
 	data := &nodes.GraphData{
 		ObjectName:     objectName,
@@ -92,29 +94,64 @@ func (g *Graph) ExecuteCardGeneration(ctx context.Context, objectName, category 
 		Keywords:       keywords,
 	}
 
-	// 生成三张卡片
-	cards := make([]interface{}, 0, 3)
-
-	// 1. 科学认知卡（文本生成）
-	scienceCard, err := g.textGenerationNode.GenerateScienceCard(ctx, data)
-	if err != nil {
-		return nil, err
+	// 使用 WaitGroup 和 channel 并行生成三张卡片
+	var wg sync.WaitGroup
+	type cardResult struct {
+		card interface{}
+		err  error
+		idx  int // 用于保持顺序：0-科学卡, 1-诗词卡, 2-英语卡
 	}
-	cards = append(cards, scienceCard)
+	results := make(chan cardResult, 3)
 
-	// 2. 古诗词/人文卡（文本生成）
-	poetryCard, err := g.textGenerationNode.GeneratePoetryCard(ctx, data)
-	if err != nil {
-		return nil, err
-	}
-	cards = append(cards, poetryCard)
+	// 1. 并行生成科学认知卡
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		card, err := g.textGenerationNode.GenerateScienceCard(ctx, data)
+		results <- cardResult{card: card, err: err, idx: 0}
+	}()
 
-	// 3. 英语表达卡（文本生成）
-	englishCard, err := g.textGenerationNode.GenerateEnglishCard(ctx, data)
-	if err != nil {
-		return nil, err
+	// 2. 并行生成古诗词/人文卡
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		card, err := g.textGenerationNode.GeneratePoetryCard(ctx, data)
+		results <- cardResult{card: card, err: err, idx: 1}
+	}()
+
+	// 3. 并行生成英语表达卡
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		card, err := g.textGenerationNode.GenerateEnglishCard(ctx, data)
+		results <- cardResult{card: card, err: err, idx: 2}
+	}()
+
+	// 等待所有 goroutine 完成
+	wg.Wait()
+	close(results)
+
+	// 收集结果并保持顺序
+	cards := make([]interface{}, 3)
+	var firstErr error
+	for result := range results {
+		if result.err != nil {
+			if firstErr == nil {
+				firstErr = result.err
+			}
+			g.logger.Errorw("卡片生成失败",
+				logx.Field("cardIndex", result.idx),
+				logx.Field("error", result.err),
+			)
+			continue
+		}
+		cards[result.idx] = result.card
 	}
-	cards = append(cards, englishCard)
+
+	// 如果任何一张卡片生成失败，返回错误
+	if firstErr != nil {
+		return nil, firstErr
+	}
 
 	// 4. 为每张卡片生成配图（图片生成）
 	// TODO: 待APP ID提供后，启用图片生成
@@ -129,7 +166,7 @@ func (g *Graph) ExecuteCardGeneration(ctx context.Context, objectName, category 
 
 	data.Cards = cards
 
-	g.logger.Infow("卡片生成完成", logx.Field("cardCount", len(cards)))
+	g.logger.Infow("卡片生成完成（并行）", logx.Field("cardCount", len(cards)))
 	return data, nil
 }
 
