@@ -2,8 +2,12 @@ package nodes
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"io"
 	"math/rand"
+	"net/http"
 	"strings"
 	"time"
 
@@ -236,7 +240,7 @@ func (n *ImageRecognitionNode) executeReal(data *GraphData) (*ImageRecognitionRe
 	}
 
 	// 构建多模态消息：添加图片
-	// 图片数据可能是 base64 编码的字符串，需要处理
+	// 图片数据可能是 base64 编码的字符串、data URL 或 HTTP URL，需要处理
 	var imageBase64 string
 	var mimeType string = "image/jpeg" // 默认类型
 
@@ -253,6 +257,29 @@ func (n *ImageRecognitionNode) executeReal(data *GraphData) (*ImageRecognitionRe
 		} else {
 			imageBase64 = data.Image
 		}
+	} else if strings.HasPrefix(data.Image, "http://") || strings.HasPrefix(data.Image, "https://") {
+		// 如果是 HTTP/HTTPS URL，下载图片并转换为 base64
+		n.logger.Infow("检测到图片URL，开始下载",
+			logx.Field("url", data.Image),
+		)
+		downloadedBase64, downloadedMimeType, err := n.downloadImageAsBase64(data.Image)
+		if err != nil {
+			n.logger.Errorw("下载图片失败",
+				logx.Field("url", data.Image),
+				logx.Field("error", err),
+				logx.Field("errorDetail", err.Error()),
+			)
+			return nil, fmt.Errorf("下载图片失败: %w", err)
+		}
+		imageBase64 = downloadedBase64
+		if downloadedMimeType != "" {
+			mimeType = downloadedMimeType
+		}
+		n.logger.Infow("图片下载并转换完成",
+			logx.Field("url", data.Image),
+			logx.Field("mimeType", mimeType),
+			logx.Field("base64Length", len(imageBase64)),
+		)
 	} else {
 		// 假设是纯 base64 数据
 		imageBase64 = data.Image
@@ -322,4 +349,59 @@ func (n *ImageRecognitionNode) executeReal(data *GraphData) (*ImageRecognitionRe
 	)
 
 	return &recognitionResult, nil
+}
+
+// downloadImageAsBase64 从 URL 下载图片并转换为 base64
+func (n *ImageRecognitionNode) downloadImageAsBase64(url string) (base64Data string, mimeType string, err error) {
+	// 创建 HTTP 请求
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", "", fmt.Errorf("创建请求失败: %w", err)
+	}
+
+	// 设置 User-Agent，避免某些服务器拒绝请求
+	req.Header.Set("User-Agent", "TanGo-ImageRecognition/1.0")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", "", fmt.Errorf("下载图片失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", "", fmt.Errorf("下载图片失败，状态码: %d", resp.StatusCode)
+	}
+
+	// 读取图片数据
+	imageData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", "", fmt.Errorf("读取图片数据失败: %w", err)
+	}
+
+	// 获取 MIME 类型
+	mimeType = resp.Header.Get("Content-Type")
+	if mimeType == "" {
+		// 根据 URL 扩展名推断 MIME 类型
+		urlLower := strings.ToLower(url)
+		if strings.HasSuffix(urlLower, ".png") {
+			mimeType = "image/png"
+		} else if strings.HasSuffix(urlLower, ".jpg") || strings.HasSuffix(urlLower, ".jpeg") {
+			mimeType = "image/jpeg"
+		} else if strings.HasSuffix(urlLower, ".gif") {
+			mimeType = "image/gif"
+		} else if strings.HasSuffix(urlLower, ".webp") {
+			mimeType = "image/webp"
+		} else {
+			mimeType = "image/jpeg" // 默认类型
+		}
+	}
+
+	// 转换为 base64
+	base64Data = base64.StdEncoding.EncodeToString(imageData)
+
+	return base64Data, mimeType, nil
 }
