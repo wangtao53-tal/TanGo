@@ -1,0 +1,39 @@
+// TanGo 图片上传服务 API 定义
+// 使用 go-zero API 定义格式
+
+syntax = "v1"
+
+info (
+	title: "TanGo 图片上传服务 API"
+	desc: "TanGo（小探号）图片上传存储功能API"
+	version: "1.0.0"
+	author: "TanGo Team"
+)
+
+type (
+	// 图片上传请求
+	UploadRequest {
+		ImageData string `json:"imageData"`              // base64编码的图片数据（不含 data URL 前缀）
+		Filename  string `json:"filename,optional"`     // 可选：文件名（如果不提供，后端自动生成）
+	}
+
+	// 图片上传响应
+	UploadResponse {
+		Url          string `json:"url"`                  // 图片的访问URL（GitHub raw URL 或 base64 data URL）
+		Filename     string `json:"filename"`            // 实际存储的文件名
+		Size         int    `json:"size,optional"`        // 图片大小（字节）
+		UploadMethod string `json:"uploadMethod,optional"` // 上传方式（"github" 或 "base64"）
+	}
+
+	// 错误响应
+	ErrorResponse {
+		Code    int    `json:"code"`            // 错误码
+		Message string `json:"message"`         // 错误信息
+		Detail  string `json:"detail,optional"` // 错误详情
+	}
+)
+
+service explore {
+	@handler UploadHandler
+	post /api/upload/image (UploadRequest) returns (UploadResponse)
+}

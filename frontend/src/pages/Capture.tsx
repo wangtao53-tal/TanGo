@@ -6,9 +6,9 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { identifyImage, generateCards } from '../services/api';
+import { identifyImage, generateCards, uploadImage } from '../services/api';
 import { userProfileStorage } from '../services/storage';
-import { fileToBase64, extractBase64Data } from '../utils/image';
+import { fileToBase64, extractBase64Data, compressImage } from '../utils/image';
 import type { IdentifyResponse, GenerateCardsResponse } from '../types/api';
 import type { KnowledgeCard } from '../types/exploration';
 
@@ -33,13 +33,31 @@ export default function Capture() {
       const profile = userProfileStorage.get();
       const age = profile?.age || 8; // 默认8岁
 
-      // 转换图片为base64
-      const base64 = await fileToBase64(file);
+      // 1. 压缩图片
+      const compressedBlob = await compressImage(file, 1920, 1920, 0.8);
+      
+      // 2. 转换为 base64
+      const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' });
+      const base64 = await fileToBase64(compressedFile);
       const imageData = extractBase64Data(base64);
 
-      // 调用识别API
+      // 3. 上传图片到 GitHub（如果失败会自动降级到 base64）
+      let imageUrl = imageData; // 默认使用 base64
+      try {
+        const uploadResult = await uploadImage({
+          imageData: imageData,
+          filename: file.name,
+        });
+        imageUrl = uploadResult.url;
+        console.log('图片上传成功:', uploadResult.url, '方式:', uploadResult.uploadMethod);
+      } catch (uploadError: any) {
+        console.warn('图片上传失败，使用 base64:', uploadError);
+        // 上传失败时使用 base64，继续流程
+      }
+
+      // 4. 调用识别API（使用 URL 或 base64）
       const identifyResult: IdentifyResponse = await identifyImage({
-        image: imageData,
+        image: imageUrl, // 使用上传后的 URL 或 base64
         age,
       });
 
