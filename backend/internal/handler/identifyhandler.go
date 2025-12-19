@@ -21,6 +21,7 @@ func IdentifyHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		// 创建带超时的 context（90秒，与配置文件中的 Timeout 一致）
+		// 注意：配置文件中的 Timeout 单位是毫秒，这里需要转换为秒
 		ctx, cancel := context.WithTimeout(r.Context(), 90*time.Second)
 		defer cancel()
 

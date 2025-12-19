@@ -10,7 +10,6 @@ import (
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/components/prompt"
 	"github.com/cloudwego/eino/schema"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/tango/explore/internal/config"
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -184,7 +183,7 @@ func (n *TextGenerationNode) GenerateText(data *GraphData, context []interface{}
 }
 
 // GenerateScienceCard 生成科学认知卡内容
-func (n *TextGenerationNode) GenerateScienceCard(data *GraphData) (map[string]interface{}, error) {
+func (n *TextGenerationNode) GenerateScienceCard(ctx context.Context, data *GraphData) (map[string]interface{}, error) {
 	n.logger.Infow("生成科学认知卡",
 		logx.Field("objectName", data.ObjectName),
 		logx.Field("age", data.Age),
@@ -193,7 +192,7 @@ func (n *TextGenerationNode) GenerateScienceCard(data *GraphData) (map[string]in
 	)
 
 	if n.initialized && n.chatModel != nil {
-		return n.generateScienceCardReal(data)
+		return n.generateScienceCardReal(ctx, data)
 	}
 
 	n.logger.Errorw("使用Mock模式生成科学认知卡",
@@ -204,7 +203,7 @@ func (n *TextGenerationNode) GenerateScienceCard(data *GraphData) (map[string]in
 }
 
 // GeneratePoetryCard 生成古诗词/人文卡内容
-func (n *TextGenerationNode) GeneratePoetryCard(data *GraphData) (map[string]interface{}, error) {
+func (n *TextGenerationNode) GeneratePoetryCard(ctx context.Context, data *GraphData) (map[string]interface{}, error) {
 	n.logger.Infow("生成古诗词卡",
 		logx.Field("objectName", data.ObjectName),
 		logx.Field("age", data.Age),
@@ -213,7 +212,7 @@ func (n *TextGenerationNode) GeneratePoetryCard(data *GraphData) (map[string]int
 	)
 
 	if n.initialized && n.chatModel != nil {
-		return n.generatePoetryCardReal(data)
+		return n.generatePoetryCardReal(ctx, data)
 	}
 
 	n.logger.Errorw("使用Mock模式生成古诗词卡",
@@ -224,7 +223,7 @@ func (n *TextGenerationNode) GeneratePoetryCard(data *GraphData) (map[string]int
 }
 
 // GenerateEnglishCard 生成英语表达卡内容
-func (n *TextGenerationNode) GenerateEnglishCard(data *GraphData) (map[string]interface{}, error) {
+func (n *TextGenerationNode) GenerateEnglishCard(ctx context.Context, data *GraphData) (map[string]interface{}, error) {
 	n.logger.Infow("生成英语表达卡",
 		logx.Field("objectName", data.ObjectName),
 		logx.Field("age", data.Age),
@@ -233,7 +232,7 @@ func (n *TextGenerationNode) GenerateEnglishCard(data *GraphData) (map[string]in
 	)
 
 	if n.initialized && n.chatModel != nil {
-		return n.generateEnglishCardReal(data)
+		return n.generateEnglishCardReal(ctx, data)
 	}
 
 	n.logger.Errorw("使用Mock模式生成英语表达卡",
@@ -383,19 +382,17 @@ func (n *TextGenerationNode) generateTextReal(data *GraphData, context []interfa
 }
 
 // generateScienceCardReal 真实eino实现科学认知卡
-func (n *TextGenerationNode) generateScienceCardReal(data *GraphData) (map[string]interface{}, error) {
-	messages, err := n.scienceTemplate.Format(n.ctx, map[string]any{
+func (n *TextGenerationNode) generateScienceCardReal(ctx context.Context, data *GraphData) (map[string]interface{}, error) {
+	messages, err := n.scienceTemplate.Format(ctx, map[string]any{
 		"objectName": data.ObjectName,
 		"age":        strconv.Itoa(data.Age),
 	})
 	if err != nil {
-		spew.Dump(1111111, err)
 		n.logger.Errorw("模板格式化失败", logx.Field("error", err))
 		return n.generateScienceCardMock(data)
 	}
 
-	result, err := n.chatModel.Generate(n.ctx, messages)
-	spew.Dump(2222222, result, err)
+	result, err := n.chatModel.Generate(ctx, messages)
 	if err != nil {
 		n.logger.Errorw("ChatModel调用失败", logx.Field("error", err))
 		return n.generateScienceCardMock(data)
@@ -427,8 +424,8 @@ func (n *TextGenerationNode) generateScienceCardReal(data *GraphData) (map[strin
 }
 
 // generatePoetryCardReal 真实eino实现古诗词卡
-func (n *TextGenerationNode) generatePoetryCardReal(data *GraphData) (map[string]interface{}, error) {
-	messages, err := n.poetryTemplate.Format(n.ctx, map[string]any{
+func (n *TextGenerationNode) generatePoetryCardReal(ctx context.Context, data *GraphData) (map[string]interface{}, error) {
+	messages, err := n.poetryTemplate.Format(ctx, map[string]any{
 		"objectName": data.ObjectName,
 		"age":        strconv.Itoa(data.Age),
 	})
@@ -437,7 +434,7 @@ func (n *TextGenerationNode) generatePoetryCardReal(data *GraphData) (map[string
 		return n.generatePoetryCardMock(data)
 	}
 
-	result, err := n.chatModel.Generate(n.ctx, messages)
+	result, err := n.chatModel.Generate(ctx, messages)
 	if err != nil {
 		n.logger.Errorw("ChatModel调用失败", logx.Field("error", err))
 		return n.generatePoetryCardMock(data)
@@ -469,8 +466,8 @@ func (n *TextGenerationNode) generatePoetryCardReal(data *GraphData) (map[string
 }
 
 // generateEnglishCardReal 真实eino实现英语表达卡
-func (n *TextGenerationNode) generateEnglishCardReal(data *GraphData) (map[string]interface{}, error) {
-	messages, err := n.englishTemplate.Format(n.ctx, map[string]any{
+func (n *TextGenerationNode) generateEnglishCardReal(ctx context.Context, data *GraphData) (map[string]interface{}, error) {
+	messages, err := n.englishTemplate.Format(ctx, map[string]any{
 		"objectName": data.ObjectName,
 		"age":        strconv.Itoa(data.Age),
 	})
@@ -479,7 +476,7 @@ func (n *TextGenerationNode) generateEnglishCardReal(data *GraphData) (map[strin
 		return n.generateEnglishCardMock(data)
 	}
 
-	result, err := n.chatModel.Generate(n.ctx, messages)
+	result, err := n.chatModel.Generate(ctx, messages)
 	if err != nil {
 		n.logger.Errorw("ChatModel调用失败", logx.Field("error", err))
 		return n.generateEnglishCardMock(data)

@@ -1,8 +1,11 @@
 Name: explore
 Host: 0.0.0.0
 Port: 8877
-# 超时配置（单位：秒）
-Timeout: 90
+# 超时配置（单位：毫秒）
+# 注意：go-zero 的 Timeout 单位是毫秒，不是秒！
+# ReadTimeout = Timeout * 0.8, WriteTimeout = Timeout * 1.1
+# 设置为 180000 毫秒（180秒），确保有足够时间处理3张卡片的生成
+Timeout: 180000
 # CORS配置
 CorsConf:
   AccessControlAllowOrigin: "*"

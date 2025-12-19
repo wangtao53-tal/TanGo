@@ -41,7 +41,7 @@ func (l *GenerateCardsLogic) GenerateCards(req *types.GenerateCardsRequest) (res
 	// 使用Agent系统生成卡片
 	if l.svcCtx.Agent != nil {
 		graph := l.svcCtx.Agent.GetGraph()
-		data, err := graph.ExecuteCardGeneration(req.ObjectName, req.ObjectCategory, req.Age, req.Keywords)
+		data, err := graph.ExecuteCardGeneration(l.ctx, req.ObjectName, req.ObjectCategory, req.Age, req.Keywords)
 		if err != nil {
 			l.Errorw("Agent卡片生成失败，回退到Mock", logx.Field("error", err))
 			// 回退到Mock实现
