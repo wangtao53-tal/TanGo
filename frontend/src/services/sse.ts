@@ -11,7 +11,11 @@ export interface SSECallbacks {
   onClose?: () => void;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8877';
+// 从环境变量读取API基础地址，如果没有配置则使用默认值
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+  (import.meta.env.DEV 
+    ? `http://${import.meta.env.VITE_BACKEND_HOST || 'localhost'}:${import.meta.env.VITE_BACKEND_PORT || '8877'}`
+    : 'http://localhost:8877');
 
 /**
  * 创建SSE连接

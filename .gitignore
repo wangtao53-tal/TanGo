@@ -4,6 +4,8 @@
 *.out
 vendor/
 *.log
+backend.log
+frontend.log
 .env
 .env.local
 .env.*.local

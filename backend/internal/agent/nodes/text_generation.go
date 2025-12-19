@@ -10,6 +10,7 @@ import (
 	"github.com/cloudwego/eino/components/prompt"
 	"github.com/cloudwego/eino/schema"
 	"github.com/tango/explore/internal/config"
+	configpkg "github.com/tango/explore/internal/config"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -56,7 +57,7 @@ func NewTextGenerationNode(ctx context.Context, cfg config.AIConfig, logger logx
 func (n *TextGenerationNode) initChatModel(ctx context.Context) error {
 	modelName := n.config.TextGenerationModel
 	if modelName == "" {
-		modelName = "gpt-5-nano" // 默认模型
+		modelName = configpkg.DefaultTextGenerationModel
 	}
 
 	cfg := &ark.ChatModelConfig{
