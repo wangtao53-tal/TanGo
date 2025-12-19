@@ -70,9 +70,10 @@ export default function Capture() {
           imageData: base64, // 保存原始base64用于显示
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('处理图片失败:', error);
-      alert('识别失败，请重试');
+      const errorMessage = error?.message || error?.detail || '识别失败，请重试';
+      alert(`识别失败: ${errorMessage}`);
     } finally {
       setIsProcessing(false);
       // 清空input，允许重复选择同一文件

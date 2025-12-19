@@ -101,16 +101,17 @@ export interface ErrorResponse {
 
 // 意图识别请求
 export interface IntentRequest {
-  text: string; // 用户输入的文本
+  text: string; // 用户输入的文本（前端使用，会转换为 message 发送给后端）
   sessionId?: string; // 对话会话ID
   context?: any[]; // 上下文消息（可选）
 }
 
-// 意图识别响应
+// 意图识别响应（对应后端的 IntentResult）
 export interface IntentResponse {
   intent: 'generate_cards' | 'text_response' | 'image_recognition'; // 意图类型
   confidence: number; // 置信度 0-1
-  parameters?: Record<string, any>; // 意图参数
+  reason?: string; // 识别原因（对应后端的 reason 字段）
+  parameters?: Record<string, any>; // 意图参数（可选，前端扩展字段）
 }
 
 // 对话请求
