@@ -27,6 +27,7 @@ func NewIdentifyLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Identify
 }
 
 func (l *IdentifyLogic) Identify(req *types.IdentifyRequest) (resp *types.IdentifyResponse, err error) {
+	logx.WithContext(l.ctx).Infof("req:%+v", req)
 	// 参数验证
 	if req.Image == "" {
 		return nil, utils.ErrImageRequired

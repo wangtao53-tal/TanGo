@@ -1,6 +1,8 @@
 Name: explore
 Host: 0.0.0.0
 Port: 8877
+# 超时配置（单位：秒）
+Timeout: 90
 # CORS配置
 CorsConf:
   AccessControlAllowOrigin: "*"
