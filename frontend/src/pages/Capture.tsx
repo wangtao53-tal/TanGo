@@ -6,11 +6,10 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { identifyImage, generateCards, uploadImage } from '../services/api';
+import { identifyImage, uploadImage } from '../services/api';
 import { userProfileStorage } from '../services/storage';
 import { fileToBase64, extractBase64Data, compressImage } from '../utils/image';
-import type { IdentifyResponse, GenerateCardsResponse } from '../types/api';
-import type { KnowledgeCard } from '../types/exploration';
+import type { IdentifyResponse } from '../types/api';
 
 export default function Capture() {
   const navigate = useNavigate();
@@ -61,37 +60,22 @@ export default function Capture() {
         age,
       });
 
-      // 调用生成卡片API
-      const cardsResult: GenerateCardsResponse = await generateCards({
-        objectName: identifyResult.objectName,
-        objectCategory: identifyResult.objectCategory,
-        age,
-        keywords: identifyResult.keywords,
-      });
-
-      // 转换为KnowledgeCard格式
-      const knowledgeCards: KnowledgeCard[] = cardsResult.cards.map((card, index) => ({
-        id: `card-${card.type}-${Date.now()}-${index}`,
-        explorationId: `exp-${Date.now()}`,
-        type: card.type as 'science' | 'poetry' | 'english',
-        title: card.title,
-        content: card.content as any,
-      }));
-
-      // 跳转到结果页面，传递数据
+      // 跳转到问答页面，只传递识别结果（不生成卡片）
       navigate('/result', {
         state: {
           objectName: identifyResult.objectName,
           objectCategory: identifyResult.objectCategory,
           confidence: identifyResult.confidence,
-          cards: knowledgeCards,
+          keywords: identifyResult.keywords,
+          age,
           imageData: base64, // 保存原始base64用于显示
         },
       });
     } catch (error: any) {
       console.error('处理图片失败:', error);
       const errorMessage = error?.message || error?.detail || '识别失败，请重试';
-      alert(`识别失败: ${errorMessage}`);
+      // 友好的错误提示
+      alert(`识别失败: ${errorMessage}\n\n请检查：\n1. 图片是否清晰\n2. 网络连接是否正常\n3. 稍后重试`);
     } finally {
       setIsProcessing(false);
       // 清空input，允许重复选择同一文件

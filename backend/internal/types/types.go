@@ -12,18 +12,29 @@ type CardContent struct {
 }
 
 type ConversationMessage struct {
-	Id        string      `json:"id"`                 // 消息ID
-	Type      string      `json:"type"`               // 消息类型：user/assistant/system
-	Content   interface{} `json:"content"`            // 消息内容（文本、图片、语音、卡片等）
-	Timestamp string      `json:"timestamp"`          // 消息时间戳
-	SessionId string      `json:"sessionId,optional"` // 会话ID
+	Id          string      `json:"id"`                 // 消息ID
+	Type        string      `json:"type"`               // 消息类型：text/image/voice/card
+	Sender      string      `json:"sender"`             // 发送者：user/assistant
+	Content     interface{} `json:"content"`            // 消息内容（文本、图片、语音、卡片等）
+	Timestamp   string      `json:"timestamp"`          // 消息时间戳
+	SessionId   string      `json:"sessionId,optional"` // 会话ID
+	IsStreaming *bool       `json:"isStreaming,optional"` // 是否正在流式返回
+}
+
+type IdentificationContext struct {
+	ObjectName     string   `json:"objectName"`        // 对象名称
+	ObjectCategory string   `json:"objectCategory"`    // 对象类别
+	Confidence     float64  `json:"confidence"`        // 识别置信度
+	Keywords       []string `json:"keywords,optional"` // 相关关键词
+	Age            int      `json:"age,optional"`      // 用户年龄
 }
 
 type ConversationRequest struct {
-	Message   string `json:"message"`            // 用户消息（文本）
-	Image     string `json:"image,optional"`     // 图片（base64，可选）
-	Voice     string `json:"voice,optional"`     // 语音（base64，可选）
-	SessionId string `json:"sessionId,optional"` // 会话ID（可选）
+	Message               string                 `json:"message"`                        // 用户消息（文本）
+	Image                 string                 `json:"image,optional"`                 // 图片（base64，可选）
+	Voice                 string                 `json:"voice,optional"`                 // 语音（base64，可选）
+	SessionId             string                 `json:"sessionId,optional"`             // 会话ID（可选）
+	IdentificationContext *IdentificationContext `json:"identificationContext,optional"` // 识别结果上下文（可选）
 }
 
 type ConversationResponse struct {

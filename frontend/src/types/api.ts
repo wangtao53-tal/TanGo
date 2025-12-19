@@ -17,6 +17,15 @@ export interface IdentifyResponse {
   keywords?: string[]; // 相关关键词
 }
 
+// 识别结果上下文（用于关联识别结果到对话会话）
+export interface IdentificationContext {
+  objectName: string; // 对象名称
+  objectCategory: '自然类' | '生活类' | '人文类'; // 对象类别
+  confidence: number; // 识别置信度
+  keywords?: string[]; // 相关关键词
+  age?: number; // 用户年龄
+}
+
 // 知识卡片生成请求
 export interface GenerateCardsRequest {
   objectName: string;
@@ -120,6 +129,7 @@ export interface ConversationRequest {
   type: 'text' | 'voice' | 'image'; // 输入类型
   content: string; // 内容（文本、base64音频、base64图片）
   inputType: 'text' | 'voice' | 'image'; // 输入类型
+  identificationContext?: IdentificationContext; // 识别结果上下文（可选）
 }
 
 // 对话响应（流式返回）
