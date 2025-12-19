@@ -3,6 +3,8 @@
 
 package types
 
+type HealthAliveResponse struct {
+}
 type CardContent struct {
 	Type    string      `json:"type"`    // 卡片类型：science/poetry/english
 	Title   string      `json:"title"`   // 卡片标题
