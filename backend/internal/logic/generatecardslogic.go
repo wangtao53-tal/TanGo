@@ -36,10 +36,45 @@ func (l *GenerateCardsLogic) GenerateCards(req *types.GenerateCardsRequest) (res
 		return nil, utils.ErrInvalidAge
 	}
 
-	// TODO: 待APP ID提供后，接入真实AI模型
-	// 当前使用Mock数据，根据年龄调整内容难度
 	l.Infow("生成知识卡片", logx.Field("objectName", req.ObjectName), logx.Field("category", req.ObjectCategory), logx.Field("age", req.Age))
 
+	// 使用Agent系统生成卡片
+	if l.svcCtx.Agent != nil {
+		graph := l.svcCtx.Agent.GetGraph()
+		data, err := graph.ExecuteCardGeneration(req.ObjectName, req.ObjectCategory, req.Age, req.Keywords)
+		if err != nil {
+			l.Errorw("Agent卡片生成失败，回退到Mock", logx.Field("error", err))
+			// 回退到Mock实现
+			return l.generateCardsMock(req)
+		}
+
+		// 转换Agent返回的卡片数据为types.CardContent
+		cards := make([]types.CardContent, 0, len(data.Cards))
+		for _, cardData := range data.Cards {
+			if cardMap, ok := cardData.(map[string]interface{}); ok {
+				card := types.CardContent{
+					Type:    getString(cardMap, "type"),
+					Title:   getString(cardMap, "title"),
+					Content: cardMap["content"],
+				}
+				cards = append(cards, card)
+			}
+		}
+
+		resp = &types.GenerateCardsResponse{
+			Cards: cards,
+		}
+
+		l.Infow("卡片生成完成（Agent）", logx.Field("cardCount", len(cards)))
+		return resp, nil
+	}
+
+	// 如果Agent未初始化，使用Mock数据
+	return l.generateCardsMock(req)
+}
+
+// generateCardsMock Mock实现（保留作为回退方案）
+func (l *GenerateCardsLogic) generateCardsMock(req *types.GenerateCardsRequest) (*types.GenerateCardsResponse, error) {
 	// Mock数据：根据对象名称和年龄生成三张卡片
 	cards := []types.CardContent{
 		// 科学认知卡
@@ -47,10 +82,10 @@ func (l *GenerateCardsLogic) GenerateCards(req *types.GenerateCardsRequest) (res
 			Type:  "science",
 			Title: req.ObjectName + "的科学知识",
 			Content: map[string]interface{}{
-				"name":      req.ObjectName,
+				"name":        req.ObjectName,
 				"explanation": l.getScienceExplanation(req.ObjectName, req.Age),
-				"facts":     l.getScienceFacts(req.ObjectName, req.Age),
-				"funFact":   l.getFunFact(req.ObjectName, req.Age),
+				"facts":       l.getScienceFacts(req.ObjectName, req.Age),
+				"funFact":     l.getFunFact(req.ObjectName, req.Age),
 			},
 		},
 		// 古诗词/人文卡
@@ -59,8 +94,8 @@ func (l *GenerateCardsLogic) GenerateCards(req *types.GenerateCardsRequest) (res
 			Title: "古人怎么看" + req.ObjectName,
 			Content: map[string]interface{}{
 				"poem":        l.getPoem(req.ObjectName),
-				"poemSource":   l.getPoemSource(req.ObjectName),
-				"explanation":  l.getPoemExplanation(req.ObjectName, req.Age),
+				"poemSource":  l.getPoemSource(req.ObjectName),
+				"explanation": l.getPoemExplanation(req.ObjectName, req.Age),
 				"context":     l.getContext(req.ObjectName, req.Age),
 			},
 		},
@@ -69,19 +104,29 @@ func (l *GenerateCardsLogic) GenerateCards(req *types.GenerateCardsRequest) (res
 			Type:  "english",
 			Title: "用英语说" + req.ObjectName,
 			Content: map[string]interface{}{
-				"keywords":     l.getEnglishKeywords(req.ObjectName),
-				"expressions":  l.getEnglishExpressions(req.ObjectName, req.Age),
+				"keywords":      l.getEnglishKeywords(req.ObjectName),
+				"expressions":   l.getEnglishExpressions(req.ObjectName, req.Age),
 				"pronunciation": l.getPronunciation(req.ObjectName),
 			},
 		},
 	}
 
-	resp = &types.GenerateCardsResponse{
+	resp := &types.GenerateCardsResponse{
 		Cards: cards,
 	}
 
-	l.Infow("卡片生成完成", logx.Field("cardCount", len(cards)))
+	l.Infow("卡片生成完成（Mock）", logx.Field("cardCount", len(cards)))
 	return resp, nil
+}
+
+// getString 辅助函数：从map中安全获取string值
+func getString(m map[string]interface{}, key string) string {
+	if val, ok := m[key]; ok {
+		if str, ok := val.(string); ok {
+			return str
+		}
+	}
+	return ""
 }
 
 // Mock辅助函数：生成科学认知内容

@@ -33,8 +33,8 @@ func StreamHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			message = "开始对话"
 		}
 
-		// 创建流式逻辑
-		streamLogic := logic.NewStreamLogic(r.Context(), svcCtx)
+		// 创建流式逻辑（TODO: 待实现真实流式逻辑时使用）
+		_ = logic.NewStreamLogic(r.Context(), svcCtx)
 
 		// 发送初始连接事件
 		fmt.Fprintf(w, "event: connected\ndata: {\"sessionId\":\"%s\"}\n\n", sessionId)
