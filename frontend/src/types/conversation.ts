@@ -16,6 +16,7 @@ export interface ConversationMessage {
   timestamp: string; // ISO 8601时间戳
   sender: MessageSender; // 发送者
   sessionId?: string; // 对话会话ID
+  isStreaming?: boolean; // 是否正在流式返回（仅系统消息）
 }
 
 // 对话会话

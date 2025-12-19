@@ -7,7 +7,7 @@ import { sendConversationMessage, recognizeIntent } from './api';
 import { createSSEConnection, closeSSEConnection, type SSECallbacks } from './sse';
 import { conversationStorage } from './storage';
 import type { ConversationMessage } from '../types/conversation';
-import type { ConversationStreamEvent } from '../types/api';
+import type { ConversationStreamEvent, IdentificationContext } from '../types/api';
 
 /**
  * 生成会话ID
@@ -17,24 +17,33 @@ function generateSessionId(): string {
 }
 
 /**
- * 发送消息并处理响应
+ * 发送消息并处理响应（支持乐观更新）
+ * @param onUserMessage 用户消息创建后的回调，用于立即显示用户消息（乐观更新）
  */
 export async function sendMessage(
   content: string,
   type: 'text' | 'voice' | 'image' = 'text',
-  sessionId?: string
-): Promise<{ sessionId: string; message: ConversationMessage }> {
+  sessionId?: string,
+  identificationContext?: IdentificationContext,
+  onUserMessage?: (message: ConversationMessage) => void
+): Promise<{ sessionId: string; message: ConversationMessage; userMessage: ConversationMessage }> {
   const currentSessionId = sessionId || generateSessionId();
 
-  // 创建用户消息
+  // 创建用户消息（使用临时ID，乐观更新）
+  const tempId = `msg-temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const userMessage: ConversationMessage = {
-    id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id: tempId,
     type: type === 'text' ? 'text' : type === 'voice' ? 'voice' : 'image',
     content,
     timestamp: new Date().toISOString(),
     sender: 'user',
     sessionId: currentSessionId,
   };
+
+  // 立即调用回调，显示用户消息（乐观更新）
+  if (onUserMessage) {
+    onUserMessage(userMessage);
+  }
 
   // 保存用户消息到本地
   await conversationStorage.saveMessage(userMessage);
@@ -46,16 +55,23 @@ export async function sendMessage(
       type,
       content,
       inputType: type,
+      identificationContext,
     });
+
+    // 更新用户消息ID（如果后端返回了新的ID）
+    if (response.userMessageId) {
+      userMessage.id = response.userMessageId;
+    }
 
     // 创建助手消息
     const assistantMessage: ConversationMessage = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      type: response.type || 'text',
-      content: response.content || response,
-      timestamp: new Date().toISOString(),
+      id: response.message?.id || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type: response.message?.type || response.type || 'text',
       sender: 'assistant',
+      content: response.message?.content || response.content || response,
+      timestamp: response.message?.timestamp || new Date().toISOString(),
       sessionId: currentSessionId,
+      isStreaming: response.message?.isStreaming,
     };
 
     // 保存助手消息到本地
@@ -64,9 +80,11 @@ export async function sendMessage(
     return {
       sessionId: currentSessionId,
       message: assistantMessage,
+      userMessage,
     };
   } catch (error) {
     console.error('发送消息失败:', error);
+    // 如果失败，可以标记用户消息为错误状态
     throw error;
   }
 }

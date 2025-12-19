@@ -86,11 +86,18 @@ export async function identifyImage(
 
 /**
  * 生成知识卡片API
+ * 超时时间设置为3分钟（180000ms），因为卡片生成可能需要较长时间
  */
 export async function generateCards(
   request: GenerateCardsRequest
 ): Promise<GenerateCardsResponse> {
-  const response = await apiClient.post<GenerateCardsResponse>('/api/explore/generate-cards', request);
+  const response = await apiClient.post<GenerateCardsResponse>(
+    '/api/explore/generate-cards', 
+    request,
+    {
+      timeout: 180000, // 3分钟 = 180000毫秒
+    }
+  );
   return response as unknown as GenerateCardsResponse;
 }
 
@@ -166,7 +173,21 @@ export async function sendConversationMessage(
   request: ConversationRequest
 ): Promise<any> {
   try {
-    const response = await apiClient.post('/api/conversation/message', request);
+    // 转换请求格式以匹配后端API
+    const backendRequest: any = {
+      message: request.content,
+      sessionId: request.sessionId,
+      identificationContext: request.identificationContext,
+    };
+    
+    // 根据类型设置相应的字段
+    if (request.type === 'image') {
+      backendRequest.image = request.content;
+    } else if (request.type === 'voice') {
+      backendRequest.voice = request.content;
+    }
+    
+    const response = await apiClient.post('/api/conversation/message', backendRequest);
     return response;
   } catch (error: any) {
     console.warn('后端API调用失败，使用Mock数据:', error.message);

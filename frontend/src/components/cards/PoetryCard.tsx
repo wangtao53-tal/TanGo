@@ -56,28 +56,9 @@ export const PoetryCard: React.FC<PoetryCardProps> = ({
     <article
       id={id || `card-${card.id}`}
       className={`flex flex-col rounded-[2.5rem] bg-white border-4 border-sunny-orange shadow-card relative transition-transform hover:-translate-y-2 duration-300 group overflow-hidden w-full max-w-md mx-auto ${className}`}
-      style={{ minHeight: '600px', maxHeight: '800px' }}
     >
-      {/* 顶部图片区域（45%高度） */}
-      <div className="h-[45%] w-full relative overflow-hidden rounded-t-[2.2rem]">
-        <div
-          className="absolute inset-0 bg-cover bg-center transform hover:scale-110 transition-transform duration-700"
-          style={{
-            backgroundImage: `url(https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800)`,
-          }}
-        />
-        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-2xl text-sunny-orange font-display font-bold text-sm border-2 border-sunny-orange shadow-sm flex items-center gap-2">
-          <span className="material-symbols-outlined text-lg">history_edu</span>
-          Story Time
-        </div>
-        <div
-          className="absolute bottom-0 left-0 w-full h-8 bg-white"
-          style={{ clipPath: 'polygon(0 100%, 100% 100%, 100% 0, 0 100%)' }}
-        />
-      </div>
-
-      {/* 底部内容区域（55%高度） */}
-      <div className="h-[55%] bg-white p-6 flex flex-col justify-between relative rounded-b-[2.2rem]">
+      {/* 内容区域（纯文本显示，不显示图片） */}
+      <div className="bg-white p-6 flex flex-col justify-between relative rounded-[2.2rem]">
         <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin">
           <h3 className="text-3xl font-display font-bold text-sunny-orange mb-3">
             {card.title}
