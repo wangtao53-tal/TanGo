@@ -84,7 +84,7 @@ func (g *Graph) ExecuteImageRecognition(image string, age int) (*nodes.GraphData
 
 // ExecuteCardGeneration 执行卡片生成流程
 // 输入: 对象名称、类别、年龄 -> 输出: 三张卡片（科学、诗词、英语）
-func (g *Graph) ExecuteCardGeneration(objectName, category string, age int, keywords []string) (*nodes.GraphData, error) {
+func (g *Graph) ExecuteCardGeneration(ctx context.Context, objectName, category string, age int, keywords []string) (*nodes.GraphData, error) {
 	data := &nodes.GraphData{
 		ObjectName:     objectName,
 		ObjectCategory: category,
@@ -96,21 +96,21 @@ func (g *Graph) ExecuteCardGeneration(objectName, category string, age int, keyw
 	cards := make([]interface{}, 0, 3)
 
 	// 1. 科学认知卡（文本生成）
-	scienceCard, err := g.textGenerationNode.GenerateScienceCard(data)
+	scienceCard, err := g.textGenerationNode.GenerateScienceCard(ctx, data)
 	if err != nil {
 		return nil, err
 	}
 	cards = append(cards, scienceCard)
 
 	// 2. 古诗词/人文卡（文本生成）
-	poetryCard, err := g.textGenerationNode.GeneratePoetryCard(data)
+	poetryCard, err := g.textGenerationNode.GeneratePoetryCard(ctx, data)
 	if err != nil {
 		return nil, err
 	}
 	cards = append(cards, poetryCard)
 
 	// 3. 英语表达卡（文本生成）
-	englishCard, err := g.textGenerationNode.GenerateEnglishCard(data)
+	englishCard, err := g.textGenerationNode.GenerateEnglishCard(ctx, data)
 	if err != nil {
 		return nil, err
 	}
