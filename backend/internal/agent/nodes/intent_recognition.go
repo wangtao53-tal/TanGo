@@ -10,6 +10,7 @@ import (
 	"github.com/cloudwego/eino/components/prompt"
 	"github.com/cloudwego/eino/schema"
 	"github.com/tango/explore/internal/config"
+	configpkg "github.com/tango/explore/internal/config"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -61,7 +62,7 @@ func NewIntentRecognitionNode(ctx context.Context, cfg config.AIConfig, logger l
 func (n *IntentRecognitionNode) initChatModel(ctx context.Context) error {
 	modelName := n.config.IntentModel
 	if modelName == "" {
-		modelName = "gpt-5-nano" // 默认模型
+		modelName = configpkg.DefaultIntentModel
 	}
 
 	// 构建配置：使用 AppID 作为 APIKey（根据实际认证方式调整）

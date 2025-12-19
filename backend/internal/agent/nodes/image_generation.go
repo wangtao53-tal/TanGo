@@ -8,6 +8,7 @@ import (
 	"github.com/cloudwego/eino-ext/components/model/ark"
 	"github.com/cloudwego/eino/schema"
 	"github.com/tango/explore/internal/config"
+	configpkg "github.com/tango/explore/internal/config"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -47,7 +48,7 @@ func NewImageGenerationNode(ctx context.Context, cfg config.AIConfig, logger log
 func (n *ImageGenerationNode) initImageModel(ctx context.Context) error {
 	modelName := n.config.ImageGenerationModel
 	if modelName == "" {
-		modelName = "Gemini 3 Pro Image" // 默认模型
+		modelName = configpkg.DefaultImageGenerationModel
 	}
 
 	cfg := &ark.ImageGenerationConfig{

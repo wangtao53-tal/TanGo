@@ -4,9 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/tango/explore/internal/config"
+	configpkg "github.com/tango/explore/internal/config"
 	"github.com/tango/explore/internal/handler"
 	"github.com/tango/explore/internal/svc"
 
@@ -25,8 +27,8 @@ func main() {
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
 
-	// 从环境变量加载AI配置
-	loadAIConfigFromEnv(&c)
+	// 从环境变量覆盖配置（包括端口、主机等）
+	loadConfigFromEnv(&c)
 
 	server := rest.MustNewServer(c.RestConf)
 	defer server.Stop()
@@ -70,6 +72,22 @@ func loadEnvFile() {
 	}
 }
 
+// loadConfigFromEnv 从环境变量加载所有配置（包括服务配置和AI配置）
+func loadConfigFromEnv(c *config.Config) {
+	// 覆盖后端服务配置
+	if host := os.Getenv("BACKEND_HOST"); host != "" {
+		c.Host = host
+	}
+	if portStr := os.Getenv("BACKEND_PORT"); portStr != "" {
+		if port, err := strconv.Atoi(portStr); err == nil {
+			c.Port = port
+		}
+	}
+
+	// 加载AI配置
+	loadAIConfigFromEnv(c)
+}
+
 // loadAIConfigFromEnv 从环境变量加载AI配置
 func loadAIConfigFromEnv(c *config.Config) {
 	if c.AI.EinoBaseURL == "" {
@@ -84,7 +102,7 @@ func loadAIConfigFromEnv(c *config.Config) {
 	if c.AI.IntentModel == "" {
 		c.AI.IntentModel = os.Getenv("INTENT_MODEL")
 		if c.AI.IntentModel == "" {
-			c.AI.IntentModel = "gpt-5-nano"
+			c.AI.IntentModel = configpkg.DefaultIntentModel
 		}
 	}
 	if len(c.AI.ImageRecognitionModels) == 0 {
@@ -99,17 +117,20 @@ func loadAIConfigFromEnv(c *config.Config) {
 			}
 			c.AI.ImageRecognitionModels = models
 		} else {
-			c.AI.ImageRecognitionModels = []string{"doubao-seed-1.6-vision", "GLM-4.6v"}
+			c.AI.ImageRecognitionModels = configpkg.GetDefaultImageRecognitionModels()
 		}
 	}
 	if c.AI.ImageGenerationModel == "" {
 		c.AI.ImageGenerationModel = os.Getenv("IMAGE_GENERATION_MODEL")
 		if c.AI.ImageGenerationModel == "" {
-			c.AI.ImageGenerationModel = "Gemini 3 Pro Image"
+			c.AI.ImageGenerationModel = configpkg.DefaultImageGenerationModel
 		}
 	}
 	if c.AI.TextGenerationModel == "" {
 		c.AI.TextGenerationModel = os.Getenv("TEXT_GENERATION_MODEL")
+		if c.AI.TextGenerationModel == "" {
+			c.AI.TextGenerationModel = configpkg.DefaultTextGenerationModel
+		}
 	}
 }
 

@@ -12,6 +12,7 @@ import (
 	"github.com/cloudwego/eino/components/prompt"
 	"github.com/cloudwego/eino/schema"
 	"github.com/tango/explore/internal/config"
+	configpkg "github.com/tango/explore/internal/config"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -67,7 +68,7 @@ func (n *ImageRecognitionNode) initChatModel(ctx context.Context) error {
 		modelName = n.config.ImageRecognitionModels[0] // 使用第一个模型
 	}
 	if modelName == "" {
-		modelName = "doubao-seed-1.6-vision" // 默认 Vision 模型
+		modelName = configpkg.DefaultImageRecognitionModel1
 	}
 
 	cfg := &ark.ChatModelConfig{

@@ -42,7 +42,7 @@ func (l *IntentLogic) RecognizeIntent(req *types.IntentRequest) (*types.IntentRe
 		}
 	}
 
-	// TODO: 使用LLM进行意图识别（通过eino框架调用gpt-5-nano）
+	// 使用LLM进行意图识别（通过eino框架调用意图识别模型）
 	// 当前使用规则判断作为降级方案
 	// 如果消息包含问号或疑问词，倾向于文本回答
 	questionWords := []string{"什么", "为什么", "怎么", "如何", "哪里", "哪个", "who", "what", "why", "how", "where", "which", "?"}
