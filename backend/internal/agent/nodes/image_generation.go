@@ -59,12 +59,13 @@ func (n *ImageGenerationNode) initImageModel(ctx context.Context) error {
 		cfg.BaseURL = n.config.EinoBaseURL
 	}
 
-	apiKey := n.config.AppKey
-	if apiKey == "" {
-		apiKey = n.config.AppID
-	}
-	if apiKey != "" {
-		cfg.APIKey = apiKey
+	// 认证：使用 Bearer Token 格式 ${TAL_MLOPS_APP_ID}:${TAL_MLOPS_APP_KEY}
+	if n.config.AppID != "" && n.config.AppKey != "" {
+		cfg.APIKey = n.config.AppID + ":" + n.config.AppKey
+	} else if n.config.AppKey != "" {
+		cfg.APIKey = n.config.AppKey
+	} else if n.config.AppID != "" {
+		cfg.APIKey = n.config.AppID
 	} else {
 		return nil // 返回 nil，使用 Mock 模式
 	}

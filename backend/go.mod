@@ -5,6 +5,7 @@ go 1.21.4
 require (
 	github.com/cloudwego/eino v0.7.11
 	github.com/cloudwego/eino-ext/components/model/ark v0.1.57
+	github.com/davecgh/go-spew v1.1.1
 	github.com/google/uuid v1.6.0
 	github.com/zeromicro/go-zero v1.9.3
 )

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -22,15 +23,23 @@ func main() {
 	flag.Parse()
 
 	// 加载.env文件（如果存在）
+	// 注意：必须在 conf.MustLoad 之前加载，以便 go-zero 的 env 标签能读取到环境变量
 	loadEnvFile()
 
 	var c config.Config
+	// go-zero 的 conf.MustLoad 会自动从环境变量读取配置（通过 env 标签）
 	conf.MustLoad(*configFile, &c)
 
-	// 从环境变量覆盖配置（包括端口、主机等）
+	// 手动处理一些特殊配置（环境变量优先级高于 YAML）
 	loadConfigFromEnv(&c)
 
-	server := rest.MustNewServer(c.RestConf)
+	// 创建服务器，显式启用CORS支持
+	// 允许所有来源（开发环境），生产环境应限制为特定域名
+	// 允许必要的请求头
+	server := rest.MustNewServer(c.RestConf,
+		rest.WithCors("*"),
+		rest.WithCorsHeaders("Content-Type", "Authorization"),
+	)
 	defer server.Stop()
 
 	ctx := svc.NewServiceContext(c)
@@ -41,40 +50,81 @@ func main() {
 }
 
 // loadEnvFile 加载.env文件
+// 从项目根目录查找 .env 文件（相对于当前可执行文件或配置文件所在目录）
 func loadEnvFile() {
-	envFile := ".env"
-	if _, err := os.Stat(envFile); err == nil {
-		// 简单的.env文件解析
-		data, err := os.ReadFile(envFile)
-		if err == nil {
-			lines := strings.Split(string(data), "\n")
-			for _, line := range lines {
-				line = strings.TrimSpace(line)
-				if line == "" || strings.HasPrefix(line, "#") {
-					continue
-				}
-				parts := strings.SplitN(line, "=", 2)
-				if len(parts) == 2 {
-					key := strings.TrimSpace(parts[0])
-					value := strings.TrimSpace(parts[1])
-					// 移除引号
-					if len(value) > 0 && (value[0] == '"' || value[0] == '\'') {
-						if len(value) > 1 {
-							value = value[1 : len(value)-1]
-						} else {
-							value = ""
-						}
+	// 尝试多个可能的 .env 文件路径
+	envPaths := []string{
+		".env",       // 当前工作目录
+		"../.env",    // 上一级目录（如果从 backend 目录运行）
+		"../../.env", // 上两级目录（如果从 backend 子目录运行）
+	}
+
+	// 尝试从配置文件路径推断项目根目录
+	if configPath := *configFile; configPath != "" {
+		if absPath, err := filepath.Abs(configPath); err == nil {
+			// 如果配置文件是 etc/explore.yaml，则 .env 应该在项目根目录
+			configDir := filepath.Dir(absPath)
+			if strings.HasSuffix(configDir, "etc") {
+				projectRoot := filepath.Dir(configDir)
+				envPaths = append([]string{filepath.Join(projectRoot, ".env")}, envPaths...)
+			}
+		}
+	}
+
+	// 尝试查找并加载 .env 文件
+	for _, envFile := range envPaths {
+		if absPath, err := filepath.Abs(envFile); err == nil {
+			if _, err := os.Stat(absPath); err == nil {
+				loadEnvFileFromPath(absPath)
+				return
+			}
+		}
+	}
+}
+
+// loadEnvFileFromPath 从指定路径加载 .env 文件
+func loadEnvFileFromPath(envFile string) {
+	data, err := os.ReadFile(envFile)
+	if err != nil {
+		return
+	}
+
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		// 跳过空行和注释
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		// 解析 KEY=VALUE 格式
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) == 2 {
+			key := strings.TrimSpace(parts[0])
+			value := strings.TrimSpace(parts[1])
+			// 移除引号（支持 "value" 或 'value' 格式）
+			if len(value) > 0 {
+				if (value[0] == '"' && value[len(value)-1] == '"') ||
+					(value[0] == '\'' && value[len(value)-1] == '\'') {
+					if len(value) > 1 {
+						value = value[1 : len(value)-1]
+					} else {
+						value = ""
 					}
-					os.Setenv(key, value)
 				}
+			}
+			// 只设置未存在的环境变量（避免覆盖已设置的环境变量）
+			if os.Getenv(key) == "" {
+				os.Setenv(key, value)
 			}
 		}
 	}
 }
 
 // loadConfigFromEnv 从环境变量加载所有配置（包括服务配置和AI配置）
+// 注意：go-zero 的 conf.MustLoad 已经通过 env 标签自动读取了部分配置
+// 这里主要处理一些特殊逻辑和数组类型的配置
 func loadConfigFromEnv(c *config.Config) {
-	// 覆盖后端服务配置
+	// 覆盖后端服务配置（环境变量优先级最高）
 	if host := os.Getenv("BACKEND_HOST"); host != "" {
 		c.Host = host
 	}
@@ -89,91 +139,49 @@ func loadConfigFromEnv(c *config.Config) {
 }
 
 // loadAIConfigFromEnv 从环境变量加载AI配置
+// 注意：go-zero 的 env 标签已经自动读取了字符串类型的配置
+// 这里主要处理数组类型和默认值逻辑
 func loadAIConfigFromEnv(c *config.Config) {
-	if c.AI.EinoBaseURL == "" {
-		c.AI.EinoBaseURL = os.Getenv("EINO_BASE_URL")
-	}
-	if c.AI.AppID == "" {
-		c.AI.AppID = os.Getenv("TAL_MLOPS_APP_ID")
-	}
-	if c.AI.AppKey == "" {
-		c.AI.AppKey = os.Getenv("TAL_MLOPS_APP_KEY")
-	}
-	if c.AI.IntentModel == "" {
-		c.AI.IntentModel = os.Getenv("INTENT_MODEL")
-		if c.AI.IntentModel == "" {
-			c.AI.IntentModel = configpkg.DefaultIntentModel
-		}
-	}
+	// 处理图片识别模型列表（数组类型，需要手动解析）
 	if len(c.AI.ImageRecognitionModels) == 0 {
 		modelsStr := os.Getenv("IMAGE_RECOGNITION_MODELS")
 		if modelsStr != "" {
 			// 解析逗号分隔的模型列表
-			models := []string{}
-			for _, model := range splitAndTrim(modelsStr, ",") {
-				if model != "" {
-					models = append(models, model)
-				}
+			models := parseCommaSeparatedList(modelsStr)
+			if len(models) > 0 {
+				c.AI.ImageRecognitionModels = models
+			} else {
+				c.AI.ImageRecognitionModels = configpkg.GetDefaultImageRecognitionModels()
 			}
-			c.AI.ImageRecognitionModels = models
 		} else {
 			c.AI.ImageRecognitionModels = configpkg.GetDefaultImageRecognitionModels()
 		}
 	}
+
+	// 确保其他模型配置有默认值（如果环境变量和 YAML 都未设置）
+	if c.AI.IntentModel == "" {
+		c.AI.IntentModel = configpkg.DefaultIntentModel
+	}
 	if c.AI.ImageGenerationModel == "" {
-		c.AI.ImageGenerationModel = os.Getenv("IMAGE_GENERATION_MODEL")
-		if c.AI.ImageGenerationModel == "" {
-			c.AI.ImageGenerationModel = configpkg.DefaultImageGenerationModel
-		}
+		c.AI.ImageGenerationModel = configpkg.DefaultImageGenerationModel
 	}
 	if c.AI.TextGenerationModel == "" {
-		c.AI.TextGenerationModel = os.Getenv("TEXT_GENERATION_MODEL")
-		if c.AI.TextGenerationModel == "" {
-			c.AI.TextGenerationModel = configpkg.DefaultTextGenerationModel
-		}
+		c.AI.TextGenerationModel = configpkg.DefaultTextGenerationModel
 	}
 }
 
-// splitAndTrim 分割字符串并去除空白
-func splitAndTrim(s, sep string) []string {
-	result := []string{}
-	for _, part := range splitString(s, sep) {
-		trimmed := trimSpace(part)
+// parseCommaSeparatedList 解析逗号分隔的字符串列表
+func parseCommaSeparatedList(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
 		if trimmed != "" {
 			result = append(result, trimmed)
 		}
 	}
 	return result
-}
-
-func splitString(s, sep string) []string {
-	result := []string{}
-	current := ""
-	for i := 0; i < len(s); i++ {
-		if i+len(sep) <= len(s) && s[i:i+len(sep)] == sep {
-			if current != "" {
-				result = append(result, current)
-				current = ""
-			}
-			i += len(sep) - 1
-		} else {
-			current += string(s[i])
-		}
-	}
-	if current != "" {
-		result = append(result, current)
-	}
-	return result
-}
-
-func trimSpace(s string) string {
-	start := 0
-	end := len(s)
-	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r') {
-		start++
-	}
-	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
-		end--
-	}
-	return s[start:end]
 }

@@ -32,14 +32,22 @@ func (l *IdentifyLogic) Identify(req *types.IdentifyRequest) (resp *types.Identi
 		return nil, utils.ErrImageRequired
 	}
 
-	l.Infow("识别图片", logx.Field("imageLength", len(req.Image)))
+	l.Infow("识别图片",
+		logx.Field("imageLength", len(req.Image)),
+		logx.Field("age", req.Age),
+		logx.Field("agentInitialized", l.svcCtx.Agent != nil),
+	)
 
 	// 使用Agent系统进行图片识别
 	if l.svcCtx.Agent != nil {
 		graph := l.svcCtx.Agent.GetGraph()
 		data, err := graph.ExecuteImageRecognition(req.Image, req.Age)
+
 		if err != nil {
-			l.Errorw("Agent图片识别失败，回退到Mock", logx.Field("error", err))
+			l.Errorw("Agent图片识别失败，回退到Mock",
+				logx.Field("error", err),
+				logx.Field("errorDetail", err.Error()),
+			)
 			// 回退到Mock实现
 			return l.identifyMock(req)
 		}
@@ -55,11 +63,13 @@ func (l *IdentifyLogic) Identify(req *types.IdentifyRequest) (resp *types.Identi
 			logx.Field("objectName", resp.ObjectName),
 			logx.Field("category", resp.ObjectCategory),
 			logx.Field("confidence", resp.Confidence),
+			logx.Field("keywords", resp.Keywords),
 		)
 		return resp, nil
 	}
 
 	// 如果Agent未初始化，使用Mock数据
+	l.Errorw("Agent未初始化，使用Mock数据")
 	return l.identifyMock(req)
 }
 

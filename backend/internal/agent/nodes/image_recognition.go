@@ -11,6 +11,7 @@ import (
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/components/prompt"
 	"github.com/cloudwego/eino/schema"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/tango/explore/internal/config"
 	configpkg "github.com/tango/explore/internal/config"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -43,15 +44,32 @@ func NewImageRecognitionNode(ctx context.Context, cfg config.AIConfig, logger lo
 	}
 
 	// 如果配置了 eino 相关参数，初始化 ChatModel（Vision 模型）
-	if cfg.EinoBaseURL != "" && cfg.AppID != "" && cfg.AppKey != "" {
+	hasEinoBaseURL := cfg.EinoBaseURL != ""
+	hasAppID := cfg.AppID != ""
+	hasAppKey := cfg.AppKey != ""
+
+	if hasEinoBaseURL && hasAppID && hasAppKey {
+		logger.Infow("检测到eino配置，尝试初始化Vision ChatModel",
+			logx.Field("einoBaseURL", cfg.EinoBaseURL),
+			logx.Field("appID", cfg.AppID),
+			logx.Field("hasAppKey", hasAppKey),
+		)
 		if err := node.initChatModel(ctx); err != nil {
-			logger.Errorw("初始化Vision ChatModel失败，将使用Mock模式", logx.Field("error", err))
+			logger.Errorw("初始化Vision ChatModel失败，将使用Mock模式",
+				logx.Field("error", err),
+				logx.Field("errorDetail", err.Error()),
+			)
 		} else {
 			node.initialized = true
-			logger.Info("图片识别节点已初始化Vision ChatModel")
+			logger.Info("✅ 图片识别节点已初始化Vision ChatModel，将使用真实模型")
 		}
 	} else {
-		logger.Info("未配置eino参数，图片识别节点将使用Mock模式")
+		logger.Errorw("未完整配置eino参数，图片识别节点将使用Mock模式",
+			logx.Field("hasEinoBaseURL", hasEinoBaseURL),
+			logx.Field("hasAppID", hasAppID),
+			logx.Field("hasAppKey", hasAppKey),
+		)
+		logger.Info("提示：需要同时配置 EINO_BASE_URL、TAL_MLOPS_APP_ID、TAL_MLOPS_APP_KEY 才能使用真实模型")
 	}
 
 	// 创建消息模板
@@ -79,12 +97,24 @@ func (n *ImageRecognitionNode) initChatModel(ctx context.Context) error {
 		cfg.BaseURL = n.config.EinoBaseURL
 	}
 
-	apiKey := n.config.AppKey
-	if apiKey == "" {
-		apiKey = n.config.AppID
-	}
-	if apiKey != "" {
-		cfg.APIKey = apiKey
+	// 认证：使用与其他节点一致的格式
+	// eino 框架的 APIKey 字段会自动处理 Bearer Token 格式
+	// 使用 AppID:AppKey 格式，框架会在内部添加 Bearer 前缀
+	if n.config.AppID != "" && n.config.AppKey != "" {
+		// 使用 AppID:AppKey 格式（与其他节点一致）
+		cfg.APIKey = n.config.AppID + ":" + n.config.AppKey
+		n.logger.Infow("使用 AppID:AppKey 作为 APIKey",
+			logx.Field("appIDLength", len(n.config.AppID)),
+			logx.Field("appKeyLength", len(n.config.AppKey)),
+		)
+	} else if n.config.AppKey != "" {
+		// 如果只有 AppKey，直接使用（可能是完整的认证 token）
+		cfg.APIKey = n.config.AppKey
+		n.logger.Infow("使用 AppKey 作为 APIKey")
+	} else if n.config.AppID != "" {
+		// 如果只有 AppID，使用 AppID
+		cfg.APIKey = n.config.AppID
+		n.logger.Infow("使用 AppID 作为 APIKey")
 	} else {
 		return nil // 返回 nil，使用 Mock 模式
 	}
@@ -129,9 +159,11 @@ func (n *ImageRecognitionNode) Execute(data *GraphData) (*ImageRecognitionResult
 		logx.Field("age", data.Age),
 		logx.Field("useRealModel", n.initialized),
 	)
+	spew.Dump("===", n.initialized)
 
 	// 如果 ChatModel 已初始化，使用真实模型
 	if n.initialized && n.chatModel != nil {
+		spew.Dump("===", 1111111)
 		return n.executeReal(data)
 	}
 
@@ -181,11 +213,26 @@ func (n *ImageRecognitionNode) executeMock(data *GraphData) (*ImageRecognitionRe
 
 // executeReal 真实eino实现
 func (n *ImageRecognitionNode) executeReal(data *GraphData) (*ImageRecognitionResult, error) {
-	// 使用模板生成基础消息
-	messages, err := n.template.Format(n.ctx, map[string]any{})
-	if err != nil {
-		n.logger.Errorw("模板格式化失败", logx.Field("error", err))
-		return n.executeMock(data)
+	// 图片识别模板是静态的，不需要变量，直接构建消息
+	// 避免使用模板格式化，因为模板中的JSON示例可能被误解析为变量
+	messages := []*schema.Message{
+		schema.SystemMessage(`你是一个图片识别助手，专门识别图片中的对象。
+
+请分析用户提供的图片，识别图片中的主要对象，并返回JSON格式的结果。
+
+要求：
+1. 识别图片中的主要对象名称（中文）
+2. 判断对象类别：自然类、生活类、人文类
+3. 提取3-5个相关关键词
+4. 评估识别置信度（0.0-1.0）
+
+请严格按照以下JSON格式返回：
+{
+  "objectName": "对象名称（中文）",
+  "objectCategory": "自然类/生活类/人文类",
+  "keywords": ["关键词1", "关键词2", "关键词3"],
+  "confidence": 0.0-1.0之间的浮点数
+}`),
 	}
 
 	// 构建多模态消息：添加图片
@@ -211,30 +258,41 @@ func (n *ImageRecognitionNode) executeReal(data *GraphData) (*ImageRecognitionRe
 		imageBase64 = data.Image
 	}
 
-	// 修改用户消息，添加图片内容
-	userMsg := messages[len(messages)-1] // 获取用户消息
-	userMsg.UserInputMultiContent = []schema.MessageInputPart{
-		{
-			Type: schema.ChatMessagePartTypeImageURL,
-			Image: &schema.MessageInputImage{
-				MessagePartCommon: schema.MessagePartCommon{
-					Base64Data: &imageBase64,
-					MIMEType:   mimeType,
+	// 创建用户消息，包含图片和文本
+	userMsg := &schema.Message{
+		Role: schema.User,
+		UserInputMultiContent: []schema.MessageInputPart{
+			{
+				Type: schema.ChatMessagePartTypeImageURL,
+				Image: &schema.MessageInputImage{
+					MessagePartCommon: schema.MessagePartCommon{
+						Base64Data: &imageBase64,
+						MIMEType:   mimeType,
+					},
+					Detail: schema.ImageURLDetailAuto,
 				},
-				Detail: schema.ImageURLDetailAuto,
+			},
+			{
+				Type: schema.ChatMessagePartTypeText,
+				Text: "请识别这张图片中的对象。",
 			},
 		},
-		{
-			Type: schema.ChatMessagePartTypeText,
-			Text: "请识别这张图片中的对象。",
-		},
 	}
-	userMsg.Content = "" // 清空 Content，使用 MultiContent
+	messages = append(messages, userMsg)
 
 	// 调用 ChatModel
 	result, err := n.chatModel.Generate(n.ctx, messages)
+	spew.Dump("===", result, err)
 	if err != nil {
-		n.logger.Errorw("ChatModel调用失败", logx.Field("error", err))
+		n.logger.Errorw("ChatModel调用失败",
+			logx.Field("error", err),
+			logx.Field("errorDetail", err.Error()),
+			logx.Field("baseURL", n.config.EinoBaseURL),
+			logx.Field("hasAppID", n.config.AppID != ""),
+			logx.Field("hasAppKey", n.config.AppKey != ""),
+			logx.Field("appIDLength", len(n.config.AppID)),
+			logx.Field("appKeyLength", len(n.config.AppKey)),
+		)
 		return n.executeMock(data)
 	}
 

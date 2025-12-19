@@ -75,13 +75,18 @@ func (n *IntentRecognitionNode) initChatModel(ctx context.Context) error {
 		cfg.BaseURL = n.config.EinoBaseURL
 	}
 
-	// 认证：优先使用 AppKey 作为 APIKey，如果没有则使用 AppID
-	apiKey := n.config.AppKey
-	if apiKey == "" {
-		apiKey = n.config.AppID
-	}
-	if apiKey != "" {
-		cfg.APIKey = apiKey
+	// 认证：使用 Bearer Token 格式 ${TAL_MLOPS_APP_ID}:${TAL_MLOPS_APP_KEY}
+	// 注意：eino 框架的 APIKey 字段可能已经处理了 Bearer Token 格式
+	// 如果框架不支持，需要手动构造 Bearer Token
+	if n.config.AppID != "" && n.config.AppKey != "" {
+		// 使用 AppID:AppKey 格式作为 APIKey（eino 框架可能内部处理 Bearer Token）
+		cfg.APIKey = n.config.AppID + ":" + n.config.AppKey
+	} else if n.config.AppKey != "" {
+		// 如果只有 AppKey，使用 AppKey
+		cfg.APIKey = n.config.AppKey
+	} else if n.config.AppID != "" {
+		// 如果只有 AppID，使用 AppID
+		cfg.APIKey = n.config.AppID
 	} else {
 		// 如果没有配置认证信息，无法初始化
 		return nil // 返回 nil，使用 Mock 模式
