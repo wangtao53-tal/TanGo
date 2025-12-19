@@ -15,7 +15,6 @@ import (
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/components/prompt"
 	"github.com/cloudwego/eino/schema"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/tango/explore/internal/config"
 	configpkg "github.com/tango/explore/internal/config"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -163,11 +162,9 @@ func (n *ImageRecognitionNode) Execute(data *GraphData) (*ImageRecognitionResult
 		logx.Field("age", data.Age),
 		logx.Field("useRealModel", n.initialized),
 	)
-	spew.Dump("===", n.initialized)
 
 	// 如果 ChatModel 已初始化，使用真实模型
 	if n.initialized && n.chatModel != nil {
-		spew.Dump("===", 1111111)
 		return n.executeReal(data)
 	}
 
@@ -217,6 +214,10 @@ func (n *ImageRecognitionNode) executeMock(data *GraphData) (*ImageRecognitionRe
 
 // executeReal 真实eino实现
 func (n *ImageRecognitionNode) executeReal(data *GraphData) (*ImageRecognitionResult, error) {
+	// 创建带超时的 context（60秒超时）
+	ctx, cancel := context.WithTimeout(n.ctx, 60*time.Second)
+	defer cancel()
+
 	// 图片识别模板是静态的，不需要变量，直接构建消息
 	// 避免使用模板格式化，因为模板中的JSON示例可能被误解析为变量
 	messages := []*schema.Message{
@@ -241,28 +242,26 @@ func (n *ImageRecognitionNode) executeReal(data *GraphData) (*ImageRecognitionRe
 
 	// 构建多模态消息：添加图片
 	// 图片数据可能是 base64 编码的字符串、data URL 或 HTTP URL，需要处理
-	var imageBase64 string
+	var imageURL string
 	var mimeType string = "image/jpeg" // 默认类型
 
 	if strings.HasPrefix(data.Image, "data:") {
-		// 已经是 data URL 格式，提取 base64 部分
+		// 已经是 data URL 格式，直接使用
+		imageURL = data.Image
+		// 提取 MIME 类型
 		parts := strings.SplitN(data.Image, ",", 2)
 		if len(parts) == 2 {
-			// 提取 MIME 类型
 			mimePart := strings.TrimSuffix(strings.SplitN(parts[0], ";", 2)[0], "data:")
 			if mimePart != "" {
 				mimeType = mimePart
 			}
-			imageBase64 = parts[1]
-		} else {
-			imageBase64 = data.Image
 		}
 	} else if strings.HasPrefix(data.Image, "http://") || strings.HasPrefix(data.Image, "https://") {
-		// 如果是 HTTP/HTTPS URL，下载图片并转换为 base64
+		// 如果是 HTTP/HTTPS URL，下载图片并转换为 base64 data URL
 		n.logger.Infow("检测到图片URL，开始下载",
 			logx.Field("url", data.Image),
 		)
-		downloadedBase64, downloadedMimeType, err := n.downloadImageAsBase64(data.Image)
+		downloadedBase64, downloadedMimeType, err := n.downloadImageAsBase64(ctx, data.Image)
 		if err != nil {
 			n.logger.Errorw("下载图片失败",
 				logx.Field("url", data.Image),
@@ -271,21 +270,23 @@ func (n *ImageRecognitionNode) executeReal(data *GraphData) (*ImageRecognitionRe
 			)
 			return nil, fmt.Errorf("下载图片失败: %w", err)
 		}
-		imageBase64 = downloadedBase64
 		if downloadedMimeType != "" {
 			mimeType = downloadedMimeType
 		}
+		// 格式化为 data URL
+		imageURL = fmt.Sprintf("data:%s;base64,%s", mimeType, downloadedBase64)
 		n.logger.Infow("图片下载并转换完成",
 			logx.Field("url", data.Image),
 			logx.Field("mimeType", mimeType),
-			logx.Field("base64Length", len(imageBase64)),
+			logx.Field("base64Length", len(downloadedBase64)),
 		)
 	} else {
-		// 假设是纯 base64 数据
-		imageBase64 = data.Image
+		// 假设是纯 base64 数据，格式化为 data URL
+		imageURL = fmt.Sprintf("data:%s;base64,%s", mimeType, data.Image)
 	}
 
 	// 创建用户消息，包含图片和文本
+	// 使用 URL 字段而不是 Base64Data，因为 eino 期望 data URL 格式
 	userMsg := &schema.Message{
 		Role: schema.User,
 		UserInputMultiContent: []schema.MessageInputPart{
@@ -293,8 +294,7 @@ func (n *ImageRecognitionNode) executeReal(data *GraphData) (*ImageRecognitionRe
 				Type: schema.ChatMessagePartTypeImageURL,
 				Image: &schema.MessageInputImage{
 					MessagePartCommon: schema.MessagePartCommon{
-						Base64Data: &imageBase64,
-						MIMEType:   mimeType,
+						URL: &imageURL,
 					},
 					Detail: schema.ImageURLDetailAuto,
 				},
@@ -307,10 +307,16 @@ func (n *ImageRecognitionNode) executeReal(data *GraphData) (*ImageRecognitionRe
 	}
 	messages = append(messages, userMsg)
 
-	// 调用 ChatModel
-	result, err := n.chatModel.Generate(n.ctx, messages)
-	spew.Dump("===", result, err)
+	// 调用 ChatModel（使用带超时的 context）
+	result, err := n.chatModel.Generate(ctx, messages)
 	if err != nil {
+		// 检查是否是超时错误
+		if ctx.Err() == context.DeadlineExceeded {
+			n.logger.Errorw("ChatModel调用超时",
+				logx.Field("timeout", "60s"),
+			)
+			return nil, fmt.Errorf("图片识别超时: %w", err)
+		}
 		n.logger.Errorw("ChatModel调用失败",
 			logx.Field("error", err),
 			logx.Field("errorDetail", err.Error()),
@@ -352,13 +358,13 @@ func (n *ImageRecognitionNode) executeReal(data *GraphData) (*ImageRecognitionRe
 }
 
 // downloadImageAsBase64 从 URL 下载图片并转换为 base64
-func (n *ImageRecognitionNode) downloadImageAsBase64(url string) (base64Data string, mimeType string, err error) {
-	// 创建 HTTP 请求
+func (n *ImageRecognitionNode) downloadImageAsBase64(ctx context.Context, url string) (base64Data string, mimeType string, err error) {
+	// 创建 HTTP 请求，使用传入的 context
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return "", "", fmt.Errorf("创建请求失败: %w", err)
 	}
