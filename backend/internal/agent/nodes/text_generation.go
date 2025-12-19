@@ -3,14 +3,15 @@ package nodes
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"strings"
 
 	"github.com/cloudwego/eino-ext/components/model/ark"
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/components/prompt"
 	"github.com/cloudwego/eino/schema"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/tango/explore/internal/config"
-	configpkg "github.com/tango/explore/internal/config"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -36,15 +37,32 @@ func NewTextGenerationNode(ctx context.Context, cfg config.AIConfig, logger logx
 	}
 
 	// 如果配置了 eino 相关参数，初始化 ChatModel
-	if cfg.EinoBaseURL != "" && cfg.AppID != "" && cfg.AppKey != "" {
+	hasEinoBaseURL := cfg.EinoBaseURL != ""
+	hasAppID := cfg.AppID != ""
+	hasAppKey := cfg.AppKey != ""
+
+	if hasEinoBaseURL && hasAppID && hasAppKey {
+		logger.Infow("检测到eino配置，尝试初始化ChatModel",
+			logx.Field("einoBaseURL", cfg.EinoBaseURL),
+			logx.Field("appID", hasAppID),
+			logx.Field("hasAppKey", hasAppKey),
+		)
 		if err := node.initChatModel(ctx); err != nil {
-			logger.Errorw("初始化ChatModel失败，将使用Mock模式", logx.Field("error", err))
+			logger.Errorw("初始化ChatModel失败，将使用Mock模式",
+				logx.Field("error", err),
+				logx.Field("errorDetail", err.Error()),
+			)
 		} else {
 			node.initialized = true
-			logger.Info("文本生成节点已初始化ChatModel")
+			logger.Info("✅ 文本生成节点已初始化ChatModel，将使用真实模型")
 		}
 	} else {
-		logger.Info("未配置eino参数，文本生成节点将使用Mock模式")
+		logger.Errorw("未完整配置eino参数，文本生成节点将使用Mock模式",
+			logx.Field("hasEinoBaseURL", hasEinoBaseURL),
+			logx.Field("hasAppID", hasAppID),
+			logx.Field("hasAppKey", hasAppKey),
+		)
+		logger.Info("提示：需要同时配置 EINO_BASE_URL、TAL_MLOPS_APP_ID、TAL_MLOPS_APP_KEY 才能使用真实模型")
 	}
 
 	// 创建所有模板
@@ -57,7 +75,7 @@ func NewTextGenerationNode(ctx context.Context, cfg config.AIConfig, logger logx
 func (n *TextGenerationNode) initChatModel(ctx context.Context) error {
 	modelName := n.config.TextGenerationModel
 	if modelName == "" {
-		modelName = configpkg.DefaultTextGenerationModel
+		modelName = config.DefaultTextGenerationModel
 	}
 
 	cfg := &ark.ChatModelConfig{
@@ -100,13 +118,11 @@ func (n *TextGenerationNode) initTemplates() {
 3. 添加一个趣味知识
 4. 内容要符合{age}岁孩子的认知水平
 
-请返回JSON格式：
-{
-  "name": "{objectName}",
-  "explanation": "科学解释",
-  "facts": ["事实1", "事实2", "事实3"],
-  "funFact": "趣味知识"
-}`),
+请返回JSON格式，包含以下字段：
+- name: 对象名称（字符串）
+- explanation: 科学解释（字符串）
+- facts: 有趣的事实列表（字符串数组，2-3个）
+- funFact: 趣味知识（字符串）`),
 		schema.UserMessage("请为{objectName}生成科学认知卡内容，适合{age}岁孩子。"),
 	)
 
@@ -120,13 +136,11 @@ func (n *TextGenerationNode) initTemplates() {
 3. 用{age}岁孩子能理解的语言解释诗词含义
 4. 提供文化背景说明
 
-请返回JSON格式：
-{
-  "poem": "古诗词内容",
-  "poemSource": "作者 - 诗名",
-  "explanation": "诗词解释",
-  "context": "文化背景"
-}`),
+请返回JSON格式，包含以下字段：
+- poem: 古诗词内容（字符串）
+- poemSource: 作者和诗名（字符串，格式：作者 - 诗名）
+- explanation: 诗词解释（字符串）
+- context: 文化背景（字符串）`),
 		schema.UserMessage("请为{objectName}生成古诗词卡片内容，适合{age}岁孩子。"),
 	)
 
@@ -139,12 +153,10 @@ func (n *TextGenerationNode) initTemplates() {
 2. 提供2-3个适合{age}岁孩子的英语表达句子
 3. 提供发音指导
 
-请返回JSON格式：
-{
-  "keywords": ["关键词1", "关键词2", "关键词3"],
-  "expressions": ["句子1", "句子2", "句子3"],
-  "pronunciation": "发音指导"
-}`),
+请返回JSON格式，包含以下字段：
+- keywords: 英语关键词列表（字符串数组，3-5个）
+- expressions: 英语表达句子列表（字符串数组，2-3个）
+- pronunciation: 发音指导（字符串）`),
 		schema.UserMessage("请为{objectName}生成英语表达卡片内容，适合{age}岁孩子。"),
 	)
 
@@ -177,12 +189,17 @@ func (n *TextGenerationNode) GenerateScienceCard(data *GraphData) (map[string]in
 		logx.Field("objectName", data.ObjectName),
 		logx.Field("age", data.Age),
 		logx.Field("useRealModel", n.initialized),
+		logx.Field("chatModelNil", n.chatModel == nil),
 	)
 
 	if n.initialized && n.chatModel != nil {
 		return n.generateScienceCardReal(data)
 	}
 
+	n.logger.Errorw("使用Mock模式生成科学认知卡",
+		logx.Field("initialized", n.initialized),
+		logx.Field("chatModelNil", n.chatModel == nil),
+	)
 	return n.generateScienceCardMock(data)
 }
 
@@ -192,12 +209,17 @@ func (n *TextGenerationNode) GeneratePoetryCard(data *GraphData) (map[string]int
 		logx.Field("objectName", data.ObjectName),
 		logx.Field("age", data.Age),
 		logx.Field("useRealModel", n.initialized),
+		logx.Field("chatModelNil", n.chatModel == nil),
 	)
 
 	if n.initialized && n.chatModel != nil {
 		return n.generatePoetryCardReal(data)
 	}
 
+	n.logger.Errorw("使用Mock模式生成古诗词卡",
+		logx.Field("initialized", n.initialized),
+		logx.Field("chatModelNil", n.chatModel == nil),
+	)
 	return n.generatePoetryCardMock(data)
 }
 
@@ -207,12 +229,17 @@ func (n *TextGenerationNode) GenerateEnglishCard(data *GraphData) (map[string]in
 		logx.Field("objectName", data.ObjectName),
 		logx.Field("age", data.Age),
 		logx.Field("useRealModel", n.initialized),
+		logx.Field("chatModelNil", n.chatModel == nil),
 	)
 
 	if n.initialized && n.chatModel != nil {
 		return n.generateEnglishCardReal(data)
 	}
 
+	n.logger.Errorw("使用Mock模式生成英语表达卡",
+		logx.Field("initialized", n.initialized),
+		logx.Field("chatModelNil", n.chatModel == nil),
+	)
 	return n.generateEnglishCardMock(data)
 }
 
@@ -359,14 +386,16 @@ func (n *TextGenerationNode) generateTextReal(data *GraphData, context []interfa
 func (n *TextGenerationNode) generateScienceCardReal(data *GraphData) (map[string]interface{}, error) {
 	messages, err := n.scienceTemplate.Format(n.ctx, map[string]any{
 		"objectName": data.ObjectName,
-		"age":        data.Age,
+		"age":        strconv.Itoa(data.Age),
 	})
 	if err != nil {
+		spew.Dump(1111111, err)
 		n.logger.Errorw("模板格式化失败", logx.Field("error", err))
 		return n.generateScienceCardMock(data)
 	}
 
 	result, err := n.chatModel.Generate(n.ctx, messages)
+	spew.Dump(2222222, result, err)
 	if err != nil {
 		n.logger.Errorw("ChatModel调用失败", logx.Field("error", err))
 		return n.generateScienceCardMock(data)
@@ -401,7 +430,7 @@ func (n *TextGenerationNode) generateScienceCardReal(data *GraphData) (map[strin
 func (n *TextGenerationNode) generatePoetryCardReal(data *GraphData) (map[string]interface{}, error) {
 	messages, err := n.poetryTemplate.Format(n.ctx, map[string]any{
 		"objectName": data.ObjectName,
-		"age":        data.Age,
+		"age":        strconv.Itoa(data.Age),
 	})
 	if err != nil {
 		n.logger.Errorw("模板格式化失败", logx.Field("error", err))
@@ -443,7 +472,7 @@ func (n *TextGenerationNode) generatePoetryCardReal(data *GraphData) (map[string
 func (n *TextGenerationNode) generateEnglishCardReal(data *GraphData) (map[string]interface{}, error) {
 	messages, err := n.englishTemplate.Format(n.ctx, map[string]any{
 		"objectName": data.ObjectName,
-		"age":        data.Age,
+		"age":        strconv.Itoa(data.Age),
 	})
 	if err != nil {
 		n.logger.Errorw("模板格式化失败", logx.Field("error", err))
