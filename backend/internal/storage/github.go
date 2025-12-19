@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -55,6 +56,14 @@ type UploadRequest struct {
 	Message string `json:"message"`
 	Content string `json:"content"` // base64 编码的文件内容
 	Branch  string `json:"branch,omitempty"`
+	SHA     string `json:"sha,omitempty"` // 更新已存在文件时需要
+}
+
+// FileInfo GitHub API 文件信息响应
+type FileInfo struct {
+	SHA  string `json:"sha"`
+	Path string `json:"path"`
+	Size int    `json:"size"`
 }
 
 // UploadResponse GitHub API 上传响应
@@ -67,6 +76,63 @@ type UploadResponse struct {
 	Commit struct {
 		SHA string `json:"sha"`
 	} `json:"commit"`
+}
+
+// getFileSHA 获取文件的 SHA 值（如果文件存在）
+func (g *GitHubStorage) getFileSHA(filePath string) (string, error) {
+	// 对文件路径进行 URL 编码
+	encodedPath := strings.Split(filePath, "/")
+	for i, part := range encodedPath {
+		encodedPath[i] = url.PathEscape(part)
+	}
+	encodedFilePath := strings.Join(encodedPath, "/")
+
+	// 构建 URL，添加 ref 参数指定分支
+	apiURL := fmt.Sprintf("%s/%s?ref=%s", g.baseURL, encodedFilePath, url.QueryEscape(g.config.GitHubBranch))
+
+	req, err := http.NewRequest("GET", apiURL, nil)
+	if err != nil {
+		return "", err
+	}
+
+	// 设置请求头
+	req.Header.Set("Authorization", fmt.Sprintf("token %s", g.config.GitHubToken))
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+
+	// 发送请求
+	resp, err := g.client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// 如果文件不存在，返回空字符串（不是错误）
+	if resp.StatusCode == http.StatusNotFound {
+		return "", nil
+	}
+
+	// 如果请求失败，返回错误
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		g.logger.Infow("获取文件 SHA 失败，继续尝试上传",
+			logx.Field("status", resp.StatusCode),
+			logx.Field("body", string(body)),
+		)
+		return "", nil // 如果获取失败，继续尝试上传（可能是新文件）
+	}
+
+	// 解析响应
+	var fileInfo FileInfo
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", nil
+	}
+
+	if err := json.Unmarshal(body, &fileInfo); err != nil {
+		return "", nil
+	}
+
+	return fileInfo.SHA, nil
 }
 
 // Upload 上传图片到 GitHub
@@ -89,6 +155,24 @@ func (g *GitHubStorage) Upload(imageData []byte, filename string) (string, error
 	}
 	filePath += filename
 
+	// 检查文件是否已存在，如果存在则获取 SHA
+	var fileSHA string
+	sha, err := g.getFileSHA(filePath)
+	if err != nil {
+		g.logger.Infow("检查文件是否存在时出错，继续尝试上传",
+			logx.Field("error", err),
+			logx.Field("filePath", filePath),
+		)
+	} else {
+		fileSHA = sha
+		if fileSHA != "" {
+			g.logger.Infow("文件已存在，将更新文件",
+				logx.Field("filePath", filePath),
+				logx.Field("sha", fileSHA),
+			)
+		}
+	}
+
 	// Base64 编码图片数据
 	encoded := base64.StdEncoding.EncodeToString(imageData)
 
@@ -97,6 +181,10 @@ func (g *GitHubStorage) Upload(imageData []byte, filename string) (string, error
 		Message: fmt.Sprintf("Upload image: %s", filename),
 		Content: encoded,
 		Branch:  g.config.GitHubBranch,
+	}
+	// 如果文件已存在，添加 SHA
+	if fileSHA != "" {
+		reqBody.SHA = fileSHA
 	}
 
 	jsonData, err := json.Marshal(reqBody)
@@ -108,13 +196,20 @@ func (g *GitHubStorage) Upload(imageData []byte, filename string) (string, error
 		return "", utils.NewAPIError(500, "请求序列化失败", err.Error())
 	}
 
+	// 对文件路径进行 URL 编码
+	encodedPath := strings.Split(filePath, "/")
+	for i, part := range encodedPath {
+		encodedPath[i] = url.PathEscape(part)
+	}
+	encodedFilePath := strings.Join(encodedPath, "/")
+
 	// 创建 HTTP 请求
-	url := fmt.Sprintf("%s/%s", g.baseURL, filePath)
-	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(jsonData))
+	apiURL := fmt.Sprintf("%s/%s", g.baseURL, encodedFilePath)
+	req, err := http.NewRequest("PUT", apiURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		g.logger.Errorw("创建请求失败",
 			logx.Field("error", err),
-			logx.Field("url", url),
+			logx.Field("url", apiURL),
 		)
 		return "", utils.NewAPIError(500, "创建请求失败", err.Error())
 	}
@@ -129,7 +224,7 @@ func (g *GitHubStorage) Upload(imageData []byte, filename string) (string, error
 	if err != nil {
 		g.logger.Errorw("GitHub API 请求失败",
 			logx.Field("error", err),
-			logx.Field("url", url),
+			logx.Field("url", apiURL),
 		)
 		return "", utils.NewAPIError(502, "GitHub API 请求失败", err.Error())
 	}
