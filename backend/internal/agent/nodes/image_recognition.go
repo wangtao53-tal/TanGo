@@ -17,6 +17,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"github.com/tango/explore/internal/config"
 	configpkg "github.com/tango/explore/internal/config"
+	"github.com/tango/explore/internal/utils"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -157,7 +158,8 @@ func (n *ImageRecognitionNode) initTemplate() {
 
 // Execute 执行图片识别
 func (n *ImageRecognitionNode) Execute(data *GraphData) (*ImageRecognitionResult, error) {
-	n.logger.Infow("执行图片识别",
+	// 优化：减少日志详细程度，使用Debug级别
+	n.logger.Debugw("执行图片识别",
 		logx.Field("imageLength", len(data.Image)),
 		logx.Field("age", data.Age),
 		logx.Field("useRealModel", n.initialized),
@@ -203,7 +205,8 @@ func (n *ImageRecognitionNode) executeMock(data *GraphData) (*ImageRecognitionRe
 		Confidence:     confidence,
 	}
 
-	n.logger.Infow("图片识别完成（Mock）",
+	// 优化：减少日志详细程度
+	n.logger.Debugw("图片识别完成（Mock）",
 		logx.Field("objectName", result.ObjectName),
 		logx.Field("category", result.ObjectCategory),
 		logx.Field("confidence", result.Confidence),
@@ -214,8 +217,9 @@ func (n *ImageRecognitionNode) executeMock(data *GraphData) (*ImageRecognitionRe
 
 // executeReal 真实eino实现
 func (n *ImageRecognitionNode) executeReal(data *GraphData) (*ImageRecognitionResult, error) {
-	// 创建带超时的 context（60秒超时）
-	ctx, cancel := context.WithTimeout(n.ctx, 60*time.Second)
+	// 优化：调整超时时间到45秒（原来60秒可能过长）
+	// 如果模型调用需要更长时间，可以根据实际情况调整
+	ctx, cancel := context.WithTimeout(n.ctx, 45*time.Second)
 	defer cancel()
 
 	// 图片识别模板是静态的，不需要变量，直接构建消息
@@ -242,47 +246,66 @@ func (n *ImageRecognitionNode) executeReal(data *GraphData) (*ImageRecognitionRe
 
 	// 构建多模态消息：添加图片
 	// 图片数据可能是 base64 编码的字符串、data URL 或 HTTP URL，需要处理
+	// 优化：如果已经是可访问的 HTTP URL，直接使用，不需要下载
 	var imageURL string
 	var mimeType string = "image/jpeg" // 默认类型
 
-	if strings.HasPrefix(data.Image, "data:") {
+	// 优化：使用更高效的字符串检查方法
+	imageData := data.Image
+	if strings.HasPrefix(imageData, "data:") {
 		// 已经是 data URL 格式，直接使用
-		imageURL = data.Image
-		// 提取 MIME 类型
-		parts := strings.SplitN(data.Image, ",", 2)
-		if len(parts) == 2 {
-			mimePart := strings.TrimSuffix(strings.SplitN(parts[0], ";", 2)[0], "data:")
+		imageURL = imageData
+		// 优化：提取 MIME 类型，避免多次分割
+		if idx := strings.Index(imageData, ","); idx > 0 {
+			mimePart := strings.TrimPrefix(imageData[:idx], "data:")
+			if semicolonIdx := strings.Index(mimePart, ";"); semicolonIdx > 0 {
+				mimePart = mimePart[:semicolonIdx]
+			}
 			if mimePart != "" {
 				mimeType = mimePart
 			}
 		}
-	} else if strings.HasPrefix(data.Image, "http://") || strings.HasPrefix(data.Image, "https://") {
-		// 如果是 HTTP/HTTPS URL，下载图片并转换为 base64 data URL
-		n.logger.Infow("检测到图片URL，开始下载",
-			logx.Field("url", data.Image),
-		)
-		downloadedBase64, downloadedMimeType, err := n.downloadImageAsBase64(ctx, data.Image)
-		if err != nil {
-			n.logger.Errorw("下载图片失败",
-				logx.Field("url", data.Image),
-				logx.Field("error", err),
-				logx.Field("errorDetail", err.Error()),
-			)
-			return nil, fmt.Errorf("下载图片失败: %w", err)
+	} else if strings.HasPrefix(imageData, "http://") || strings.HasPrefix(imageData, "https://") {
+		// 优化：检测GitHub raw URL并转换为CDN URL
+		originalURL := imageData
+		if utils.IsGitHubRawURL(originalURL) {
+			// 转换为jsDelivr CDN URL
+			cdnURL, err := utils.ConvertToJSDelivrCDN(originalURL)
+			if err == nil && cdnURL != originalURL {
+				imageURL = cdnURL
+				n.logger.Infow("GitHub raw URL已转换为CDN URL",
+					logx.Field("originalURL", originalURL),
+					logx.Field("cdnURL", cdnURL),
+				)
+			} else {
+				// 转换失败，使用原始URL
+				imageURL = originalURL
+				n.logger.Debugw("GitHub raw URL转换失败，使用原始URL",
+					logx.Field("url", originalURL),
+					logx.Field("error", err),
+				)
+			}
+		} else {
+			// 非GitHub raw URL，直接使用
+			imageURL = imageData
 		}
-		if downloadedMimeType != "" {
-			mimeType = downloadedMimeType
+
+		// 优化：使用更高效的MIME类型推断
+		urlLower := strings.ToLower(imageData)
+		if strings.HasSuffix(urlLower, ".png") {
+			mimeType = "image/png"
+		} else if strings.HasSuffix(urlLower, ".jpg") || strings.HasSuffix(urlLower, ".jpeg") {
+			mimeType = "image/jpeg"
+		} else if strings.HasSuffix(urlLower, ".gif") {
+			mimeType = "image/gif"
+		} else if strings.HasSuffix(urlLower, ".webp") {
+			mimeType = "image/webp"
 		}
-		// 格式化为 data URL
-		imageURL = fmt.Sprintf("data:%s;base64,%s", mimeType, downloadedBase64)
-		n.logger.Infow("图片下载并转换完成",
-			logx.Field("url", data.Image),
-			logx.Field("mimeType", mimeType),
-			logx.Field("base64Length", len(downloadedBase64)),
-		)
+		// 优化：减少日志详细程度
+		n.logger.Debugw("使用图片URL（不下载）", logx.Field("url", imageURL))
 	} else {
-		// 假设是纯 base64 数据，格式化为 data URL
-		imageURL = fmt.Sprintf("data:%s;base64,%s", mimeType, data.Image)
+		// 优化：避免重复格式化，直接构建 data URL
+		imageURL = fmt.Sprintf("data:%s;base64,%s", mimeType, imageData)
 	}
 
 	// 创建用户消息，包含图片和文本
@@ -310,44 +333,137 @@ func (n *ImageRecognitionNode) executeReal(data *GraphData) (*ImageRecognitionRe
 	// 调用 ChatModel（使用带超时的 context）
 	result, err := n.chatModel.Generate(ctx, messages)
 	if err != nil {
-		// 检查是否是超时错误
+		// 优化：改进错误处理，区分超时、网络错误、模型错误
 		if ctx.Err() == context.DeadlineExceeded {
 			n.logger.Errorw("ChatModel调用超时",
-				logx.Field("timeout", "60s"),
+				logx.Field("timeout", "45s"),
+				logx.Field("errorType", "timeout"),
 			)
 			return nil, fmt.Errorf("图片识别超时: %w", err)
 		}
+
+		// 判断错误类型
+		errMsg := err.Error()
+		errorType := "unknown"
+		if strings.Contains(errMsg, "timeout") || strings.Contains(errMsg, "deadline") {
+			errorType = "timeout"
+		} else if strings.Contains(errMsg, "network") || strings.Contains(errMsg, "connection") {
+			errorType = "network"
+		} else if strings.Contains(errMsg, "model") || strings.Contains(errMsg, "api") {
+			errorType = "model"
+		}
+
 		n.logger.Errorw("ChatModel调用失败",
+			logx.Field("errorType", errorType),
 			logx.Field("error", err),
-			logx.Field("errorDetail", err.Error()),
-			logx.Field("baseURL", n.config.EinoBaseURL),
-			logx.Field("hasAppID", n.config.AppID != ""),
-			logx.Field("hasAppKey", n.config.AppKey != ""),
-			logx.Field("appIDLength", len(n.config.AppID)),
-			logx.Field("appKeyLength", len(n.config.AppKey)),
 		)
-		return n.executeMock(data)
+
+		// 如果直接使用 HTTP URL 失败，且原始输入是 HTTP URL，尝试重试
+		originalImageURL := data.Image
+		if strings.HasPrefix(originalImageURL, "http://") || strings.HasPrefix(originalImageURL, "https://") {
+			// 优化：如果使用的是CDN URL且失败，先重试原始GitHub raw URL
+			if utils.IsGitHubRawURL(originalImageURL) && imageURL != originalImageURL {
+				// 当前使用的是CDN URL，重试原始GitHub raw URL
+				n.logger.Infow("CDN URL失败，重试原始GitHub raw URL",
+					logx.Field("cdnURL", imageURL),
+					logx.Field("originalURL", originalImageURL),
+					logx.Field("error", err),
+				)
+				// 更新消息中的图片 URL为原始URL
+				messages[len(messages)-1].UserInputMultiContent[0].Image.MessagePartCommon.URL = &originalImageURL
+
+				// 重新调用模型
+				result, err = n.chatModel.Generate(ctx, messages)
+				if err == nil {
+					// 原始URL重试成功
+					n.logger.Infow("原始GitHub raw URL重试成功")
+					// 继续处理结果
+				} else {
+					// 原始URL也失败，继续降级到下载base64
+					n.logger.Debugw("原始GitHub raw URL也失败，降级到下载base64",
+						logx.Field("url", originalImageURL),
+						logx.Field("error", err),
+					)
+				}
+			}
+
+			// 如果CDN和原始URL都失败，或者不是GitHub URL，尝试下载并转换为 base64 后重试
+			if err != nil {
+				n.logger.Debugw("HTTP URL失败，尝试下载并转换为base64后重试",
+					logx.Field("url", originalImageURL),
+					logx.Field("error", err),
+				)
+				// 下载图片并转换为 base64 data URL
+				downloadedBase64, downloadedMimeType, downloadErr := n.downloadImageAsBase64(ctx, originalImageURL)
+				if downloadErr != nil {
+					n.logger.Errorw("下载图片失败，回退到Mock",
+						logx.Field("url", originalImageURL),
+						logx.Field("error", downloadErr),
+					)
+					return n.executeMock(data)
+				}
+				if downloadedMimeType != "" {
+					mimeType = downloadedMimeType
+				}
+				// 格式化为 data URL
+				imageURL = fmt.Sprintf("data:%s;base64,%s", mimeType, downloadedBase64)
+				n.logger.Debugw("图片下载并转换完成，重试模型调用",
+					logx.Field("url", originalImageURL),
+					logx.Field("mimeType", mimeType),
+				)
+
+				// 更新消息中的图片 URL
+				messages[len(messages)-1].UserInputMultiContent[0].Image.MessagePartCommon.URL = &imageURL
+
+				// 重新调用模型
+				result, err = n.chatModel.Generate(ctx, messages)
+				if err != nil {
+					n.logger.Errorw("使用base64 data URL重试后仍然失败，回退到Mock",
+						logx.Field("error", err),
+						logx.Field("errorDetail", err.Error()),
+					)
+					return n.executeMock(data)
+				}
+				// 重试成功，继续处理结果
+			}
+		} else {
+			// 非 HTTP URL 的错误，直接回退到 Mock
+			// 优化：减少日志字段，移除大对象和详细配置信息
+			n.logger.Errorw("ChatModel调用失败，回退到Mock",
+				logx.Field("error", err),
+			)
+			return n.executeMock(data)
+		}
 	}
 
 	// 解析 JSON 结果
 	var recognitionResult ImageRecognitionResult
 	text := result.Content
 
-	// 尝试提取 JSON
-	jsonStart := strings.Index(text, "{")
-	jsonEnd := strings.LastIndex(text, "}")
-	if jsonStart >= 0 && jsonEnd > jsonStart {
-		jsonStr := text[jsonStart : jsonEnd+1]
-		if err := json.Unmarshal([]byte(jsonStr), &recognitionResult); err != nil {
-			n.logger.Errorw("解析JSON失败", logx.Field("error", err), logx.Field("text", text))
-			return n.executeMock(data)
-		}
-	} else {
-		// 无法解析 JSON，降级到 Mock
-		n.logger.Errorw("无法从模型响应中提取JSON", logx.Field("text", text))
+	// 优化：优化JSON解析逻辑，提高解析效率
+	jsonStart := strings.IndexByte(text, '{')
+	if jsonStart < 0 {
+		n.logger.Errorw("无法从模型响应中提取JSON", logx.Field("textLength", len(text)))
 		return n.executeMock(data)
 	}
 
+	jsonEnd := strings.LastIndexByte(text, '}')
+	if jsonEnd <= jsonStart {
+		n.logger.Errorw("无法从模型响应中提取JSON", logx.Field("textLength", len(text)))
+		return n.executeMock(data)
+	}
+
+	jsonStr := text[jsonStart : jsonEnd+1]
+	if err := json.Unmarshal([]byte(jsonStr), &recognitionResult); err != nil {
+		// 优化：减少日志字段，不记录完整text（可能很大）
+		n.logger.Errorw("解析JSON失败",
+			logx.Field("error", err),
+			logx.Field("jsonLength", len(jsonStr)),
+		)
+		return n.executeMock(data)
+	}
+
+	// 优化：减少日志详细程度，使用Info级别但减少字段
 	n.logger.Infow("图片识别完成（真实模型）",
 		logx.Field("objectName", recognitionResult.ObjectName),
 		logx.Field("category", recognitionResult.ObjectCategory),
