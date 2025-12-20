@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/tango/explore/internal/logic"
 	"github.com/tango/explore/internal/svc"
+	"github.com/tango/explore/internal/types"
 )
 
 func StreamHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
@@ -54,5 +56,72 @@ func StreamHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		// 发送完成事件
 		fmt.Fprintf(w, "event: done\ndata: {\"type\":\"done\"}\n\n")
 		w.(http.Flusher).Flush()
+	}
+}
+
+// StreamConversationHandler 流式对话Handler
+// 支持POST请求，从请求体解析参数，避免中文在URL中的编码问题
+func StreamConversationHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// 设置SSE响应头
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+
+		// 处理OPTIONS预检请求
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		// 从请求体解析JSON参数（POST请求）
+		var req types.StreamConversationRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			// 发送错误事件
+			errorEvent := types.StreamEvent{
+				Type:    "error",
+				Content: map[string]interface{}{"message": "请求参数解析失败: " + err.Error()},
+			}
+			errorJSON, _ := json.Marshal(errorEvent)
+			fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+			w.(http.Flusher).Flush()
+			return
+		}
+
+		// 参数验证
+		if req.Message == "" {
+			errorEvent := types.StreamEvent{
+				Type:    "error",
+				Content: map[string]interface{}{"message": "消息内容不能为空"},
+			}
+			errorJSON, _ := json.Marshal(errorEvent)
+			fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+			w.(http.Flusher).Flush()
+			return
+		}
+
+		// 设置默认值
+		if req.MessageType == "" {
+			req.MessageType = "text"
+		}
+		if req.MaxContextRounds <= 0 {
+			req.MaxContextRounds = 20
+		}
+
+		// 调用流式逻辑
+		streamLogic := logic.NewStreamLogic(r.Context(), svcCtx)
+		if err := streamLogic.StreamConversation(w, req); err != nil {
+			// 发送错误事件
+			errorEvent := types.StreamEvent{
+				Type:    "error",
+				Content: map[string]interface{}{"message": err.Error()},
+			}
+			errorJSON, _ := json.Marshal(errorEvent)
+			fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+			w.(http.Flusher).Flush()
+		}
 	}
 }

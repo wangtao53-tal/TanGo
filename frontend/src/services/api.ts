@@ -18,7 +18,6 @@ import type {
   IntentRequest,
   IntentResponse,
   ConversationRequest,
-  ConversationStreamEvent,
   VoiceRequest,
   VoiceResponse,
   UploadRequest,

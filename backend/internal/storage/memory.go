@@ -69,9 +69,9 @@ func (m *MemoryStorage) AddMessage(sessionId string, message interface{}) {
 
 	session := value.(*SessionData)
 	session.Messages = append(session.Messages, message)
-	// 限制上下文长度，最多保留10轮对话（20条消息）
-	if len(session.Messages) > 20 {
-		session.Messages = session.Messages[len(session.Messages)-20:]
+	// 限制上下文长度，最多保留20轮对话（40条消息）
+	if len(session.Messages) > 40 {
+		session.Messages = session.Messages[len(session.Messages)-40:]
 	}
 	session.LastActive = time.Now()
 	m.sessions.Store(sessionId, session)

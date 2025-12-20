@@ -16,6 +16,8 @@ import type { IdentificationContext } from '../types/api';
 import { useState, useEffect, useRef } from 'react';
 import { cardStorage } from '../services/storage';
 import { sendMessage, createStreamConnection, recognizeUserIntent } from '../services/conversation';
+import { createPostSSEConnection, closePostSSEConnection } from '../services/sse-post';
+import type { StreamConversationRequest } from '../types/api';
 import { fileToBase64, extractBase64Data, compressImage } from '../utils/image';
 import { uploadImage, generateCards } from '../services/api';
 import type { GenerateCardsRequest, GenerateCardsResponse } from '../types/api';
@@ -39,7 +41,7 @@ export default function Result() {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [sessionId, setSessionId] = useState<string>('');
   const [isSending, setIsSending] = useState(false);
-  const [sseConnection, setSseConnection] = useState<EventSource | null>(null);
+  const [sseConnection, setSseConnection] = useState<AbortController | null>(null);
   const [identificationContext, setIdentificationContext] = useState<IdentificationContext | null>(null);
   const [isGeneratingCards, setIsGeneratingCards] = useState(false);
   const hasGeneratedCardsRef = useRef(false); // 使用 ref 防止重复调用
@@ -103,7 +105,7 @@ export default function Result() {
     // 清理函数：关闭SSE连接和清除定时器
     return () => {
       if (sseConnection) {
-        sseConnection.close();
+        closePostSSEConnection(sseConnection);
       }
       if (generateTimeoutRef.current) {
         clearTimeout(generateTimeoutRef.current);
@@ -227,72 +229,97 @@ export default function Result() {
       };
       setMessages((prev) => [...prev, userMessage]);
 
-      // 识别意图
-      const intent = await recognizeUserIntent(text, sessionId);
-      
-      // 发送消息，传递识别结果上下文（仅在首次发送时传递）
-      const result = await sendMessage(
-        text, 
-        'text', 
-        sessionId, 
-        identificationContext || undefined,
-        (msg) => {
-          // 用户消息已通过乐观更新显示，这里可以更新ID
-          const index = messages.findIndex(m => m.id === userMessage.id);
-          if (index >= 0) {
+      // 直接使用POST + SSE流式接口，从请求体传递参数，避免中文在URL中的编码问题
+      // 创建助手消息占位符
+      const assistantMessageId = `msg-assistant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const assistantMessage: ConversationMessage = {
+        id: assistantMessageId,
+        type: 'text',
+        content: '',
+        timestamp: new Date().toISOString(),
+        sender: 'assistant',
+        sessionId,
+        isStreaming: true,
+        streamingText: '',
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      // 构建POST请求参数
+      const streamRequest: StreamConversationRequest = {
+        sessionId,
+        message: text,
+        messageType: 'text',
+        userAge: identificationContext?.age,
+        maxContextRounds: 20,
+      };
+
+      // 首次发送时传递识别结果上下文
+      if (identificationContext && !hasGeneratedCardsRef.current) {
+        streamRequest.identificationContext = identificationContext;
+      }
+
+      let accumulatedText = '';
+
+      // 使用POST + SSE连接
+      const abortController = createPostSSEConnection(streamRequest, {
+        onMessage: (data: ConversationStreamEvent) => {
+          if (data.type === 'connected') {
+            console.log('流式连接建立:', data.sessionId);
+            return;
+          }
+
+          if (data.type === 'message' && data.content) {
+            accumulatedText += data.content;
+            // 更新助手消息
             setMessages((prev) => {
-              const updated = [...prev];
-              updated[index] = { ...updated[index], id: msg.id };
-              return updated;
+              const index = prev.findIndex((m) => m.id === assistantMessageId);
+              if (index >= 0) {
+                const updated = [...prev];
+                updated[index] = {
+                  ...updated[index],
+                  streamingText: accumulatedText,
+                  content: accumulatedText,
+                };
+                return updated;
+              }
+              return prev;
             });
           }
-        }
-      );
-      
-      // 更新用户消息ID（如果后端返回了新的ID）
-      if (result.userMessage) {
-        setMessages((prev) => {
-          const index = prev.findIndex(m => m.id === userMessage.id);
-          if (index >= 0) {
-            const updated = [...prev];
-            updated[index] = { ...updated[index], id: result.userMessage.id };
-            return updated;
-          }
-          return prev;
-        });
-      }
-      
-      // 添加助手消息
-      setMessages((prev) => [...prev, result.message]);
+        },
+        onError: (error: Error) => {
+          console.error('流式返回错误:', error);
+          const errorMessage: ConversationMessage = {
+            id: `msg-error-${Date.now()}`,
+            type: 'text',
+            content: error.message || '抱歉，生成回答时出现错误，请稍后重试。',
+            timestamp: new Date().toISOString(),
+            sender: 'assistant',
+            sessionId,
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+          setIsSending(false);
+        },
+        onClose: () => {
+          // 标记流式完成
+          setMessages((prev) => {
+            const index = prev.findIndex((m) => m.id === assistantMessageId);
+            if (index >= 0) {
+              const updated = [...prev];
+              updated[index] = {
+                ...updated[index],
+                isStreaming: false,
+                content: accumulatedText,
+              };
+              return updated;
+            }
+            return prev;
+          });
+          setIsSending(false);
+        },
+      });
 
-      // 如果是生成卡片意图，使用流式返回
-      if (intent.intent === 'generate_cards') {
-        const connection = createStreamConnection(sessionId, {
-          onMessage: (message) => {
-            setMessages((prev) => [...prev, message]);
-          },
-          onError: (error) => {
-            console.error('流式返回错误:', error);
-            // 友好的错误提示
-            const errorMessage: ConversationMessage = {
-              id: `msg-error-${Date.now()}`,
-              type: 'text',
-              content: '抱歉，生成卡片时出现错误，请稍后重试。',
-              timestamp: new Date().toISOString(),
-              sender: 'assistant',
-              sessionId,
-            };
-            setMessages((prev) => [...prev, errorMessage]);
-            setIsSending(false);
-          },
-          onClose: () => {
-            setIsSending(false);
-          },
-        });
-        setSseConnection(connection);
-      } else {
-        setIsSending(false);
-      }
+      // 保存 abortController 以便后续可以取消
+      setSseConnection(abortController);
     } catch (error: any) {
       console.error('发送消息失败:', error);
       // 友好的错误提示

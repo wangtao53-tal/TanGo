@@ -134,8 +134,12 @@ export interface ConversationRequest {
 
 // 对话响应（流式返回）
 export interface ConversationStreamEvent {
-  type: 'text' | 'card' | 'image' | 'error' | 'done'; // 事件类型
+  type: 'connected' | 'message' | 'image_progress' | 'image_done' | 'card' | 'error' | 'done'; // 事件类型
   content?: any; // 内容（根据类型不同）
+  index?: number; // 文本消息的字符索引（用于打字机效果）
+  progress?: number; // 图片生成进度（0-100）
+  sessionId?: string; // 会话ID
+  messageId?: string; // 消息ID
   message?: string; // 错误消息
 }
 
