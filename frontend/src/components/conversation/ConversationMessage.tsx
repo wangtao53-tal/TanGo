@@ -1,6 +1,6 @@
 /**
  * 单条消息组件
- * 支持文本、卡片、图片、语音消息
+ * 支持文本、卡片、图片、语音消息，支持打字机效果
  */
 
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,7 @@ import { ScienceCard } from '../cards/ScienceCard';
 import { PoetryCard } from '../cards/PoetryCard';
 import { EnglishCard } from '../cards/EnglishCard';
 import type { KnowledgeCard } from '../../types/exploration';
+import { useTypingEffect } from '../../hooks/useTypingEffect';
 
 export interface ConversationMessageProps {
   message: ConversationMessage;
@@ -19,16 +20,38 @@ export function ConversationMessageComponent({ message, onCollect }: Conversatio
   const { t } = useTranslation();
   const isUser = message.sender === 'user';
 
+  // 如果是AI消息且正在流式返回，使用打字机效果
+  const displayText = !isUser && message.isStreaming && message.streamingText
+    ? message.streamingText
+    : typeof message.content === 'string'
+    ? message.content
+    : '';
+
+  // 使用打字机效果（仅在流式返回时）
+  const typingText = useTypingEffect({
+    text: displayText,
+    speed: 30,
+    enabled: !isUser && message.isStreaming === true && !!message.streamingText,
+  });
+
   const renderContent = () => {
     switch (message.type) {
       case 'text':
+        const textToShow = !isUser && message.isStreaming && message.streamingText
+          ? typingText
+          : displayText;
         return (
           <div className={`px-4 py-3 rounded-2xl ${
             isUser
               ? 'bg-[var(--color-primary)] text-white rounded-br-sm'
               : 'bg-gray-100 text-gray-800 rounded-bl-sm'
           }`}>
-            <p className="text-sm font-medium whitespace-pre-wrap">{message.content}</p>
+            <p className="text-sm font-medium whitespace-pre-wrap">
+              {textToShow}
+              {!isUser && message.isStreaming && (
+                <span className="inline-block w-2 h-4 bg-gray-600 ml-1 animate-pulse" />
+              )}
+            </p>
           </div>
         );
 

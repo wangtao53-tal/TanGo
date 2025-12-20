@@ -17,6 +17,7 @@ export interface ConversationMessage {
   sender: MessageSender; // 发送者
   sessionId?: string; // 对话会话ID
   isStreaming?: boolean; // 是否正在流式返回（仅系统消息）
+  streamingText?: string; // 流式文本内容（用于打字机效果）
 }
 
 // 对话会话

@@ -160,3 +160,25 @@ type VoiceResponse struct {
 	Text      string `json:"text"`               // 识别的文本
 	SessionId string `json:"sessionId,optional"` // 会话ID（可选）
 }
+
+// StreamConversationRequest 流式对话请求
+type StreamConversationRequest struct {
+	SessionId             string                 `json:"sessionId,optional"`             // 会话ID，如果为空则创建新会话
+	Message               string                 `json:"message"`                       // 用户消息内容
+	MessageType           string                 `json:"messageType,optional"`          // 消息类型：text/image/voice，默认text
+	Image                 string                 `json:"image,optional"`                // 图片数据（base64或URL），当messageType为image时必填
+	Voice                 string                 `json:"voice,optional"`                // 语音数据（base64），当messageType为voice时必填
+	IdentificationContext *IdentificationContext `json:"identificationContext,optional"` // 识别结果上下文（可选，用于关联识别结果）
+	UserAge               int                    `json:"userAge,optional"`              // 用户年龄（3-18岁），用于内容适配
+	MaxContextRounds      int                    `json:"maxContextRounds,optional"`    // 最大上下文轮次，默认20轮
+}
+
+// StreamEvent SSE流式事件类型
+type StreamEvent struct {
+	Type      string      `json:"type"`                // 事件类型：connected/message/image_progress/image_done/card/error/done
+	Content   interface{} `json:"content"`              // 事件内容
+	Index     int         `json:"index,optional"`       // 文本消息的字符索引（用于打字机效果）
+	Progress  int         `json:"progress,optional"`    // 图片生成进度（0-100）
+	SessionId string      `json:"sessionId,optional"`  // 会话ID
+	MessageId string      `json:"messageId,optional"`   // 消息ID
+}

@@ -20,6 +20,7 @@ type Graph struct {
 	textGenerationNode    *nodes.TextGenerationNode
 	imageGenerationNode   *nodes.ImageGenerationNode
 	intentRecognitionNode *nodes.IntentRecognitionNode
+	conversationNode      *nodes.ConversationNode
 }
 
 // NewGraph 创建新的Graph实例
@@ -49,6 +50,11 @@ func NewGraph(ctx context.Context, cfg config.AIConfig, logger logx.Logger) (*Gr
 	}
 
 	graph.intentRecognitionNode, err = nodes.NewIntentRecognitionNode(ctx, cfg, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	graph.conversationNode, err = nodes.NewConversationNode(ctx, cfg, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -210,4 +216,9 @@ func (g *Graph) ExecuteTextGeneration(message string, context []interface{}) (*n
 
 	g.logger.Infow("文本生成完成", logx.Field("length", len(result)))
 	return data, nil
+}
+
+// GetConversationNode 获取对话节点
+func (g *Graph) GetConversationNode() *nodes.ConversationNode {
+	return g.conversationNode
 }
