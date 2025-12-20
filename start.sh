@@ -104,13 +104,32 @@ check_dependencies() {
 
 # 安装前端依赖（如果需要）
 install_frontend_deps() {
-    if [ ! -d "$FRONTEND_DIR/node_modules" ]; then
+    echo -e "${BLUE}检查前端依赖...${NC}"
+    cd "$FRONTEND_DIR"
+    
+    # 检查 node_modules 是否存在
+    if [ ! -d "node_modules" ]; then
         echo -e "${YELLOW}前端依赖未安装，正在安装...${NC}"
-        cd "$FRONTEND_DIR"
         npm install
-        cd "$ROOT_DIR"
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}✗ 前端依赖安装失败${NC}"
+            cd "$ROOT_DIR"
+            exit 1
+        fi
         echo -e "${GREEN}✓ 前端依赖安装完成${NC}"
+    else
+        # 即使 node_modules 存在，也执行 npm install 以确保依赖是最新的
+        # 使用 --prefer-offline 加速安装（优先使用缓存）
+        echo -e "${BLUE}确保前端依赖已初始化...${NC}"
+        npm install --prefer-offline
+        if [ $? -ne 0 ]; then
+            echo -e "${YELLOW}⚠ 依赖检查失败，但继续启动...${NC}"
+        else
+            echo -e "${GREEN}✓ 前端依赖检查完成${NC}"
+        fi
     fi
+    
+    cd "$ROOT_DIR"
 }
 
 # 启动后端服务
