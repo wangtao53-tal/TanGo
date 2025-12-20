@@ -28,6 +28,18 @@ export function createPostSSEConnection(
   callbacks: PostSSECallbacks
 ): AbortController {
   const abortController = new AbortController();
+  let isClosed = false; // 标记是否已经关闭，防止重复调用onClose
+
+  // 包装onClose，确保只调用一次
+  const wrappedCallbacks: PostSSECallbacks = {
+    ...callbacks,
+    onClose: () => {
+      if (!isClosed) {
+        isClosed = true;
+        callbacks.onClose?.();
+      }
+    },
+  };
 
   // 发送POST请求
   fetch(`${API_BASE_URL}/api/conversation/stream`, {
@@ -58,9 +70,14 @@ export function createPostSSEConnection(
         if (done) {
           // 处理缓冲区中剩余的数据
           if (buffer.trim()) {
-            processSSEBuffer(buffer, callbacks);
+            processSSEBuffer(buffer, wrappedCallbacks);
           }
-          callbacks.onClose?.();
+          // 延迟调用onClose，确保所有消息都已处理完成
+          // 注意：如果收到done事件，processSSEEvent中已经会调用onClose
+          // 这里只在流正常结束时调用（没有收到done事件的情况）
+          setTimeout(() => {
+            wrappedCallbacks.onClose?.();
+          }, 100); // 给一点延迟，确保所有消息处理完成
           break;
         }
 
@@ -69,7 +86,7 @@ export function createPostSSEConnection(
         buffer += chunk;
 
         // 立即处理完整的事件（不等待所有数据到达）
-        buffer = processSSEBuffer(buffer, callbacks);
+        buffer = processSSEBuffer(buffer, wrappedCallbacks);
       }
     })
     .catch((error) => {
@@ -156,11 +173,26 @@ function processSSEEvent(
 ): void {
   try {
     const data: ConversationStreamEvent = JSON.parse(dataStr);
+    
+    // 调试日志：记录接收到的消息
+    if (data.type === 'message') {
+      console.log('收到流式消息:', {
+        type: data.type,
+        content: data.content,
+        contentType: typeof data.content,
+        contentLength: typeof data.content === 'string' ? data.content.length : 0,
+      });
+    }
+    
+    // 先调用onMessage处理消息（包括done事件，让前端知道流结束了）
     callbacks.onMessage?.(data);
 
-    // 如果收到done事件，关闭连接
+    // 如果收到done事件，延迟关闭连接，确保所有消息都已处理
     if (data.type === 'done') {
-      callbacks.onClose?.();
+      // 使用setTimeout确保所有同步的消息处理都已完成
+      setTimeout(() => {
+        callbacks.onClose?.();
+      }, 50); // 给一点延迟，确保所有消息处理完成
       return;
     }
 

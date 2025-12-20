@@ -48,6 +48,9 @@ export default function Result() {
   const [isGeneratingCards, setIsGeneratingCards] = useState(false);
   const hasGeneratedCardsRef = useRef(false); // 使用 ref 防止重复调用
   const generateTimeoutRef = useRef<NodeJS.Timeout | null>(null); // 存储定时器引用
+  // 用于流式对话的ref（必须在组件顶层）
+  const accumulatedTextRef = useRef('');
+  const markdownRef = useRef<boolean>(false);
 
   useEffect(() => {
     const state = location.state as LocationState;
@@ -173,6 +176,18 @@ export default function Result() {
 
       const abortController = generateCardsStream(request, {
         onCard: (card, index) => {
+          // 验证卡片数据格式
+          if (!card || !card.type || !card.title || !card.content) {
+            console.error('卡片数据格式不正确:', card);
+            return;
+          }
+
+          // 验证卡片类型
+          if (!['science', 'poetry', 'english'].includes(card.type)) {
+            console.error('未知的卡片类型:', card.type);
+            return;
+          }
+
           // 立即添加卡片到消息列表
           const knowledgeCard: KnowledgeCard = {
             id: `card-${card.type}-${timestamp}-${index}`,
@@ -316,9 +331,9 @@ export default function Result() {
         streamRequest.identificationContext = identificationContext;
       }
 
-      // 使用useRef跟踪累积文本和markdown状态，避免闭包问题
-      const accumulatedTextRef = useRef('');
-      const markdownRef = useRef<boolean>(false);
+      // 重置累积文本和markdown状态
+      accumulatedTextRef.current = '';
+      markdownRef.current = false;
 
       // 使用POST + SSE连接
       const abortController = createPostSSEConnection(streamRequest, {
@@ -328,9 +343,21 @@ export default function Result() {
             return;
           }
 
-          if (data.type === 'message' && data.content) {
-            // 立即累积文本
-            accumulatedTextRef.current += data.content;
+          if (data.type === 'done') {
+            // done事件表示流结束，但不在这里处理关闭逻辑
+            // 关闭逻辑在onClose中处理
+            console.log('收到done事件，流式输出完成');
+            return;
+          }
+
+          if (data.type === 'message') {
+            // 处理消息内容（content可能是字符串或undefined）
+            const content = typeof data.content === 'string' ? data.content : '';
+            
+            // 如果content不为空，累积文本
+            if (content) {
+              accumulatedTextRef.current += content;
+            }
             
             // 更新markdown标记（如果后端提供了）
             if (data.markdown !== undefined) {
@@ -338,6 +365,7 @@ export default function Result() {
             }
             
             // 使用flushSync强制同步更新，确保实时渲染
+            // 即使content为空，也要更新UI（可能只是markdown标记更新）
             flushSync(() => {
               setMessages((prev) => {
                 const index = prev.findIndex((m) => m.id === assistantMessageId);
@@ -346,7 +374,7 @@ export default function Result() {
                   updated[index] = {
                     ...updated[index],
                     streamingText: accumulatedTextRef.current,
-                    content: accumulatedTextRef.current,
+                    content: accumulatedTextRef.current || '', // 确保content不为undefined
                     markdown: markdownRef.current || undefined,
                   };
                   return updated;
@@ -393,18 +421,26 @@ export default function Result() {
           markdownRef.current = false;
         },
         onClose: () => {
-          // 标记流式完成，使用累积的文本
+          // 标记流式完成，从当前消息state中获取最终内容
+          // 这样可以确保获取到已经累积的所有内容
           flushSync(() => {
             setMessages((prev) => {
               const index = prev.findIndex((m) => m.id === assistantMessageId);
               if (index >= 0) {
+                const currentMessage = prev[index];
+                // 优先使用streamingText（流式过程中的累积文本），如果没有则使用content
+                const finalContent = currentMessage.streamingText || 
+                                   (typeof currentMessage.content === 'string' ? currentMessage.content : '') ||
+                                   accumulatedTextRef.current ||
+                                   '抱歉，没有收到回复内容。';
+                
                 const updated = [...prev];
                 updated[index] = {
                   ...updated[index],
                   isStreaming: false,
-                  content: accumulatedTextRef.current,
+                  content: finalContent,
                   streamingText: undefined, // 清除流式文本
-                  markdown: markdownRef.current || undefined, // 保留markdown标记
+                  markdown: markdownRef.current || currentMessage.markdown || undefined, // 保留markdown标记
                 };
                 return updated;
               }
@@ -412,9 +448,11 @@ export default function Result() {
             });
           });
           setIsSending(false);
-          // 重置累积文本和markdown状态
-          accumulatedTextRef.current = '';
-          markdownRef.current = false;
+          // 重置累积文本和markdown状态（延迟重置，确保上面的代码能读取到）
+          setTimeout(() => {
+            accumulatedTextRef.current = '';
+            markdownRef.current = false;
+          }, 0);
         },
       });
 

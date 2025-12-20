@@ -207,6 +207,7 @@ func (g *Graph) ExecuteCardGeneration(ctx context.Context, objectName, category 
 	g.logger.Infow("卡片生成完成（并行）",
 		logx.Field("cardCount", len(cards)),
 		logx.Field("successCount", successCount),
+		logx.Field("useRealModel", successCount > 0),
 	)
 	return data, nil
 }

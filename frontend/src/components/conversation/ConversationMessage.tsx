@@ -126,6 +126,17 @@ function ConversationMessageComponentInner({ message, onCollect }: ConversationM
       case 'card':
         // 将content转换为KnowledgeCard格式
         const card = message.content as KnowledgeCard;
+        
+        // 验证卡片数据
+        if (!card || !card.type || !card.content) {
+          console.error('卡片数据无效:', card);
+          return (
+            <div className="px-4 py-3 rounded-2xl bg-red-50 text-red-600 border border-red-200">
+              <p className="text-sm">卡片数据格式错误，无法显示</p>
+            </div>
+          );
+        }
+
         if (card.type === 'science') {
           return <ScienceCard card={card} onCollect={onCollect} />;
         } else if (card.type === 'poetry') {
@@ -133,7 +144,14 @@ function ConversationMessageComponentInner({ message, onCollect }: ConversationM
         } else if (card.type === 'english') {
           return <EnglishCard card={card} onCollect={onCollect} />;
         }
-        return null;
+        
+        // 未知卡片类型
+        console.warn('未知的卡片类型:', card.type);
+        return (
+          <div className="px-4 py-3 rounded-2xl bg-yellow-50 text-yellow-600 border border-yellow-200">
+            <p className="text-sm">未知的卡片类型: {card.type}</p>
+          </div>
+        );
 
       case 'image':
         return (

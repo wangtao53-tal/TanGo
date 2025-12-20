@@ -100,6 +100,13 @@ func (l *GenerateCardsLogic) GenerateCardsStream(w http.ResponseWriter, req *typ
 	if l.svcCtx.Agent != nil {
 		graph := l.svcCtx.Agent.GetGraph()
 
+		l.Infow("使用Agent系统生成卡片",
+			logx.Field("objectName", req.ObjectName),
+			logx.Field("category", req.ObjectCategory),
+			logx.Field("age", req.Age),
+			logx.Field("graphNil", graph == nil),
+		)
+
 		// 使用带超时的context（6秒总超时，目标5秒内）
 		cardCtx, cancel := context.WithTimeout(l.ctx, 6*time.Second)
 		defer cancel()
@@ -107,9 +114,16 @@ func (l *GenerateCardsLogic) GenerateCardsStream(w http.ResponseWriter, req *typ
 		// 调用ExecuteCardGeneration（已优化并行，带超时控制）
 		data, err := graph.ExecuteCardGeneration(cardCtx, req.ObjectName, req.ObjectCategory, req.Age, req.Keywords)
 		if err != nil {
-			l.Errorw("卡片生成失败，使用Mock", logx.Field("error", err))
+			l.Errorw("卡片生成失败，使用Mock", 
+				logx.Field("error", err),
+				logx.Field("errorDetail", err.Error()),
+			)
 			return l.generateCardsStreamMock(w, req)
 		}
+
+		l.Infow("Agent卡片生成成功",
+			logx.Field("cardCount", len(data.Cards)),
+		)
 
 		// 转换并立即发送每张卡片
 		// 由于ExecuteCardGeneration已经并行生成，这里按顺序发送
@@ -150,6 +164,9 @@ func (l *GenerateCardsLogic) GenerateCardsStream(w http.ResponseWriter, req *typ
 	}
 
 	// 如果Agent未初始化，使用Mock数据流式返回
+	l.Errorw("Agent未初始化，使用Mock数据流式返回",
+		logx.Field("agentNil", l.svcCtx.Agent == nil),
+	)
 	return l.generateCardsStreamMock(w, req)
 }
 
