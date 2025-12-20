@@ -14,14 +14,16 @@ import { ImageInput } from '../components/conversation/ImageInput';
 import type { ConversationMessage } from '../types/conversation';
 import type { IdentificationContext } from '../types/api';
 import { useState, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { cardStorage } from '../services/storage';
 import { sendMessage, createStreamConnection, recognizeUserIntent } from '../services/conversation';
 import { createPostSSEConnection, closePostSSEConnection } from '../services/sse-post';
 import type { StreamConversationRequest } from '../types/api';
 import { fileToBase64, extractBase64Data, compressImage } from '../utils/image';
-import { uploadImage, generateCards } from '../services/api';
+import { uploadImage, generateCards, generateCardsStream } from '../services/api';
 import type { GenerateCardsRequest, GenerateCardsResponse } from '../types/api';
 import type { KnowledgeCard } from '../types/exploration';
+import { AudioPlaybackProvider } from '../components/cards/ScienceCard';
 
 interface LocationState {
   objectName: string;
@@ -138,7 +140,7 @@ export default function Result() {
       };
       setMessages((prev) => [...prev, loadingMessage]);
 
-      // 调用生成卡片API
+      // 调用流式生成卡片API
       const request: GenerateCardsRequest = {
         objectName: state.objectName,
         objectCategory: state.objectCategory,
@@ -146,32 +148,88 @@ export default function Result() {
         keywords: state.keywords,
       };
 
-      const cardsResult: GenerateCardsResponse = await generateCards(request);
-
-      // 移除加载消息
-      setMessages((prev) => prev.filter(msg => msg.id !== loadingMessageId));
-
-      // 转换为KnowledgeCard格式并添加到消息列表
+      // 使用流式API，每生成完一张卡片立即显示
       const timestamp = Date.now();
-      const knowledgeCards: KnowledgeCard[] = cardsResult.cards.map((card, index) => ({
-        id: `card-${card.type}-${timestamp}-${index}`,
-        explorationId: `exp-${timestamp}`,
-        type: card.type as 'science' | 'poetry' | 'english',
-        title: card.title,
-        content: card.content as any,
-      }));
+      const receivedCards: KnowledgeCard[] = [];
+      let progressStartTime = Date.now();
 
-      // 将卡片作为消息添加到对话中
-      const cardMessages: ConversationMessage[] = knowledgeCards.map((card) => ({
-        id: `msg-card-${card.id}`,
-        type: 'card' as const,
-        content: card,
-        timestamp: new Date().toISOString(),
-        sender: 'assistant' as const,
-        sessionId,
-      }));
+      // 2秒后显示进度提示
+      const progressTimeout = setTimeout(() => {
+        if (receivedCards.length === 0) {
+          setMessages((prev) => {
+            const index = prev.findIndex((m) => m.id === loadingMessageId);
+            if (index >= 0) {
+              const updated = [...prev];
+              updated[index] = {
+                ...updated[index],
+                content: '正在生成知识卡片，请稍候...',
+              };
+              return updated;
+            }
+            return prev;
+          });
+        }
+      }, 2000);
 
-      setMessages((prev) => [...prev, ...cardMessages]);
+      const abortController = generateCardsStream(request, {
+        onCard: (card, index) => {
+          // 立即添加卡片到消息列表
+          const knowledgeCard: KnowledgeCard = {
+            id: `card-${card.type}-${timestamp}-${index}`,
+            explorationId: `exp-${timestamp}`,
+            type: card.type as 'science' | 'poetry' | 'english',
+            title: card.title,
+            content: card.content as any,
+          };
+          receivedCards.push(knowledgeCard);
+
+          const cardMessage: ConversationMessage = {
+            id: `msg-card-${knowledgeCard.id}`,
+            type: 'card' as const,
+            content: knowledgeCard,
+            timestamp: new Date().toISOString(),
+            sender: 'assistant' as const,
+            sessionId,
+          };
+
+          // 使用flushSync立即更新UI
+          flushSync(() => {
+            setMessages((prev) => {
+              // 移除加载消息（如果还在）
+              const filtered = prev.filter(msg => msg.id !== loadingMessageId);
+              return [...filtered, cardMessage];
+            });
+          });
+        },
+        onError: (error) => {
+          clearTimeout(progressTimeout);
+          console.error('流式生成卡片失败:', error);
+          setMessages((prev) => prev.filter(msg => msg.id !== loadingMessageId));
+          
+          const errorMessage: ConversationMessage = {
+            id: `msg-error-${Date.now()}`,
+            type: 'text',
+            content: `生成卡片失败：${error?.message || '未知错误'}。您可以稍后通过对话重新生成。`,
+            timestamp: new Date().toISOString(),
+            sender: 'assistant',
+            sessionId,
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+        },
+        onComplete: () => {
+          clearTimeout(progressTimeout);
+          // 移除加载消息
+          setMessages((prev) => prev.filter(msg => msg.id !== loadingMessageId));
+          
+          // 确保所有卡片都已添加
+          if (receivedCards.length < 3) {
+            console.warn(`只收到${receivedCards.length}张卡片，预期3张`);
+          }
+        },
+      });
+
+      // 保存abortController以便可以取消
+      setSseConnection(abortController);
     } catch (error: any) {
       console.error('自动生成卡片失败:', error);
       // 移除加载消息
@@ -258,7 +316,9 @@ export default function Result() {
         streamRequest.identificationContext = identificationContext;
       }
 
-      let accumulatedText = '';
+      // 使用useRef跟踪累积文本和markdown状态，避免闭包问题
+      const accumulatedTextRef = useRef('');
+      const markdownRef = useRef<boolean>(false);
 
       // 使用POST + SSE连接
       const abortController = createPostSSEConnection(streamRequest, {
@@ -269,52 +329,92 @@ export default function Result() {
           }
 
           if (data.type === 'message' && data.content) {
-            accumulatedText += data.content;
-            // 更新助手消息
+            // 立即累积文本
+            accumulatedTextRef.current += data.content;
+            
+            // 更新markdown标记（如果后端提供了）
+            if (data.markdown !== undefined) {
+              markdownRef.current = data.markdown;
+            }
+            
+            // 使用flushSync强制同步更新，确保实时渲染
+            flushSync(() => {
+              setMessages((prev) => {
+                const index = prev.findIndex((m) => m.id === assistantMessageId);
+                if (index >= 0) {
+                  const updated = [...prev];
+                  updated[index] = {
+                    ...updated[index],
+                    streamingText: accumulatedTextRef.current,
+                    content: accumulatedTextRef.current,
+                    markdown: markdownRef.current || undefined,
+                  };
+                  return updated;
+                }
+                return prev;
+              });
+            });
+          }
+        },
+        onError: (error: Error) => {
+          console.error('流式返回错误:', error);
+          // 如果已有部分内容，保留它
+          if (accumulatedTextRef.current) {
+            flushSync(() => {
+              setMessages((prev) => {
+                const index = prev.findIndex((m) => m.id === assistantMessageId);
+                if (index >= 0) {
+                  const updated = [...prev];
+                  updated[index] = {
+                    ...updated[index],
+                    isStreaming: false,
+                    content: accumulatedTextRef.current + '\n\n[错误: ' + (error.message || '流式返回中断') + ']',
+                    streamingText: undefined,
+                    markdown: markdownRef.current || undefined, // 保留markdown标记
+                  };
+                  return updated;
+                }
+                return prev;
+              });
+            });
+          } else {
+            const errorMessage: ConversationMessage = {
+              id: `msg-error-${Date.now()}`,
+              type: 'text',
+              content: error.message || '抱歉，生成回答时出现错误，请稍后重试。',
+              timestamp: new Date().toISOString(),
+              sender: 'assistant',
+              sessionId,
+            };
+            setMessages((prev) => [...prev, errorMessage]);
+          }
+          setIsSending(false);
+          accumulatedTextRef.current = '';
+          markdownRef.current = false;
+        },
+        onClose: () => {
+          // 标记流式完成，使用累积的文本
+          flushSync(() => {
             setMessages((prev) => {
               const index = prev.findIndex((m) => m.id === assistantMessageId);
               if (index >= 0) {
                 const updated = [...prev];
                 updated[index] = {
                   ...updated[index],
-                  streamingText: accumulatedText,
-                  content: accumulatedText,
+                  isStreaming: false,
+                  content: accumulatedTextRef.current,
+                  streamingText: undefined, // 清除流式文本
+                  markdown: markdownRef.current || undefined, // 保留markdown标记
                 };
                 return updated;
               }
               return prev;
             });
-          }
-        },
-        onError: (error: Error) => {
-          console.error('流式返回错误:', error);
-          const errorMessage: ConversationMessage = {
-            id: `msg-error-${Date.now()}`,
-            type: 'text',
-            content: error.message || '抱歉，生成回答时出现错误，请稍后重试。',
-            timestamp: new Date().toISOString(),
-            sender: 'assistant',
-            sessionId,
-          };
-          setMessages((prev) => [...prev, errorMessage]);
-          setIsSending(false);
-        },
-        onClose: () => {
-          // 标记流式完成
-          setMessages((prev) => {
-            const index = prev.findIndex((m) => m.id === assistantMessageId);
-            if (index >= 0) {
-              const updated = [...prev];
-              updated[index] = {
-                ...updated[index],
-                isStreaming: false,
-                content: accumulatedText,
-              };
-              return updated;
-            }
-            return prev;
           });
           setIsSending(false);
+          // 重置累积文本和markdown状态
+          accumulatedTextRef.current = '';
+          markdownRef.current = false;
         },
       });
 
@@ -505,10 +605,11 @@ export default function Result() {
   };
 
   return (
-    <div className="min-h-screen bg-cloud-white font-display flex flex-col">
-      <Header />
-      
-      <main className="flex-1 flex flex-col items-center px-4 py-6 w-full max-w-7xl mx-auto overflow-hidden">
+    <AudioPlaybackProvider>
+      <div className="min-h-screen bg-cloud-white font-display flex flex-col">
+        <Header />
+        
+        <main className="flex-1 flex flex-col items-center px-4 py-6 w-full max-w-7xl mx-auto overflow-hidden">
         {/* 对象信息展示区域 */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8 w-full">
           <div className="flex flex-col items-start gap-2 relative">
@@ -576,6 +677,7 @@ export default function Result() {
           </div>
         </footer>
       </main>
-    </div>
+      </div>
+    </AudioPlaybackProvider>
   );
 }

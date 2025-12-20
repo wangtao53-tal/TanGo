@@ -7,6 +7,9 @@ import React, { useState, useEffect } from 'react';
 import { cardStorage } from '../../services/storage';
 import type { KnowledgeCard } from '../../types/exploration';
 import type { EnglishCardContent } from '../../types/exploration';
+import { useTextToSpeech } from '../../hooks/useTextToSpeech';
+import { extractCardText, detectCardLanguage } from '../../utils/cardTextExtractor';
+import { usePlayingCard } from './ScienceCard';
 
 export interface EnglishCardProps {
   card: KnowledgeCard;
@@ -22,8 +25,54 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
   id,
 }) => {
   const [isCollected, setIsCollected] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const content = card.content as EnglishCardContent;
+  const { playingCardId, setPlayingCardId } = usePlayingCard();
+  const isCurrentlyPlaying = playingCardId === card.id;
+
+  // 文本转语音Hook
+  const { isPlaying, isPaused, play, pause, resume, stop, isSupported } = useTextToSpeech({
+    rate: 0.9,
+    pitch: 1.0,
+    onStart: () => {
+      setPlayingCardId(card.id);
+    },
+    onEnd: () => {
+      setPlayingCardId(null);
+    },
+    onError: (error) => {
+      console.error('文本转语音错误:', error);
+      setPlayingCardId(null);
+    },
+  });
+
+  // 如果其他卡片开始播放，停止当前播放
+  useEffect(() => {
+    if (playingCardId !== null && playingCardId !== card.id && isPlaying) {
+      stop();
+    }
+  }, [playingCardId, card.id, isPlaying, stop]);
+
+  const handleListen = () => {
+    if (!isSupported) {
+      alert('您的浏览器不支持文本转语音功能');
+      return;
+    }
+
+    if (isPlaying && !isPaused) {
+      pause();
+    } else if (isPaused) {
+      resume();
+    } else {
+      const text = extractCardText(card);
+      const language = detectCardLanguage(card);
+      play(text, language);
+    }
+  };
+
+  const handleStop = () => {
+    stop();
+    setPlayingCardId(null);
+  };
 
   // 检查卡片是否已收藏
   useEffect(() => {
@@ -53,10 +102,6 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
     }
   };
 
-  const handlePlay = () => {
-    setIsPlaying(!isPlaying);
-    // TODO: 实现音频播放功能
-  };
 
   return (
     <article
@@ -71,14 +116,17 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
               {card.title}
             </h3>
             <button
-              onClick={handlePlay}
-              className={`size-10 rounded-full flex items-center justify-center transition-colors shadow-sm ${
-                isPlaying
+              onClick={handleListen}
+              disabled={!isSupported}
+              className={`size-10 rounded-full flex items-center justify-center transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
+                isPlaying && !isPaused
                   ? 'bg-sky-blue text-white'
                   : 'bg-sky-blue/20 hover:bg-sky-blue hover:text-white text-sky-blue'
               }`}
             >
-              <span className="material-symbols-outlined text-xl">volume_up</span>
+              <span className="material-symbols-outlined text-xl">
+                {isPlaying && !isPaused ? 'pause' : 'volume_up'}
+              </span>
             </button>
           </div>
 
@@ -125,13 +173,27 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
 
         {/* 操作按钮 */}
         <div className="flex justify-between items-center mt-4 pt-2">
-          <button
-            onClick={handlePlay}
-            className="flex items-center gap-2 text-sm font-bold text-sky-blue bg-sky-blue/20 hover:bg-sky-blue hover:text-white px-5 py-3 rounded-full transition-all shadow-sm hover:shadow-md"
-          >
-            <span className="material-symbols-outlined text-xl">mic</span>
-            Practice
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleListen}
+              disabled={!isSupported}
+              className="flex items-center gap-2 text-sm font-bold text-sky-blue bg-sky-blue/20 hover:bg-sky-blue hover:text-white px-5 py-3 rounded-full transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="material-symbols-outlined text-xl">
+                {isPlaying && !isPaused ? 'pause' : 'play_circle'}
+              </span>
+              {isPlaying && !isPaused ? '暂停' : isPaused ? '继续' : '听'}
+            </button>
+            {isPlaying && (
+              <button
+                onClick={handleStop}
+                className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-700 px-3 py-2 rounded-full transition-all"
+              >
+                <span className="material-symbols-outlined text-lg">stop</span>
+                停止
+              </button>
+            )}
+          </div>
           <button
             onClick={handleCollect}
             className={`size-12 rounded-full flex items-center justify-center transition-all group-active:scale-90 shadow-sm border-2 ${

@@ -2,6 +2,10 @@ package logic
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"time"
 
 	"github.com/tango/explore/internal/svc"
 	"github.com/tango/explore/internal/types"
@@ -71,6 +75,154 @@ func (l *GenerateCardsLogic) GenerateCards(req *types.GenerateCardsRequest) (res
 
 	// 如果Agent未初始化，使用Mock数据
 	return l.generateCardsMock(req)
+}
+
+// GenerateCardsStream 流式生成知识卡片（每生成完一张立即返回）
+func (l *GenerateCardsLogic) GenerateCardsStream(w http.ResponseWriter, req *types.GenerateCardsRequest) error {
+	// 参数验证
+	if req.ObjectName == "" {
+		return utils.ErrObjectNameRequired
+	}
+	if req.ObjectCategory == "" {
+		return utils.ErrCategoryRequired
+	}
+	if req.Age < 3 || req.Age > 18 {
+		return utils.ErrInvalidAge
+	}
+
+	l.Infow("开始流式生成知识卡片",
+		logx.Field("objectName", req.ObjectName),
+		logx.Field("category", req.ObjectCategory),
+		logx.Field("age", req.Age),
+	)
+
+	// 使用Agent系统生成卡片
+	if l.svcCtx.Agent != nil {
+		graph := l.svcCtx.Agent.GetGraph()
+
+		// 使用带超时的context（6秒总超时，目标5秒内）
+		cardCtx, cancel := context.WithTimeout(l.ctx, 6*time.Second)
+		defer cancel()
+
+		// 调用ExecuteCardGeneration（已优化并行，带超时控制）
+		data, err := graph.ExecuteCardGeneration(cardCtx, req.ObjectName, req.ObjectCategory, req.Age, req.Keywords)
+		if err != nil {
+			l.Errorw("卡片生成失败，使用Mock", logx.Field("error", err))
+			return l.generateCardsStreamMock(w, req)
+		}
+
+		// 转换并立即发送每张卡片
+		// 由于ExecuteCardGeneration已经并行生成，这里按顺序发送
+		// 未来可以优化为真正的流式返回（每生成完一张立即发送）
+		cardCount := 0
+		for i, cardData := range data.Cards {
+			if cardMap, ok := cardData.(map[string]interface{}); ok {
+				card := types.CardContent{
+					Type:    getString(cardMap, "type"),
+					Title:   getString(cardMap, "title"),
+					Content: cardMap["content"],
+				}
+				// 立即发送卡片事件
+				cardEvent := map[string]interface{}{
+					"type":    "card",
+					"content": card,
+					"index":   i,
+				}
+				cardJSON, _ := json.Marshal(cardEvent)
+				fmt.Fprintf(w, "event: card\ndata: %s\n\n", string(cardJSON))
+				w.(http.Flusher).Flush()
+				cardCount++
+			}
+		}
+
+		// 发送完成事件
+		doneEvent := map[string]interface{}{
+			"type": "done",
+		}
+		doneJSON, _ := json.Marshal(doneEvent)
+		fmt.Fprintf(w, "event: done\ndata: %s\n\n", string(doneJSON))
+		w.(http.Flusher).Flush()
+
+		l.Infow("流式卡片生成完成",
+			logx.Field("cardCount", cardCount),
+		)
+		return nil
+	}
+
+	// 如果Agent未初始化，使用Mock数据流式返回
+	return l.generateCardsStreamMock(w, req)
+}
+
+// generateCardsStreamMock Mock流式返回
+func (l *GenerateCardsLogic) generateCardsStreamMock(w http.ResponseWriter, req *types.GenerateCardsRequest) error {
+	cards := []types.CardContent{
+		l.getMockCardByIndex(0, req.ObjectName, req.Age),
+		l.getMockCardByIndex(1, req.ObjectName, req.Age),
+		l.getMockCardByIndex(2, req.ObjectName, req.Age),
+	}
+
+	// 模拟流式返回，每张卡片间隔100ms
+	for i, card := range cards {
+		cardEvent := map[string]interface{}{
+			"type":    "card",
+			"content": card,
+			"index":   i,
+		}
+		cardJSON, _ := json.Marshal(cardEvent)
+		fmt.Fprintf(w, "event: card\ndata: %s\n\n", string(cardJSON))
+		w.(http.Flusher).Flush()
+		time.Sleep(100 * time.Millisecond) // 模拟生成延迟
+	}
+
+	// 发送完成事件
+	doneEvent := map[string]interface{}{
+		"type": "done",
+	}
+	doneJSON, _ := json.Marshal(doneEvent)
+	fmt.Fprintf(w, "event: done\ndata: %s\n\n", string(doneJSON))
+	w.(http.Flusher).Flush()
+
+	return nil
+}
+
+// getMockCardByIndex 根据索引获取Mock卡片
+func (l *GenerateCardsLogic) getMockCardByIndex(idx int, objectName string, age int) types.CardContent {
+	switch idx {
+	case 0: // 科学卡
+		return types.CardContent{
+			Type:  "science",
+			Title: objectName + "的科学知识",
+			Content: map[string]interface{}{
+				"name":        objectName,
+				"explanation": l.getScienceExplanation(objectName, age),
+				"facts":       l.getScienceFacts(objectName, age),
+				"funFact":     l.getFunFact(objectName, age),
+			},
+		}
+	case 1: // 诗词卡
+		return types.CardContent{
+			Type:  "poetry",
+			Title: "古人怎么看" + objectName,
+			Content: map[string]interface{}{
+				"poem":        l.getPoem(objectName),
+				"poemSource":  l.getPoemSource(objectName),
+				"explanation": l.getPoemExplanation(objectName, age),
+				"context":     l.getContext(objectName, age),
+			},
+		}
+	case 2: // 英语卡
+		return types.CardContent{
+			Type:  "english",
+			Title: "用英语说" + objectName,
+			Content: map[string]interface{}{
+				"keywords":      l.getEnglishKeywords(objectName),
+				"expressions":   l.getEnglishExpressions(objectName, age),
+				"pronunciation": l.getPronunciation(objectName),
+			},
+		}
+	default:
+		return types.CardContent{}
+	}
 }
 
 // generateCardsMock Mock实现（保留作为回退方案）

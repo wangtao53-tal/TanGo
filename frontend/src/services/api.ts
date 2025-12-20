@@ -84,8 +84,8 @@ export async function identifyImage(
 }
 
 /**
- * 生成知识卡片API
- * 超时时间设置为3分钟（180000ms），因为卡片生成可能需要较长时间
+ * 生成知识卡片API（同步模式）
+ * 超时时间设置为6秒（6000ms），优化后目标5秒内
  */
 export async function generateCards(
   request: GenerateCardsRequest
@@ -94,10 +94,169 @@ export async function generateCards(
     '/api/explore/generate-cards', 
     request,
     {
-      timeout: 180000, // 3分钟 = 180000毫秒
+      timeout: 6000, // 6秒 = 6000毫秒
     }
   );
   return response as unknown as GenerateCardsResponse;
+}
+
+/**
+ * 流式生成知识卡片API
+ * 使用SSE流式返回，每生成完一张卡片立即返回
+ */
+export function generateCardsStream(
+  request: GenerateCardsRequest,
+  callbacks: {
+    onCard?: (card: CardContentResponse, index: number) => void;
+    onError?: (error: Error) => void;
+    onComplete?: () => void;
+  }
+): AbortController {
+  const abortController = new AbortController();
+  const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL ||
+    (import.meta.env.DEV
+      ? `http://${import.meta.env.VITE_BACKEND_HOST || 'localhost'}:${import.meta.env.VITE_BACKEND_PORT || '8877'}`
+      : 'http://localhost:8877');
+
+  fetch(`${API_BASE_URL}/api/explore/generate-cards?stream=true`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+    signal: abortController.signal,
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      if (!response.body) {
+        throw new Error('Response body is null');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          if (buffer.trim()) {
+            processCardSSEBuffer(buffer, callbacks);
+          }
+          callbacks.onComplete?.();
+          break;
+        }
+
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        buffer = processCardSSEBuffer(buffer, callbacks);
+      }
+    })
+    .catch((error) => {
+      if (error.name === 'AbortError') {
+        return;
+      }
+      console.error('流式卡片生成错误:', error);
+      callbacks.onError?.(error);
+    });
+
+  return abortController;
+}
+
+/**
+ * 处理卡片生成SSE缓冲区
+ */
+function processCardSSEBuffer(
+  buffer: string,
+  callbacks: {
+    onCard?: (card: CardContentResponse, index: number) => void;
+    onError?: (error: Error) => void;
+    onComplete?: () => void;
+  }
+): string {
+  const lines = buffer.split('\n');
+  const remainingLines: string[] = [];
+  let currentEvent = '';
+  let currentData = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (line.startsWith('event:')) {
+      if (currentEvent && currentData) {
+        processCardSSEEvent(currentEvent, currentData, callbacks);
+        currentEvent = '';
+        currentData = '';
+      }
+      currentEvent = line.substring(6).trim();
+    } else if (line.startsWith('data:')) {
+      const dataLine = line.substring(5).trim();
+      if (currentData) {
+        currentData += '\n' + dataLine;
+      } else {
+        currentData = dataLine;
+      }
+    } else if (line === '') {
+      if (currentEvent && currentData) {
+        processCardSSEEvent(currentEvent, currentData, callbacks);
+        currentEvent = '';
+        currentData = '';
+      }
+    } else if (line.trim() !== '') {
+      if (currentData) {
+        currentData += '\n' + line;
+      }
+    }
+  }
+
+  if (currentEvent || currentData) {
+    if (currentEvent) {
+      remainingLines.push(`event: ${currentEvent}`);
+    }
+    if (currentData) {
+      remainingLines.push(`data: ${currentData}`);
+    }
+  }
+
+  return remainingLines.length > 0 ? remainingLines.join('\n') : '';
+}
+
+/**
+ * 处理卡片生成SSE事件
+ */
+function processCardSSEEvent(
+  eventType: string,
+  dataStr: string,
+  callbacks: {
+    onCard?: (card: CardContentResponse, index: number) => void;
+    onError?: (error: Error) => void;
+    onComplete?: () => void;
+  }
+): void {
+  try {
+    const data = JSON.parse(dataStr);
+
+    if (eventType === 'card' && data.content) {
+      const card: CardContentResponse = {
+        type: data.content.type,
+        title: data.content.title,
+        content: data.content.content,
+      };
+      callbacks.onCard?.(card, data.index || 0);
+    } else if (eventType === 'done') {
+      callbacks.onComplete?.();
+    } else if (eventType === 'error') {
+      const errorMessage =
+        (data.content as any)?.message || data.message || '未知错误';
+      callbacks.onError?.(new Error(errorMessage));
+    }
+  } catch (err) {
+    console.error('解析卡片SSE消息失败:', err);
+  }
 }
 
 /**

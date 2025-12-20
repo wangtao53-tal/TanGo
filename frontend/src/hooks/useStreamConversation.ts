@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import { createSSEConnection, closeSSEConnection } from '../services/sse';
 import type { ConversationStreamEvent } from '../types/api';
 
@@ -79,9 +80,12 @@ export function useStreamConversation(
         try {
           const data: ConversationStreamEvent = JSON.parse(event.data);
           if (data.type === 'message' && data.content) {
-            // 追加文本内容
+            // 立即追加文本内容到ref
             currentTextRef.current += data.content;
-            setStreamingText(currentTextRef.current);
+            // 使用flushSync强制同步更新，确保实时渲染
+            flushSync(() => {
+              setStreamingText(currentTextRef.current);
+            });
             onMessage?.(currentTextRef.current);
           }
         } catch (err) {

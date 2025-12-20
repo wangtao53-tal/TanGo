@@ -3,7 +3,10 @@
  * 支持文本、卡片、图片、语音消息，支持打字机效果
  */
 
+import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { ConversationMessage } from '../../types/conversation';
 import { ScienceCard } from '../cards/ScienceCard';
 import { PoetryCard } from '../cards/PoetryCard';
@@ -16,42 +19,107 @@ export interface ConversationMessageProps {
   onCollect?: (cardId: string) => void;
 }
 
-export function ConversationMessageComponent({ message, onCollect }: ConversationMessageProps) {
+function ConversationMessageComponentInner({ message, onCollect }: ConversationMessageProps) {
   const { t } = useTranslation();
   const isUser = message.sender === 'user';
 
-  // 如果是AI消息且正在流式返回，使用打字机效果
-  const displayText = !isUser && message.isStreaming && message.streamingText
+  // 如果是AI消息且正在流式返回，优先使用streamingText（实时渲染）
+  // 否则使用content
+  const displayText = !isUser && message.isStreaming && message.streamingText !== undefined
     ? message.streamingText
     : typeof message.content === 'string'
     ? message.content
     : '';
 
-  // 使用打字机效果（仅在流式返回时）
+  // 使用打字机效果（仅在流式返回时，且streamingText存在）
+  // 注意：由于我们已经使用flushSync实时更新streamingText，打字机效果可能不需要
+  // 但保留作为可选效果
   const typingText = useTypingEffect({
     text: displayText,
     speed: 30,
-    enabled: !isUser && message.isStreaming === true && !!message.streamingText,
+    enabled: false, // 禁用打字机效果，直接显示streamingText以实现真正的实时渲染
   });
 
   const renderContent = () => {
     switch (message.type) {
       case 'text':
-        const textToShow = !isUser && message.isStreaming && message.streamingText
-          ? typingText
+        // 流式返回时直接显示streamingText，不使用打字机效果
+        const textToShow = !isUser && message.isStreaming && message.streamingText !== undefined
+          ? message.streamingText
           : displayText;
+        
+        // 检测是否为Markdown格式（通过markdown字段或内容检测）
+        const isMarkdown = message.markdown || 
+          (typeof textToShow === 'string' && (
+            textToShow.includes('```') || // 代码块
+            textToShow.includes('##') || // 标题
+            textToShow.includes('- ') || // 列表
+            textToShow.includes('* ') || // 列表
+            textToShow.includes('[') && textToShow.includes('](') // 链接
+          ));
+        
         return (
           <div className={`px-4 py-3 rounded-2xl ${
             isUser
               ? 'bg-[var(--color-primary)] text-white rounded-br-sm'
               : 'bg-gray-100 text-gray-800 rounded-bl-sm'
           }`}>
-            <p className="text-sm font-medium whitespace-pre-wrap">
-              {textToShow}
-              {!isUser && message.isStreaming && (
-                <span className="inline-block w-2 h-4 bg-gray-600 ml-1 animate-pulse" />
-              )}
-            </p>
+            {isMarkdown ? (
+              <div className="text-sm font-medium prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    // 自定义代码块样式
+                    code: ({ node, inline, className, children, ...props }) => {
+                      return inline ? (
+                        <code className="bg-gray-200 px-1 py-0.5 rounded text-xs" {...props}>
+                          {children}
+                        </code>
+                      ) : (
+                        <pre className="bg-gray-200 p-3 rounded-lg overflow-x-auto my-2">
+                          <code className="text-xs" {...props}>
+                            {children}
+                          </code>
+                        </pre>
+                      );
+                    },
+                    // 自定义链接样式
+                    a: ({ node, ...props }) => (
+                      <a className="text-blue-600 hover:text-blue-800 underline" {...props} />
+                    ),
+                    // 自定义列表样式
+                    ul: ({ node, ...props }) => (
+                      <ul className="list-disc list-inside my-2 space-y-1" {...props} />
+                    ),
+                    ol: ({ node, ...props }) => (
+                      <ol className="list-decimal list-inside my-2 space-y-1" {...props} />
+                    ),
+                    // 自定义标题样式
+                    h1: ({ node, ...props }) => (
+                      <h1 className="text-lg font-bold mt-3 mb-2" {...props} />
+                    ),
+                    h2: ({ node, ...props }) => (
+                      <h2 className="text-base font-bold mt-2 mb-1" {...props} />
+                    ),
+                    h3: ({ node, ...props }) => (
+                      <h3 className="text-sm font-bold mt-2 mb-1" {...props} />
+                    ),
+                  }}
+                >
+                  {textToShow}
+                </ReactMarkdown>
+                {!isUser && message.isStreaming && (
+                  <span className="inline-block w-2 h-4 bg-gray-600 ml-1 animate-pulse" />
+                )}
+              </div>
+            ) : (
+              <p className="text-sm font-medium whitespace-pre-wrap">
+                {textToShow}
+                {!isUser && message.isStreaming && (
+                  <span className="inline-block w-2 h-4 bg-gray-600 ml-1 animate-pulse" />
+                )}
+              </p>
+            )}
           </div>
         );
 
@@ -118,3 +186,31 @@ export function ConversationMessageComponent({ message, onCollect }: Conversatio
     </div>
   );
 }
+
+// 使用React.memo优化性能，避免不必要的重新渲染
+export const ConversationMessageComponent = memo(ConversationMessageComponentInner, (prevProps, nextProps) => {
+  // 自定义比较函数：只有当消息内容真正改变时才重新渲染
+  if (prevProps.message.id !== nextProps.message.id) {
+    return false; // 不同消息，需要重新渲染
+  }
+  
+  // 相同消息，比较关键字段
+  if (prevProps.message.isStreaming !== nextProps.message.isStreaming) {
+    return false; // 流式状态改变，需要重新渲染
+  }
+  
+  if (prevProps.message.streamingText !== nextProps.message.streamingText) {
+    return false; // 流式文本改变，需要重新渲染
+  }
+  
+  if (prevProps.message.content !== nextProps.message.content) {
+    return false; // 内容改变，需要重新渲染
+  }
+  
+  if (prevProps.message.markdown !== nextProps.message.markdown) {
+    return false; // Markdown标记改变，需要重新渲染
+  }
+  
+  // 其他字段相同，可以跳过渲染
+  return true;
+});

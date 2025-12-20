@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tango/explore/internal/svc"
 	"github.com/tango/explore/internal/types"
+	"github.com/tango/explore/internal/utils"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -259,12 +260,6 @@ func (l *StreamLogic) StreamConversation(
 		return l.streamTextMock(w, sessionId, req.Message)
 	}
 
-	// 获取对话节点（需要通过Graph访问）
-	// 注意：这里需要从Graph中获取conversationNode
-	// 由于Graph结构体是私有的，我们需要添加一个方法来获取conversationNode
-	// 或者直接在Graph中添加StreamConversation方法
-	// 暂时使用Mock实现，后续可以通过Graph方法调用
-
 	// 获取上下文消息
 	contextMessages := l.getContextMessages(sessionId, maxContextRounds)
 
@@ -299,7 +294,6 @@ func (l *StreamLogic) StreamConversation(
 	}
 
 	// 实现真实的Eino StreamReader读取逻辑
-	// StreamReader实现了io.Reader接口，使用Read()方法读取
 	logger.Infow("开始读取Eino流式数据",
 		logx.Field("streamReader", streamReader != nil),
 	)
@@ -308,6 +302,7 @@ func (l *StreamLogic) StreamConversation(
 	assistantMessageId := uuid.New().String()
 	fullText := ""
 	index := 0
+	isMarkdown := false // 跟踪是否为Markdown格式
 
 	// 读取流式数据
 	// StreamReader使用Recv()方法读取数据
@@ -341,33 +336,48 @@ func (l *StreamLogic) StreamConversation(
 
 		// 提取文本内容
 		if msg.Content != "" {
+			// 检测Markdown格式（在累积足够文本后检测）
+			fullText += msg.Content
+			if !isMarkdown && len(fullText) > 10 {
+				isMarkdown = utils.DetectMarkdown(fullText)
+			}
+
 			// 逐字符发送（用于打字机效果）
 			textRunes := []rune(msg.Content)
 			for _, char := range textRunes {
+				markdownPtr := &isMarkdown
 				event := types.StreamEvent{
 					Type:      "message",
 					Content:   string(char),
 					Index:     index,
 					SessionId: sessionId,
 					MessageId: assistantMessageId,
+					Markdown:  markdownPtr,
 				}
 				eventJSON, _ := json.Marshal(event)
 				fmt.Fprintf(w, "event: message\ndata: %s\n\n", string(eventJSON))
 				w.(http.Flusher).Flush()
-				fullText += string(char)
 				index++
 			}
 		}
 	}
 
+	// 最终检测Markdown格式
+	if !isMarkdown {
+		isMarkdown = utils.DetectMarkdown(fullText)
+	}
+
 	// 保存助手消息到存储
+	markdownPtr := &isMarkdown
 	assistantMessage := types.ConversationMessage{
-		Id:        assistantMessageId,
-		Type:      "text",
-		Sender:    "assistant",
-		Content:   fullText,
-		Timestamp: time.Now().Format(time.RFC3339),
-		SessionId: sessionId,
+		Id:            assistantMessageId,
+		Type:          "text",
+		Sender:        "assistant",
+		Content:       fullText,
+		Timestamp:     time.Now().Format(time.RFC3339),
+		SessionId:     sessionId,
+		StreamingText: fullText, // 保存流式文本
+		Markdown:      markdownPtr,
 	}
 	l.svcCtx.Storage.AddMessage(sessionId, assistantMessage)
 
