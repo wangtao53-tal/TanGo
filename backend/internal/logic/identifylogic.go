@@ -2,7 +2,9 @@ package logic
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/tango/explore/internal/svc"
@@ -27,16 +29,52 @@ func NewIdentifyLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Identify
 }
 
 func (l *IdentifyLogic) Identify(req *types.IdentifyRequest) (resp *types.IdentifyResponse, err error) {
-	logx.WithContext(l.ctx).Infof("req:%+v", req)
+	// 性能监控：记录开始时间
+	startTime := time.Now()
+	defer func() {
+		duration := time.Since(startTime)
+		l.Infow("识别请求完成",
+			logx.Field("duration_ms", duration.Milliseconds()),
+			logx.Field("duration_sec", duration.Seconds()),
+			logx.Field("success", err == nil),
+		)
+	}()
+
 	// 参数验证
 	if req.Image == "" {
 		return nil, utils.ErrImageRequired
 	}
 
-	l.Infow("识别图片",
+	// 优化：添加图片URL验证，提前失败避免无效请求
+	if len(req.Image) > 7 {
+		isHTTP := req.Image[:7] == "http://"
+		isHTTPS := len(req.Image) > 8 && req.Image[:8] == "https://"
+		if isHTTP || isHTTPS {
+			// 简单验证URL格式
+			if !strings.Contains(req.Image, ".") {
+				return nil, fmt.Errorf("无效的图片URL格式")
+			}
+		}
+	}
+
+	// 优化：减少日志详细程度，只记录关键信息，避免记录大对象
+	isURL := len(req.Image) > 7 && (req.Image[:7] == "http://" || (len(req.Image) > 8 && req.Image[:8] == "https://"))
+	imageType := "base64"
+	if isURL {
+		imageType = "url"
+	} else if len(req.Image) > 5 && req.Image[:5] == "data:" {
+		imageType = "data_url"
+	}
+
+	// 优化：使用Debug级别记录详细信息，Info级别只记录关键指标
+	l.Debugw("识别图片",
+		logx.Field("imageType", imageType),
 		logx.Field("imageLength", len(req.Image)),
 		logx.Field("age", req.Age),
-		logx.Field("agentInitialized", l.svcCtx.Agent != nil),
+	)
+	l.Infow("开始识别",
+		logx.Field("imageType", imageType),
+		logx.Field("age", req.Age),
 	)
 
 	// 使用Agent系统进行图片识别
@@ -45,12 +83,22 @@ func (l *IdentifyLogic) Identify(req *types.IdentifyRequest) (resp *types.Identi
 		data, err := graph.ExecuteImageRecognition(req.Image, req.Age)
 
 		if err != nil {
-			l.Errorw("Agent图片识别失败，回退到Mock",
-				logx.Field("error", err),
-				logx.Field("errorDetail", err.Error()),
-			)
-			// 回退到Mock实现
-			return l.identifyMock(req)
+			// 优化：减少不必要的Mock调用，只对特定错误回退
+			errMsg := err.Error()
+			// 如果是超时或严重错误，才回退到Mock
+			shouldFallback := strings.Contains(errMsg, "timeout") ||
+				strings.Contains(errMsg, "deadline") ||
+				strings.Contains(errMsg, "network")
+
+			if shouldFallback {
+				l.Errorw("Agent图片识别失败，回退到Mock",
+					logx.Field("error", err),
+					logx.Field("errorType", "fallback"),
+				)
+				return l.identifyMock(req)
+			}
+			// 其他错误直接返回，不回退
+			return nil, err
 		}
 
 		resp = &types.IdentifyResponse{
@@ -60,11 +108,12 @@ func (l *IdentifyLogic) Identify(req *types.IdentifyRequest) (resp *types.Identi
 			Keywords:       data.Keywords,
 		}
 
+		// 优化：减少日志详细程度，移除keywords数组（可能很大）
 		l.Infow("识别完成（Agent）",
 			logx.Field("objectName", resp.ObjectName),
 			logx.Field("category", resp.ObjectCategory),
 			logx.Field("confidence", resp.Confidence),
-			logx.Field("keywords", resp.Keywords),
+			logx.Field("keywordsCount", len(resp.Keywords)),
 		)
 		return resp, nil
 	}
