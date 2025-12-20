@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/cloudwego/eino/schema"
@@ -170,10 +171,34 @@ func (l *StreamLogic) getContextMessages(sessionId string, maxRounds int) []*sch
 	return l.convertToEinoMessages(messages, maxRounds)
 }
 
-// StreamConversation 流式对话，集成Eino流式输出和SSE发送
+// StreamConversation 流式对话，集成Eino流式输出和SSE发送（兼容旧版本）
+// 注意：新代码应使用 StreamConversationUnified
 func (l *StreamLogic) StreamConversation(
 	w http.ResponseWriter,
 	req types.StreamConversationRequest,
+) error {
+	// 转换为统一请求类型
+	unifiedReq := types.UnifiedStreamConversationRequest{
+		MessageType:           req.MessageType,
+		Message:               req.Message,
+		Audio:                 req.Voice, // Voice字段映射到Audio
+		Image:                 req.Image,
+		SessionId:             req.SessionId,
+		IdentificationContext: req.IdentificationContext,
+		UserAge:               req.UserAge,
+		MaxContextRounds:      req.MaxContextRounds,
+	}
+	// 设置默认值
+	if unifiedReq.MessageType == "" {
+		unifiedReq.MessageType = "text"
+	}
+	return l.StreamConversationUnified(w, unifiedReq)
+}
+
+// StreamConversationUnified 统一流式对话，支持文本、语音、图片三种输入方式
+func (l *StreamLogic) StreamConversationUnified(
+	w http.ResponseWriter,
+	req types.UnifiedStreamConversationRequest,
 ) error {
 	logger := logx.WithContext(l.ctx)
 
@@ -228,12 +253,181 @@ func (l *StreamLogic) StreamConversation(
 		userAge = 8 // 默认8岁
 	}
 
+	// 验证messageType字段
+	if req.MessageType == "" {
+		logger.Errorw("messageType字段必填",
+			logx.Field("sessionId", sessionId),
+		)
+		errorEvent := types.StreamEvent{
+			Type:      "error",
+			Content:   map[string]interface{}{"message": "messageType字段必填"},
+			SessionId: sessionId,
+		}
+		errorJSON, _ := json.Marshal(errorEvent)
+		fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+		w.(http.Flusher).Flush()
+		return fmt.Errorf("messageType字段必填")
+	}
+
+	// 根据messageType处理不同输入类型
+	var messageText string
+	var imageURL string
+	var messageType string
+
+	switch req.MessageType {
+	case "text":
+		// 验证message字段
+		if req.Message == "" {
+			logger.Errorw("messageType为text时，message字段必填",
+				logx.Field("sessionId", sessionId),
+			)
+			errorEvent := types.StreamEvent{
+				Type:      "error",
+				Content:   map[string]interface{}{"message": "messageType为text时，message字段必填"},
+				SessionId: sessionId,
+			}
+			errorJSON, _ := json.Marshal(errorEvent)
+			fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+			w.(http.Flusher).Flush()
+			return fmt.Errorf("messageType为text时，message字段必填")
+		}
+		messageText = req.Message
+		messageType = "text"
+	case "voice":
+		// 验证audio字段
+		if req.Audio == "" {
+			logger.Errorw("messageType为voice时，audio字段必填",
+				logx.Field("sessionId", sessionId),
+			)
+			errorEvent := types.StreamEvent{
+				Type:      "error",
+				Content:   map[string]interface{}{"message": "messageType为voice时，audio字段必填"},
+				SessionId: sessionId,
+			}
+			errorJSON, _ := json.Marshal(errorEvent)
+			fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+			w.(http.Flusher).Flush()
+			return fmt.Errorf("messageType为voice时，audio字段必填")
+		}
+		// 语音识别
+		voiceLogic := NewVoiceLogic(l.ctx, l.svcCtx)
+		voiceReq := &types.VoiceRequest{
+			Audio:     req.Audio,
+			SessionId: sessionId,
+		}
+		voiceResp, err := voiceLogic.RecognizeVoice(voiceReq)
+		if err != nil {
+			logger.Errorw("语音识别失败",
+				logx.Field("error", err),
+				logx.Field("sessionId", sessionId),
+			)
+			errorEvent := types.StreamEvent{
+				Type:      "error",
+				Content:   map[string]interface{}{"message": "语音识别失败: " + err.Error()},
+				SessionId: sessionId,
+			}
+			errorJSON, _ := json.Marshal(errorEvent)
+			fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+			w.(http.Flusher).Flush()
+			return fmt.Errorf("语音识别失败: %w", err)
+		}
+		messageText = voiceResp.Text
+		messageType = "voice"
+		// 发送语音识别完成事件
+		recognizedEvent := types.StreamEvent{
+			Type:      "voice_recognized",
+			Content:   map[string]interface{}{"text": voiceResp.Text},
+			SessionId: sessionId,
+		}
+		recognizedJSON, _ := json.Marshal(recognizedEvent)
+		fmt.Fprintf(w, "event: voice_recognized\ndata: %s\n\n", string(recognizedJSON))
+		w.(http.Flusher).Flush()
+
+	case "image":
+		// 验证image字段
+		if req.Image == "" {
+			logger.Errorw("messageType为image时，image字段必填",
+				logx.Field("sessionId", sessionId),
+			)
+			errorEvent := types.StreamEvent{
+				Type:      "error",
+				Content:   map[string]interface{}{"message": "messageType为image时，image字段必填"},
+				SessionId: sessionId,
+			}
+			errorJSON, _ := json.Marshal(errorEvent)
+			fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+			w.(http.Flusher).Flush()
+			return fmt.Errorf("messageType为image时，image字段必填")
+		}
+		// 图片上传
+		// 如果image是base64，需要先上传
+		if strings.HasPrefix(req.Image, "data:") || !strings.HasPrefix(req.Image, "http") {
+			// 提取base64数据（移除data URL前缀）
+			imageData := req.Image
+			if strings.HasPrefix(imageData, "data:image/") {
+				// 移除 data:image/xxx;base64, 前缀
+				parts := strings.SplitN(imageData, ",", 2)
+				if len(parts) == 2 {
+					imageData = parts[1]
+				}
+			}
+			uploadLogic := NewUploadLogic(l.ctx, l.svcCtx)
+			uploadReq := &types.UploadRequest{
+				ImageData: imageData,
+			}
+			uploadResp, err := uploadLogic.Upload(uploadReq)
+			if err != nil {
+				logger.Errorw("图片上传失败",
+					logx.Field("error", err),
+					logx.Field("sessionId", sessionId),
+				)
+				errorEvent := types.StreamEvent{
+					Type:      "error",
+					Content:   map[string]interface{}{"message": "图片上传失败: " + err.Error()},
+					SessionId: sessionId,
+				}
+				errorJSON, _ := json.Marshal(errorEvent)
+				fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+				w.(http.Flusher).Flush()
+				return fmt.Errorf("图片上传失败: %w", err)
+			}
+			imageURL = uploadResp.Url
+			// 发送图片上传完成事件
+			uploadedEvent := types.StreamEvent{
+				Type:      "image_uploaded",
+				Content:   map[string]interface{}{"url": uploadResp.Url},
+				SessionId: sessionId,
+			}
+			uploadedJSON, _ := json.Marshal(uploadedEvent)
+			fmt.Fprintf(w, "event: image_uploaded\ndata: %s\n\n", string(uploadedJSON))
+			w.(http.Flusher).Flush()
+		} else {
+			imageURL = req.Image
+		}
+		messageText = req.Message // 图片输入时，message是可选的文本描述
+		messageType = "image"
+	default:
+		logger.Errorw("不支持的messageType",
+			logx.Field("messageType", req.MessageType),
+			logx.Field("sessionId", sessionId),
+		)
+		errorEvent := types.StreamEvent{
+			Type:      "error",
+			Content:   map[string]interface{}{"message": "不支持的messageType: " + req.MessageType},
+			SessionId: sessionId,
+		}
+		errorJSON, _ := json.Marshal(errorEvent)
+		fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+		w.(http.Flusher).Flush()
+		return fmt.Errorf("不支持的messageType: %s", req.MessageType)
+	}
+
 	// 保存用户消息到存储
 	userMessage := types.ConversationMessage{
 		Id:        uuid.New().String(),
-		Type:      "text",
+		Type:      messageType,
 		Sender:    "user",
-		Content:   req.Message,
+		Content:   messageText,
 		Timestamp: time.Now().Format(time.RFC3339),
 		SessionId: sessionId,
 	}
@@ -248,16 +442,50 @@ func (l *StreamLogic) StreamConversation(
 	fmt.Fprintf(w, "event: connected\ndata: %s\n\n", string(connectedJSON))
 	w.(http.Flusher).Flush()
 
-	// 检查Agent是否可用
+	// 检查Agent是否可用（根据配置决定是否允许Mock降级）
+	useAIModel := l.svcCtx.Config.AI.UseAIModel
+	if !useAIModel {
+		// 如果配置为false，可以使用Mock数据
+		logger.Infow("USE_AI_MODEL=false，使用Mock数据",
+			logx.Field("sessionId", sessionId),
+		)
+		return l.streamTextMock(w, sessionId, messageText)
+	}
+
+	// 当UseAIModel=true时，必须使用AI模型，禁止Mock降级
 	if l.svcCtx.Agent == nil {
-		logger.Error("Agent未初始化，使用Mock流式响应")
-		return l.streamTextMock(w, sessionId, req.Message)
+		logger.Errorw("Agent未初始化，无法进行流式对话",
+			logx.Field("sessionId", sessionId),
+			logx.Field("useAIModel", useAIModel),
+		)
+		// 发送错误事件，不允许降级到Mock数据
+		errorEvent := types.StreamEvent{
+			Type:      "error",
+			Content:   map[string]interface{}{"message": "Agent未初始化，无法进行流式对话"},
+			SessionId: sessionId,
+		}
+		errorJSON, _ := json.Marshal(errorEvent)
+		fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+		w.(http.Flusher).Flush()
+		return fmt.Errorf("Agent未初始化")
 	}
 
 	graph := l.svcCtx.Agent.GetGraph()
 	if graph == nil {
-		logger.Error("Graph未初始化，使用Mock流式响应")
-		return l.streamTextMock(w, sessionId, req.Message)
+		logger.Errorw("Graph未初始化，无法进行流式对话",
+			logx.Field("sessionId", sessionId),
+			logx.Field("useAIModel", useAIModel),
+		)
+		// 发送错误事件，不允许降级到Mock数据
+		errorEvent := types.StreamEvent{
+			Type:      "error",
+			Content:   map[string]interface{}{"message": "Graph未初始化，无法进行流式对话"},
+			SessionId: sessionId,
+		}
+		errorJSON, _ := json.Marshal(errorEvent)
+		fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+		w.(http.Flusher).Flush()
+		return fmt.Errorf("Graph未初始化")
 	}
 
 	// 获取上下文消息
@@ -266,8 +494,20 @@ func (l *StreamLogic) StreamConversation(
 	// 获取对话节点
 	conversationNode := graph.GetConversationNode()
 	if conversationNode == nil {
-		logger.Error("ConversationNode未初始化，使用Mock流式响应")
-		return l.streamTextMock(w, sessionId, req.Message)
+		logger.Errorw("ConversationNode未初始化，无法进行流式对话",
+			logx.Field("sessionId", sessionId),
+			logx.Field("useAIModel", useAIModel),
+		)
+		// 发送错误事件，不允许降级到Mock数据
+		errorEvent := types.StreamEvent{
+			Type:      "error",
+			Content:   map[string]interface{}{"message": "ConversationNode未初始化，无法进行流式对话"},
+			SessionId: sessionId,
+		}
+		errorJSON, _ := json.Marshal(errorEvent)
+		fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+		w.(http.Flusher).Flush()
+		return fmt.Errorf("ConversationNode未初始化")
 	}
 
 	logger.Infow("开始流式对话",
@@ -275,22 +515,48 @@ func (l *StreamLogic) StreamConversation(
 		logx.Field("userAge", userAge),
 		logx.Field("objectName", objectName),
 		logx.Field("contextRounds", len(contextMessages)/2),
+		logx.Field("hasImage", imageURL != ""),
+		logx.Field("messageType", req.MessageType),
 	)
 
-	// 调用真实的Eino流式接口
+	// 调用真实的Eino流式接口（传入图片URL）
 	streamReader, err := conversationNode.StreamConversation(
 		l.ctx,
-		req.Message,
+		messageText,
 		contextMessages,
 		userAge,
 		objectName,
 		objectCategory,
+		imageURL, // 传入图片URL（如果提供）
 	)
 	if err != nil {
-		logger.Errorw("调用Eino流式接口失败，使用Mock响应",
+		logger.Errorw("调用Eino流式接口失败",
 			logx.Field("error", err),
+			logx.Field("errorType", "model_error"),
+			logx.Field("sessionId", sessionId),
+			logx.Field("userAge", userAge),
+			logx.Field("hasImage", imageURL != ""),
+			logx.Field("useAIModel", useAIModel),
 		)
-		return l.streamTextMock(w, sessionId, req.Message)
+		// 发送错误事件，根据配置决定是否允许降级到Mock数据
+		if !useAIModel {
+			// 如果配置为false，可以使用Mock数据作为降级方案
+			logger.Infow("USE_AI_MODEL=false，降级到Mock数据",
+				logx.Field("sessionId", sessionId),
+				logx.Field("error", err),
+			)
+			return l.streamTextMock(w, sessionId, messageText)
+		}
+		// 当UseAIModel=true时，不允许降级到Mock数据
+		errorEvent := types.StreamEvent{
+			Type:      "error",
+			Content:   map[string]interface{}{"message": "Agent模型调用失败: " + err.Error()},
+			SessionId: sessionId,
+		}
+		errorJSON, _ := json.Marshal(errorEvent)
+		fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+		w.(http.Flusher).Flush()
+		return fmt.Errorf("调用AI模型失败: %w", err)
 	}
 
 	// 实现真实的Eino StreamReader读取逻辑
@@ -345,14 +611,13 @@ func (l *StreamLogic) StreamConversation(
 			// 逐字符发送（用于打字机效果）
 			textRunes := []rune(msg.Content)
 			for _, char := range textRunes {
-				markdownPtr := &isMarkdown
 				event := types.StreamEvent{
 					Type:      "message",
 					Content:   string(char),
 					Index:     index,
 					SessionId: sessionId,
 					MessageId: assistantMessageId,
-					Markdown:  markdownPtr,
+					Markdown:  isMarkdown,
 				}
 				eventJSON, _ := json.Marshal(event)
 				fmt.Fprintf(w, "event: message\ndata: %s\n\n", string(eventJSON))

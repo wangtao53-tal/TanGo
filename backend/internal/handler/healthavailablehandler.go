@@ -14,7 +14,6 @@ import (
 	"net/http"
 
 	"github.com/tango/explore/internal/svc"
-	"github.com/tango/explore/internal/types"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
@@ -22,7 +21,7 @@ import (
 // 用于 Kubernetes readiness probe，检查服务是否准备好接受流量
 func HealthAvailableHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var resp types.HealthAliveResponse
+		resp := map[string]string{"status": "available"}
 		httpx.OkJsonCtx(r.Context(), w, resp)
 	}
 }

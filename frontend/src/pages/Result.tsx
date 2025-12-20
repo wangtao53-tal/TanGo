@@ -16,9 +16,9 @@ import type { IdentificationContext } from '../types/api';
 import { useState, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { cardStorage } from '../services/storage';
-import { sendMessage, createStreamConnection, recognizeUserIntent } from '../services/conversation';
+import { sendMessage, createStreamConnection, recognizeUserIntent, createStreamConnectionUnified } from '../services/conversation';
 import { createPostSSEConnection, closePostSSEConnection } from '../services/sse-post';
-import type { StreamConversationRequest } from '../types/api';
+import type { UnifiedStreamConversationRequest, ConversationStreamEvent } from '../types/api';
 import { fileToBase64, extractBase64Data, compressImage } from '../utils/image';
 import { uploadImage, generateCards, generateCardsStream } from '../services/api';
 import type { GenerateCardsRequest, GenerateCardsResponse } from '../types/api';
@@ -317,11 +317,11 @@ export default function Result() {
       };
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // 构建POST请求参数
-      const streamRequest: StreamConversationRequest = {
-        sessionId,
-        message: text,
+      // 构建统一流式请求参数
+      const streamRequest: UnifiedStreamConversationRequest = {
         messageType: 'text',
+        message: text,
+        sessionId,
         userAge: identificationContext?.age,
         maxContextRounds: 20,
       };
@@ -335,112 +335,40 @@ export default function Result() {
       accumulatedTextRef.current = '';
       markdownRef.current = false;
 
-      // 使用POST + SSE连接
-      const abortController = createPostSSEConnection(streamRequest, {
-        onMessage: (data: ConversationStreamEvent) => {
-          if (data.type === 'connected') {
-            console.log('流式连接建立:', data.sessionId);
-            return;
-          }
-
-          if (data.type === 'done') {
-            // done事件表示流结束，但不在这里处理关闭逻辑
-            // 关闭逻辑在onClose中处理
-            console.log('收到done事件，流式输出完成');
-            return;
-          }
-
-          if (data.type === 'message') {
-            // 处理消息内容（content可能是字符串或undefined）
-            const content = typeof data.content === 'string' ? data.content : '';
-            
-            // 如果content不为空，累积文本
-            if (content) {
-              accumulatedTextRef.current += content;
-            }
-            
-            // 更新markdown标记（如果后端提供了）
-            if (data.markdown !== undefined) {
-              markdownRef.current = data.markdown;
-            }
-            
-            // 使用flushSync强制同步更新，确保实时渲染
-            // 即使content为空，也要更新UI（可能只是markdown标记更新）
-            flushSync(() => {
-              setMessages((prev) => {
-                const index = prev.findIndex((m) => m.id === assistantMessageId);
-                if (index >= 0) {
-                  const updated = [...prev];
-                  updated[index] = {
-                    ...updated[index],
-                    streamingText: accumulatedTextRef.current,
-                    content: accumulatedTextRef.current || '', // 确保content不为undefined
-                    markdown: markdownRef.current || undefined,
-                  };
-                  return updated;
-                }
-                return prev;
-              });
-            });
-          }
-        },
-        onError: (error: Error) => {
-          console.error('流式返回错误:', error);
-          // 如果已有部分内容，保留它
-          if (accumulatedTextRef.current) {
-            flushSync(() => {
-              setMessages((prev) => {
-                const index = prev.findIndex((m) => m.id === assistantMessageId);
-                if (index >= 0) {
-                  const updated = [...prev];
-                  updated[index] = {
-                    ...updated[index],
-                    isStreaming: false,
-                    content: accumulatedTextRef.current + '\n\n[错误: ' + (error.message || '流式返回中断') + ']',
-                    streamingText: undefined,
-                    markdown: markdownRef.current || undefined, // 保留markdown标记
-                  };
-                  return updated;
-                }
-                return prev;
-              });
-            });
-          } else {
-            const errorMessage: ConversationMessage = {
-              id: `msg-error-${Date.now()}`,
-              type: 'text',
-              content: error.message || '抱歉，生成回答时出现错误，请稍后重试。',
-              timestamp: new Date().toISOString(),
-              sender: 'assistant',
-              sessionId,
-            };
-            setMessages((prev) => [...prev, errorMessage]);
-          }
-          setIsSending(false);
-          accumulatedTextRef.current = '';
-          markdownRef.current = false;
-        },
-        onClose: () => {
-          // 标记流式完成，从当前消息state中获取最终内容
-          // 这样可以确保获取到已经累积的所有内容
+      // 使用统一流式接口
+      const abortController = createStreamConnectionUnified(streamRequest, {
+        onMessage: (message: ConversationMessage) => {
+          // 更新助手消息
           flushSync(() => {
             setMessages((prev) => {
               const index = prev.findIndex((m) => m.id === assistantMessageId);
               if (index >= 0) {
-                const currentMessage = prev[index];
-                // 优先使用streamingText（流式过程中的累积文本），如果没有则使用content
-                const finalContent = currentMessage.streamingText || 
-                                   (typeof currentMessage.content === 'string' ? currentMessage.content : '') ||
-                                   accumulatedTextRef.current ||
-                                   '抱歉，没有收到回复内容。';
-                
+                const updated = [...prev];
+                updated[index] = {
+                  ...updated[index],
+                  content: message.content || '',
+                  streamingText: message.streamingText || '',
+                  markdown: message.markdown,
+                  isStreaming: message.isStreaming,
+                };
+                return updated;
+              }
+              return prev;
+            });
+          });
+        },
+        onError: (error: Error) => {
+          console.error('流式返回错误:', error);
+          flushSync(() => {
+            setMessages((prev) => {
+              const index = prev.findIndex((m) => m.id === assistantMessageId);
+              if (index >= 0) {
                 const updated = [...prev];
                 updated[index] = {
                   ...updated[index],
                   isStreaming: false,
-                  content: finalContent,
-                  streamingText: undefined, // 清除流式文本
-                  markdown: markdownRef.current || currentMessage.markdown || undefined, // 保留markdown标记
+                  content: accumulatedTextRef.current || `抱歉，生成回答时出现错误：${error.message}`,
+                  streamingText: undefined,
                 };
                 return updated;
               }
@@ -448,15 +376,29 @@ export default function Result() {
             });
           });
           setIsSending(false);
-          // 重置累积文本和markdown状态（延迟重置，确保上面的代码能读取到）
-          setTimeout(() => {
-            accumulatedTextRef.current = '';
-            markdownRef.current = false;
-          }, 0);
+        },
+        onClose: () => {
+          // 流式输出完成
+          flushSync(() => {
+            setMessages((prev) => {
+              const index = prev.findIndex((m) => m.id === assistantMessageId);
+              if (index >= 0) {
+                const updated = [...prev];
+                updated[index] = {
+                  ...updated[index],
+                  isStreaming: false,
+                  streamingText: undefined,
+                };
+                return updated;
+              }
+              return prev;
+            });
+          });
+          setIsSending(false);
         },
       });
 
-      // 保存 abortController 以便后续可以取消
+      // 保存abortController以便可以取消
       setSseConnection(abortController);
     } catch (error: any) {
       console.error('发送消息失败:', error);
@@ -474,7 +416,7 @@ export default function Result() {
     }
   };
 
-  const handleVoiceResult = async (text: string) => {
+  const handleVoiceResult = async (text: string, audioBase64?: string) => {
     if (!text.trim() || isSending) return;
 
     setIsSending(true);
@@ -490,41 +432,105 @@ export default function Result() {
       };
       setMessages((prev) => [...prev, userMessage]);
 
-      // 发送消息
-      const result = await sendMessage(
-        text,
-        'voice',
+      // 创建助手消息占位符
+      const assistantMessageId = `msg-assistant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const assistantMessage: ConversationMessage = {
+        id: assistantMessageId,
+        type: 'text',
+        content: '',
+        timestamp: new Date().toISOString(),
+        sender: 'assistant',
         sessionId,
-        identificationContext || undefined,
-        (msg) => {
-          // 更新用户消息ID
-          const index = messages.findIndex(m => m.id === userMessage.id);
-          if (index >= 0) {
-            setMessages((prev) => {
-              const updated = [...prev];
-              updated[index] = { ...updated[index], id: msg.id };
-              return updated;
-            });
-          }
-        }
-      );
+        isStreaming: true,
+        streamingText: '',
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
 
-      // 更新用户消息ID
-      if (result.userMessage) {
-        setMessages((prev) => {
-          const index = prev.findIndex(m => m.id === userMessage.id);
-          if (index >= 0) {
-            const updated = [...prev];
-            updated[index] = { ...updated[index], id: result.userMessage.id };
-            return updated;
-          }
-          return prev;
-        });
+      // 构建统一流式请求参数
+      // 注意：如果前端已经识别了语音，可以发送文本；如果需要后端识别，需要发送音频数据
+      const streamRequest: UnifiedStreamConversationRequest = {
+        messageType: audioBase64 ? 'voice' : 'text', // 如果有音频数据，使用voice类型；否则使用text类型
+        audio: audioBase64 || '', // 如果有音频数据，使用音频；否则为空
+        message: text, // 语音识别后的文本
+        sessionId,
+        userAge: identificationContext?.age,
+        maxContextRounds: 20,
+      };
+
+      // 首次发送时传递识别结果上下文
+      if (identificationContext && !hasGeneratedCardsRef.current) {
+        streamRequest.identificationContext = identificationContext;
       }
 
-      // 添加助手消息
-      setMessages((prev) => [...prev, result.message]);
-      setIsSending(false);
+      // 重置累积文本和markdown状态
+      accumulatedTextRef.current = '';
+      markdownRef.current = false;
+
+      // 使用统一流式接口
+      const abortController = createStreamConnectionUnified(streamRequest, {
+        onMessage: (message: ConversationMessage) => {
+          // 更新助手消息
+          flushSync(() => {
+            setMessages((prev) => {
+              const index = prev.findIndex((m) => m.id === assistantMessageId);
+              if (index >= 0) {
+                const updated = [...prev];
+                updated[index] = {
+                  ...updated[index],
+                  content: message.content || '',
+                  streamingText: message.streamingText || '',
+                  markdown: message.markdown,
+                  isStreaming: message.isStreaming,
+                };
+                return updated;
+              }
+              return prev;
+            });
+          });
+        },
+        onError: (error: Error) => {
+          console.error('流式返回错误:', error);
+          flushSync(() => {
+            setMessages((prev) => {
+              const index = prev.findIndex((m) => m.id === assistantMessageId);
+              if (index >= 0) {
+                const updated = [...prev];
+                updated[index] = {
+                  ...updated[index],
+                  isStreaming: false,
+                  content: accumulatedTextRef.current || `抱歉，生成回答时出现错误：${error.message}`,
+                  streamingText: undefined,
+                };
+                return updated;
+              }
+              return prev;
+            });
+          });
+          setIsSending(false);
+        },
+        onClose: () => {
+          // 流式输出完成
+          flushSync(() => {
+            setMessages((prev) => {
+              const index = prev.findIndex((m) => m.id === assistantMessageId);
+              if (index >= 0) {
+                const updated = [...prev];
+                updated[index] = {
+                  ...updated[index],
+                  isStreaming: false,
+                  streamingText: undefined,
+                };
+                return updated;
+              }
+              return prev;
+            });
+          });
+          setIsSending(false);
+        },
+      });
+
+      // 保存abortController以便可以取消
+      setSseConnection(abortController);
     } catch (error: any) {
       console.error('发送语音消息失败:', error);
       // 友好的错误提示
@@ -591,41 +597,113 @@ export default function Result() {
         return prev;
       });
       
-      // 6. 发送消息（使用 URL 或 base64），传递识别结果上下文
-      const result = await sendMessage(
-        imageUrl, 
-        'image', 
-        sessionId, 
-        identificationContext || undefined,
-        (msg) => {
-          // 更新用户消息ID
-          const index = messages.findIndex(m => m.id === userMessage.id);
-          if (index >= 0) {
-            setMessages((prev) => {
-              const updated = [...prev];
-              updated[index] = { ...updated[index], id: msg.id };
-              return updated;
-            });
-          }
-        }
-      );
+      // 6. 创建助手消息占位符
+      const assistantMessageId = `msg-assistant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const assistantMessage: ConversationMessage = {
+        id: assistantMessageId,
+        type: 'text',
+        content: '',
+        timestamp: new Date().toISOString(),
+        sender: 'assistant',
+        sessionId,
+        isStreaming: true,
+        streamingText: '',
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
 
-      // 更新用户消息ID
-      if (result.userMessage) {
-        setMessages((prev) => {
-          const index = prev.findIndex(m => m.id === userMessage.id);
-          if (index >= 0) {
-            const updated = [...prev];
-            updated[index] = { ...updated[index], id: result.userMessage.id };
-            return updated;
-          }
-          return prev;
-        });
+      // 7. 构建统一流式请求参数
+      // 如果imageUrl是base64，提取纯base64数据；如果是URL，直接使用
+      let finalImageData = imageUrl;
+      if (imageUrl.startsWith('data:image/')) {
+        // 提取base64数据（移除data URL前缀）
+        const parts = imageUrl.split(',');
+        if (parts.length === 2) {
+          finalImageData = parts[1];
+        }
       }
 
-      // 添加助手消息
-      setMessages((prev) => [...prev, result.message]);
-      setIsSending(false);
+      const streamRequest: UnifiedStreamConversationRequest = {
+        messageType: 'image',
+        image: finalImageData, // 使用base64数据或URL
+        sessionId,
+        userAge: identificationContext?.age,
+        maxContextRounds: 20,
+      };
+
+      // 首次发送时传递识别结果上下文
+      if (identificationContext && !hasGeneratedCardsRef.current) {
+        streamRequest.identificationContext = identificationContext;
+      }
+
+      // 重置累积文本和markdown状态
+      accumulatedTextRef.current = '';
+      markdownRef.current = false;
+
+      // 8. 使用统一流式接口
+      const abortController = createStreamConnectionUnified(streamRequest, {
+        onMessage: (message: ConversationMessage) => {
+          // 更新助手消息
+          flushSync(() => {
+            setMessages((prev) => {
+              const index = prev.findIndex((m) => m.id === assistantMessageId);
+              if (index >= 0) {
+                const updated = [...prev];
+                updated[index] = {
+                  ...updated[index],
+                  content: message.content || '',
+                  streamingText: message.streamingText || '',
+                  markdown: message.markdown,
+                  isStreaming: message.isStreaming,
+                };
+                return updated;
+              }
+              return prev;
+            });
+          });
+        },
+        onError: (error: Error) => {
+          console.error('流式返回错误:', error);
+          flushSync(() => {
+            setMessages((prev) => {
+              const index = prev.findIndex((m) => m.id === assistantMessageId);
+              if (index >= 0) {
+                const updated = [...prev];
+                updated[index] = {
+                  ...updated[index],
+                  isStreaming: false,
+                  content: accumulatedTextRef.current || `抱歉，生成回答时出现错误：${error.message}`,
+                  streamingText: undefined,
+                };
+                return updated;
+              }
+              return prev;
+            });
+          });
+          setIsSending(false);
+        },
+        onClose: () => {
+          // 流式输出完成
+          flushSync(() => {
+            setMessages((prev) => {
+              const index = prev.findIndex((m) => m.id === assistantMessageId);
+              if (index >= 0) {
+                const updated = [...prev];
+                updated[index] = {
+                  ...updated[index],
+                  isStreaming: false,
+                  streamingText: undefined,
+                };
+                return updated;
+              }
+              return prev;
+            });
+          });
+          setIsSending(false);
+        },
+      });
+
+      // 保存abortController以便可以取消
+      setSseConnection(abortController);
     } catch (error: any) {
       console.error('发送图片失败:', error);
       // 友好的错误提示

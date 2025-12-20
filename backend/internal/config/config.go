@@ -31,6 +31,11 @@ type AIConfig struct {
 
 	// 文本生成模型（从环境变量 TEXT_GENERATION_MODEL 读取，未设置则使用默认值）
 	TextGenerationModel string `json:",optional,env=TEXT_GENERATION_MODEL"`
+
+	// 是否使用AI模型调用（从环境变量 USE_AI_MODEL 读取，默认值为true）
+	// true: 使用AI模型调用，禁止使用Mock数据（默认值）
+	// false: 使用Mock数据作为降级方案（仅用于开发测试场景）
+	UseAIModel bool `json:",optional,env=USE_AI_MODEL"`
 }
 
 // UploadConfig 图片上传配置

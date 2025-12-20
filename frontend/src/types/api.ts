@@ -132,9 +132,21 @@ export interface ConversationRequest {
   identificationContext?: IdentificationContext; // 识别结果上下文（可选）
 }
 
+// 统一流式对话请求（通过messageType字段明确指定输入类型）
+export interface UnifiedStreamConversationRequest {
+  messageType: 'text' | 'voice' | 'image'; // 消息类型（必填）
+  message?: string; // 文本消息，当messageType为text时必填
+  audio?: string; // 语音数据（base64），当messageType为voice时必填
+  image?: string; // 图片数据（base64或URL），当messageType为image时必填
+  sessionId?: string; // 会话ID，如果为空则创建新会话
+  identificationContext?: IdentificationContext; // 识别结果上下文（可选）
+  userAge?: number; // 用户年龄（3-18岁），用于内容适配
+  maxContextRounds?: number; // 最大上下文轮次，默认20轮
+}
+
 // 对话响应（流式返回）
 export interface ConversationStreamEvent {
-  type: 'connected' | 'message' | 'image_progress' | 'image_done' | 'card' | 'error' | 'done'; // 事件类型
+  type: 'connected' | 'message' | 'voice_recognized' | 'image_uploaded' | 'image_progress' | 'image_done' | 'card' | 'error' | 'done'; // 事件类型
   content?: any; // 内容（根据类型不同）
   index?: number; // 文本消息的字符索引（用于打字机效果）
   progress?: number; // 图片生成进度（0-100）

@@ -4,10 +4,10 @@
  */
 
 import { sendConversationMessage, recognizeIntent } from './api';
-import { createSSEConnection, closeSSEConnection, type SSECallbacks } from './sse';
+import { createSSEConnectionUnified, closeSSEConnection, type SSECallbacks } from './sse';
 import { conversationStorage } from './storage';
 import type { ConversationMessage } from '../types/conversation';
-import type { ConversationStreamEvent, IdentificationContext } from '../types/api';
+import type { ConversationStreamEvent, IdentificationContext, UnifiedStreamConversationRequest } from '../types/api';
 
 /**
  * 生成会话ID
@@ -90,36 +90,97 @@ export async function sendMessage(
 }
 
 /**
- * 创建SSE连接接收流式返回
+ * 创建统一流式连接（支持文本、语音、图片三种输入方式）
  */
-export function createStreamConnection(
-  sessionId: string,
+export function createStreamConnectionUnified(
+  request: UnifiedStreamConversationRequest,
   callbacks: {
     onMessage?: (message: ConversationMessage) => void;
     onError?: (error: Error) => void;
     onClose?: () => void;
   }
-): EventSource {
+): AbortController {
+  let assistantMessageId: string | undefined;
+  let fullText = '';
+  let isMarkdown = false;
+
   const sseCallbacks: SSECallbacks = {
     onMessage: async (event: ConversationStreamEvent) => {
+      if (event.type === 'connected') {
+        assistantMessageId = event.messageId;
+        return;
+      }
+
       if (event.type === 'done') {
+        // 保存完整的助手消息
+        if (assistantMessageId && fullText) {
+          const assistantMessage: ConversationMessage = {
+            id: assistantMessageId,
+            type: 'text',
+            content: fullText,
+            timestamp: new Date().toISOString(),
+            sender: 'assistant',
+            sessionId: request.sessionId || '',
+            markdown: isMarkdown,
+          };
+          await conversationStorage.saveMessage(assistantMessage);
+        }
         callbacks.onClose?.();
         return;
       }
 
       if (event.type === 'error') {
-        callbacks.onError?.(new Error(event.message || '未知错误'));
+        callbacks.onError?.(new Error(event.message || event.content?.message || '未知错误'));
         return;
       }
 
-      // 创建消息对象
+      if (event.type === 'voice_recognized') {
+        // 语音识别完成事件，不需要创建消息
+        return;
+      }
+
+      if (event.type === 'image_uploaded') {
+        // 图片上传完成事件，不需要创建消息
+        return;
+      }
+
+      if (event.type === 'message') {
+        // 流式文本消息
+        assistantMessageId = event.messageId || assistantMessageId;
+        const char = event.content as string;
+        if (char) {
+          fullText += char;
+          // 检测Markdown格式
+          if (!isMarkdown && fullText.length > 10) {
+            isMarkdown = /[#*_`\[\]()]/.test(fullText);
+          }
+
+          // 创建临时消息对象（用于实时显示）
+          const message: ConversationMessage = {
+            id: assistantMessageId || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            type: 'text',
+            content: fullText,
+            timestamp: new Date().toISOString(),
+            sender: 'assistant',
+            sessionId: request.sessionId || '',
+            isStreaming: true,
+            markdown: isMarkdown,
+          };
+
+          // 调用回调（实时更新UI）
+          callbacks.onMessage?.(message);
+        }
+        return;
+      }
+
+      // 其他类型的事件（card等）
       const message: ConversationMessage = {
-        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: event.messageId || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         type: event.type === 'card' ? 'card' : event.type === 'image' ? 'image' : 'text',
         content: event.content,
         timestamp: new Date().toISOString(),
         sender: 'assistant',
-        sessionId,
+        sessionId: request.sessionId || '',
       };
 
       // 保存到本地
@@ -132,7 +193,32 @@ export function createStreamConnection(
     onClose: callbacks.onClose,
   };
 
-  return createSSEConnection(sessionId, sseCallbacks);
+  return createSSEConnectionUnified(request, sseCallbacks);
+}
+
+/**
+ * 创建SSE连接接收流式返回（兼容旧版本）
+ * @deprecated 请使用 createStreamConnectionUnified
+ */
+export function createStreamConnection(
+  sessionId: string,
+  callbacks: {
+    onMessage?: (message: ConversationMessage) => void;
+    onError?: (error: Error) => void;
+    onClose?: () => void;
+  }
+): EventSource {
+  // 转换为统一接口调用
+  const request: UnifiedStreamConversationRequest = {
+    messageType: 'text',
+    message: '',
+    sessionId,
+  };
+  const abortController = createStreamConnectionUnified(request, callbacks);
+  // 返回一个模拟的EventSource对象（为了兼容性）
+  return {
+    close: () => abortController.abort(),
+  } as EventSource;
 }
 
 /**

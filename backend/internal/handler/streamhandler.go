@@ -59,8 +59,8 @@ func StreamHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	}
 }
 
-// StreamConversationHandler 流式对话Handler
-// 支持POST请求，从请求体解析参数，避免中文在URL中的编码问题
+// StreamConversationHandler 流式对话Handler（统一接口）
+// 支持POST请求，从请求体解析参数，支持文本、语音、图片三种输入方式
 func StreamConversationHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// 设置SSE响应头
@@ -78,7 +78,7 @@ func StreamConversationHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		// 从请求体解析JSON参数（POST请求）
-		var req types.StreamConversationRequest
+		var req types.UnifiedStreamConversationRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			// 发送错误事件
 			errorEvent := types.StreamEvent{
@@ -91,37 +91,16 @@ func StreamConversationHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		// 参数验证
-		if req.Message == "" {
-			errorEvent := types.StreamEvent{
-				Type:    "error",
-				Content: map[string]interface{}{"message": "消息内容不能为空"},
-			}
-			errorJSON, _ := json.Marshal(errorEvent)
-			fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
-			w.(http.Flusher).Flush()
-			return
-		}
-
 		// 设置默认值
-		if req.MessageType == "" {
-			req.MessageType = "text"
-		}
 		if req.MaxContextRounds <= 0 {
 			req.MaxContextRounds = 20
 		}
 
-		// 调用流式逻辑
+		// 调用统一流式逻辑
 		streamLogic := logic.NewStreamLogic(r.Context(), svcCtx)
-		if err := streamLogic.StreamConversation(w, req); err != nil {
-			// 发送错误事件
-			errorEvent := types.StreamEvent{
-				Type:    "error",
-				Content: map[string]interface{}{"message": err.Error()},
-			}
-			errorJSON, _ := json.Marshal(errorEvent)
-			fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
-			w.(http.Flusher).Flush()
+		if err := streamLogic.StreamConversationUnified(w, req); err != nil {
+			// 错误已在StreamConversationUnified中处理，这里不需要再次发送错误事件
+			// 但如果需要，可以在这里添加额外的错误处理
 		}
 	}
 }

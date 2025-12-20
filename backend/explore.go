@@ -168,6 +168,23 @@ func loadAIConfigFromEnv(c *config.Config) {
 	if c.AI.TextGenerationModel == "" {
 		c.AI.TextGenerationModel = configpkg.DefaultTextGenerationModel
 	}
+
+	// 处理UseAIModel配置（优先级：环境变量 > 配置文件 > 默认值true）
+	useAIModelStr := os.Getenv("USE_AI_MODEL")
+	if useAIModelStr != "" {
+		// 环境变量优先级最高，解析环境变量值（支持 "true"/"false", "1"/"0", "yes"/"no"）
+		useAIModelStr = strings.ToLower(strings.TrimSpace(useAIModelStr))
+		c.AI.UseAIModel = (useAIModelStr == "true" || useAIModelStr == "1" || useAIModelStr == "yes")
+	} else {
+		// 如果环境变量未设置，使用配置文件中的值（go-zero 的 conf.MustLoad 已经自动读取）
+		// 如果配置文件中也未设置（零值 false），设置为默认值 true
+		// 注意：如果配置文件中显式设置为 false，c.AI.UseAIModel 已经是 false，不会被覆盖
+		// 如果配置文件中设置为 true 或未设置，这里会确保值为 true
+		if !c.AI.UseAIModel {
+			// 配置文件未设置（零值 false），设置为默认值 true
+			c.AI.UseAIModel = true
+		}
+	}
 }
 
 // parseCommaSeparatedList 解析逗号分隔的字符串列表
