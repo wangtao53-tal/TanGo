@@ -1,9 +1,11 @@
 # Feature Specification: [FEATURE NAME]
 
-**Feature Branch**: `[###-feature-name]`  
+**Feature Branch**: `dev-mvp-20251218`  
 **Created**: [DATE]  
 **Status**: Draft  
 **Input**: User description: "$ARGUMENTS"
+
+**Note**: MVP版本阶段，所有开发工作统一在 `dev-mvp-20251218` 分支进行，不采用一个功能一个分支的策略。
 
 ## User Scenarios & Testing *(mandatory)*
 
