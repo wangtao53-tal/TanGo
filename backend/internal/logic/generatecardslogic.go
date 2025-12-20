@@ -47,9 +47,12 @@ func (l *GenerateCardsLogic) GenerateCards(req *types.GenerateCardsRequest) (res
 		graph := l.svcCtx.Agent.GetGraph()
 		data, err := graph.ExecuteCardGeneration(l.ctx, req.ObjectName, req.ObjectCategory, req.Age, req.Keywords)
 		if err != nil {
-			l.Errorw("Agent卡片生成失败，回退到Mock", logx.Field("error", err))
-			// 回退到Mock实现
-			return l.generateCardsMock(req)
+			l.Errorw("Agent卡片生成失败，返回错误",
+				logx.Field("error", err),
+				logx.Field("errorDetail", err.Error()),
+			)
+			// 不再回退到Mock，直接返回错误
+			return nil, fmt.Errorf("卡片生成失败: %w", err)
 		}
 
 		// 转换Agent返回的卡片数据为types.CardContent
@@ -107,14 +110,11 @@ func (l *GenerateCardsLogic) GenerateCardsStream(w http.ResponseWriter, req *typ
 			logx.Field("graphNil", graph == nil),
 		)
 
-		// 使用带超时的context（6秒总超时，目标5秒内）
-		cardCtx, cancel := context.WithTimeout(l.ctx, 6*time.Second)
-		defer cancel()
-
-		// 调用ExecuteCardGeneration（已优化并行，带超时控制）
-		data, err := graph.ExecuteCardGeneration(cardCtx, req.ObjectName, req.ObjectCategory, req.Age, req.Keywords)
+		// 调用ExecuteCardGeneration（并行生成，等待模型返回，不设置超时）
+		// 超时控制由HTTP请求层面的Timeout配置控制（在explore.yaml中配置为180秒）
+		data, err := graph.ExecuteCardGeneration(l.ctx, req.ObjectName, req.ObjectCategory, req.Age, req.Keywords)
 		if err != nil {
-			l.Errorw("卡片生成失败，使用Mock", 
+			l.Errorw("卡片生成失败，使用Mock",
 				logx.Field("error", err),
 				logx.Field("errorDetail", err.Error()),
 			)

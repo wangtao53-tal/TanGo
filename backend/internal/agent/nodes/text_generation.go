@@ -3,6 +3,7 @@ package nodes
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/components/prompt"
 	"github.com/cloudwego/eino/schema"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/tango/explore/internal/config"
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -383,20 +385,44 @@ func (n *TextGenerationNode) generateTextReal(data *GraphData, context []interfa
 
 // generateScienceCardReal 真实eino实现科学认知卡
 func (n *TextGenerationNode) generateScienceCardReal(ctx context.Context, data *GraphData) (map[string]interface{}, error) {
+	n.logger.Infow("开始使用真实模型生成科学认知卡",
+		logx.Field("objectName", data.ObjectName),
+		logx.Field("age", data.Age),
+	)
+
 	messages, err := n.scienceTemplate.Format(ctx, map[string]any{
 		"objectName": data.ObjectName,
 		"age":        strconv.Itoa(data.Age),
 	})
+
 	if err != nil {
+		spew.Dump("1111111", messages, err)
 		n.logger.Errorw("模板格式化失败", logx.Field("error", err))
-		return n.generateScienceCardMock(data)
+		return nil, fmt.Errorf("模板格式化失败: %w", err)
 	}
 
+	n.logger.Infow("调用ChatModel生成内容",
+		logx.Field("messageCount", len(messages)),
+	)
 	result, err := n.chatModel.Generate(ctx, messages)
+	spew.Dump("====", result, err)
 	if err != nil {
-		n.logger.Errorw("ChatModel调用失败", logx.Field("error", err))
-		return n.generateScienceCardMock(data)
+		n.logger.Errorw("ChatModel调用失败",
+			logx.Field("error", err),
+			logx.Field("errorDetail", err.Error()),
+		)
+		return nil, fmt.Errorf("ChatModel调用失败: %w", err)
 	}
+
+	n.logger.Infow("收到模型响应",
+		logx.Field("contentLength", len(result.Content)),
+		logx.Field("contentPreview", func() string {
+			if len(result.Content) > 100 {
+				return result.Content[:100] + "..."
+			}
+			return result.Content
+		}()),
+	)
 
 	// 解析 JSON 结果
 	var cardContent map[string]interface{}
@@ -406,11 +432,17 @@ func (n *TextGenerationNode) generateScienceCardReal(ctx context.Context, data *
 	if jsonStart >= 0 && jsonEnd > jsonStart {
 		jsonStr := text[jsonStart : jsonEnd+1]
 		if err := json.Unmarshal([]byte(jsonStr), &cardContent); err != nil {
-			n.logger.Errorw("解析JSON失败", logx.Field("error", err))
-			return n.generateScienceCardMock(data)
+			n.logger.Errorw("解析JSON失败",
+				logx.Field("error", err),
+				logx.Field("jsonStr", jsonStr),
+			)
+			return nil, fmt.Errorf("解析JSON失败: %w, 原始内容: %s", err, jsonStr)
 		}
 	} else {
-		return n.generateScienceCardMock(data)
+		n.logger.Errorw("未找到JSON内容",
+			logx.Field("text", text),
+		)
+		return nil, fmt.Errorf("模型返回内容中未找到有效的JSON: %s", text)
 	}
 
 	card := map[string]interface{}{
@@ -419,26 +451,47 @@ func (n *TextGenerationNode) generateScienceCardReal(ctx context.Context, data *
 		"content": cardContent,
 	}
 
-	n.logger.Info("科学认知卡生成完成（真实模型）")
+	n.logger.Info("✅ 科学认知卡生成完成（真实模型）")
 	return card, nil
 }
 
 // generatePoetryCardReal 真实eino实现古诗词卡
 func (n *TextGenerationNode) generatePoetryCardReal(ctx context.Context, data *GraphData) (map[string]interface{}, error) {
+	n.logger.Infow("开始使用真实模型生成古诗词卡",
+		logx.Field("objectName", data.ObjectName),
+		logx.Field("age", data.Age),
+	)
+
 	messages, err := n.poetryTemplate.Format(ctx, map[string]any{
 		"objectName": data.ObjectName,
 		"age":        strconv.Itoa(data.Age),
 	})
 	if err != nil {
 		n.logger.Errorw("模板格式化失败", logx.Field("error", err))
-		return n.generatePoetryCardMock(data)
+		return nil, fmt.Errorf("模板格式化失败: %w", err)
 	}
 
+	n.logger.Infow("调用ChatModel生成内容",
+		logx.Field("messageCount", len(messages)),
+	)
 	result, err := n.chatModel.Generate(ctx, messages)
 	if err != nil {
-		n.logger.Errorw("ChatModel调用失败", logx.Field("error", err))
-		return n.generatePoetryCardMock(data)
+		n.logger.Errorw("ChatModel调用失败",
+			logx.Field("error", err),
+			logx.Field("errorDetail", err.Error()),
+		)
+		return nil, fmt.Errorf("ChatModel调用失败: %w", err)
 	}
+
+	n.logger.Infow("收到模型响应",
+		logx.Field("contentLength", len(result.Content)),
+		logx.Field("contentPreview", func() string {
+			if len(result.Content) > 100 {
+				return result.Content[:100] + "..."
+			}
+			return result.Content
+		}()),
+	)
 
 	// 解析 JSON 结果
 	var cardContent map[string]interface{}
@@ -448,11 +501,17 @@ func (n *TextGenerationNode) generatePoetryCardReal(ctx context.Context, data *G
 	if jsonStart >= 0 && jsonEnd > jsonStart {
 		jsonStr := text[jsonStart : jsonEnd+1]
 		if err := json.Unmarshal([]byte(jsonStr), &cardContent); err != nil {
-			n.logger.Errorw("解析JSON失败", logx.Field("error", err))
-			return n.generatePoetryCardMock(data)
+			n.logger.Errorw("解析JSON失败",
+				logx.Field("error", err),
+				logx.Field("jsonStr", jsonStr),
+			)
+			return nil, fmt.Errorf("解析JSON失败: %w, 原始内容: %s", err, jsonStr)
 		}
 	} else {
-		return n.generatePoetryCardMock(data)
+		n.logger.Errorw("未找到JSON内容",
+			logx.Field("text", text),
+		)
+		return nil, fmt.Errorf("模型返回内容中未找到有效的JSON: %s", text)
 	}
 
 	card := map[string]interface{}{
@@ -461,26 +520,47 @@ func (n *TextGenerationNode) generatePoetryCardReal(ctx context.Context, data *G
 		"content": cardContent,
 	}
 
-	n.logger.Info("古诗词卡生成完成（真实模型）")
+	n.logger.Info("✅ 古诗词卡生成完成（真实模型）")
 	return card, nil
 }
 
 // generateEnglishCardReal 真实eino实现英语表达卡
 func (n *TextGenerationNode) generateEnglishCardReal(ctx context.Context, data *GraphData) (map[string]interface{}, error) {
+	n.logger.Infow("开始使用真实模型生成英语表达卡",
+		logx.Field("objectName", data.ObjectName),
+		logx.Field("age", data.Age),
+	)
+
 	messages, err := n.englishTemplate.Format(ctx, map[string]any{
 		"objectName": data.ObjectName,
 		"age":        strconv.Itoa(data.Age),
 	})
 	if err != nil {
 		n.logger.Errorw("模板格式化失败", logx.Field("error", err))
-		return n.generateEnglishCardMock(data)
+		return nil, fmt.Errorf("模板格式化失败: %w", err)
 	}
 
+	n.logger.Infow("调用ChatModel生成内容",
+		logx.Field("messageCount", len(messages)),
+	)
 	result, err := n.chatModel.Generate(ctx, messages)
 	if err != nil {
-		n.logger.Errorw("ChatModel调用失败", logx.Field("error", err))
-		return n.generateEnglishCardMock(data)
+		n.logger.Errorw("ChatModel调用失败",
+			logx.Field("error", err),
+			logx.Field("errorDetail", err.Error()),
+		)
+		return nil, fmt.Errorf("ChatModel调用失败: %w", err)
 	}
+
+	n.logger.Infow("收到模型响应",
+		logx.Field("contentLength", len(result.Content)),
+		logx.Field("contentPreview", func() string {
+			if len(result.Content) > 100 {
+				return result.Content[:100] + "..."
+			}
+			return result.Content
+		}()),
+	)
 
 	// 解析 JSON 结果
 	var cardContent map[string]interface{}
@@ -490,11 +570,17 @@ func (n *TextGenerationNode) generateEnglishCardReal(ctx context.Context, data *
 	if jsonStart >= 0 && jsonEnd > jsonStart {
 		jsonStr := text[jsonStart : jsonEnd+1]
 		if err := json.Unmarshal([]byte(jsonStr), &cardContent); err != nil {
-			n.logger.Errorw("解析JSON失败", logx.Field("error", err))
-			return n.generateEnglishCardMock(data)
+			n.logger.Errorw("解析JSON失败",
+				logx.Field("error", err),
+				logx.Field("jsonStr", jsonStr),
+			)
+			return nil, fmt.Errorf("解析JSON失败: %w, 原始内容: %s", err, jsonStr)
 		}
 	} else {
-		return n.generateEnglishCardMock(data)
+		n.logger.Errorw("未找到JSON内容",
+			logx.Field("text", text),
+		)
+		return nil, fmt.Errorf("模型返回内容中未找到有效的JSON: %s", text)
 	}
 
 	card := map[string]interface{}{
@@ -503,6 +589,6 @@ func (n *TextGenerationNode) generateEnglishCardReal(ctx context.Context, data *
 		"content": cardContent,
 	}
 
-	n.logger.Info("英语表达卡生成完成（真实模型）")
+	n.logger.Info("✅ 英语表达卡生成完成（真实模型）")
 	return card, nil
 }

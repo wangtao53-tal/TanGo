@@ -1,11 +1,9 @@
 package handler
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/tango/explore/internal/logic"
 	"github.com/tango/explore/internal/svc"
@@ -30,19 +28,12 @@ func GenerateCardsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		// 同步返回模式（保持兼容）：优化超时时间到6秒（目标5秒内）
-		ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second)
-		defer cancel()
-
-		l := logic.NewGenerateCardsLogic(ctx, svcCtx)
+		// 同步返回模式：等待模型返回，不设置超时
+		// 超时控制由HTTP请求层面的Timeout配置控制（在explore.yaml中配置为180秒）
+		l := logic.NewGenerateCardsLogic(r.Context(), svcCtx)
 		resp, err := l.GenerateCards(&req)
 		if err != nil {
-			// 检查是否是超时错误
-			if ctx.Err() == context.DeadlineExceeded {
-				httpx.ErrorCtx(ctx, w, err)
-			} else {
-				httpx.Error(w, err)
-			}
+			httpx.Error(w, err)
 		} else {
 			httpx.OkJson(w, resp)
 		}
@@ -57,11 +48,10 @@ func generateCardsStream(w http.ResponseWriter, r *http.Request, req *types.Gene
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second)
-	defer cancel()
-
 	// 调用逻辑层生成卡片（流式）
-	logic := logic.NewGenerateCardsLogic(ctx, svcCtx)
+	// 等待模型返回，不设置超时
+	// 超时控制由HTTP请求层面的Timeout配置控制（在explore.yaml中配置为180秒）
+	logic := logic.NewGenerateCardsLogic(r.Context(), svcCtx)
 	if err := logic.GenerateCardsStream(w, req); err != nil {
 		// 发送错误事件
 		errorEvent := map[string]interface{}{

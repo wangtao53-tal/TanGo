@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/tango/explore/internal/agent/nodes"
 	"github.com/tango/explore/internal/config"
@@ -111,45 +110,27 @@ func (g *Graph) ExecuteCardGeneration(ctx context.Context, objectName, category 
 	}
 	results := make(chan cardResult, 3)
 
-	// 为每张卡片设置10秒超时
-	cardTimeout := 10 * time.Second
-
-	// 1. 并行生成科学认知卡（带超时控制）
+	// 1. 并行生成科学认知卡（等待模型返回，不设置超时）
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		cardCtx, cancel := context.WithTimeout(ctx, cardTimeout)
-		defer cancel()
-		card, err := g.textGenerationNode.GenerateScienceCard(cardCtx, data)
-		if cardCtx.Err() == context.DeadlineExceeded {
-			err = fmt.Errorf("科学卡生成超时（超过%v）", cardTimeout)
-		}
+		card, err := g.textGenerationNode.GenerateScienceCard(ctx, data)
 		results <- cardResult{card: card, err: err, idx: 0}
 	}()
 
-	// 2. 并行生成古诗词/人文卡（带超时控制）
+	// 2. 并行生成古诗词/人文卡（等待模型返回，不设置超时）
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		cardCtx, cancel := context.WithTimeout(ctx, cardTimeout)
-		defer cancel()
-		card, err := g.textGenerationNode.GeneratePoetryCard(cardCtx, data)
-		if cardCtx.Err() == context.DeadlineExceeded {
-			err = fmt.Errorf("诗词卡生成超时（超过%v）", cardTimeout)
-		}
+		card, err := g.textGenerationNode.GeneratePoetryCard(ctx, data)
 		results <- cardResult{card: card, err: err, idx: 1}
 	}()
 
-	// 3. 并行生成英语表达卡（带超时控制）
+	// 3. 并行生成英语表达卡（等待模型返回，不设置超时）
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		cardCtx, cancel := context.WithTimeout(ctx, cardTimeout)
-		defer cancel()
-		card, err := g.textGenerationNode.GenerateEnglishCard(cardCtx, data)
-		if cardCtx.Err() == context.DeadlineExceeded {
-			err = fmt.Errorf("英语卡生成超时（超过%v）", cardTimeout)
-		}
+		card, err := g.textGenerationNode.GenerateEnglishCard(ctx, data)
 		results <- cardResult{card: card, err: err, idx: 2}
 	}()
 
@@ -170,8 +151,8 @@ func (g *Graph) ExecuteCardGeneration(ctx context.Context, objectName, category 
 				logx.Field("cardIndex", result.idx),
 				logx.Field("error", result.err),
 			)
-			// 超时或错误时，使用Mock数据作为降级方案
-			cards[result.idx] = g.getMockCard(result.idx, objectName, age)
+			// 如果模型调用失败，返回错误，不使用Mock数据
+			// 让调用方决定如何处理错误
 		} else {
 			cards[result.idx] = result.card
 			successCount++
@@ -180,15 +161,17 @@ func (g *Graph) ExecuteCardGeneration(ctx context.Context, objectName, category 
 
 	// 如果所有卡片都失败，返回错误
 	if successCount == 0 && firstErr != nil {
-		return nil, firstErr
+		return nil, fmt.Errorf("所有卡片生成失败: %w", firstErr)
 	}
 
-	// 如果有部分成功，记录警告但继续
+	// 如果有部分失败，返回错误（不再使用Mock降级）
 	if successCount < 3 {
-		g.logger.Infow("部分卡片生成失败，使用降级方案",
+		g.logger.Errorw("部分卡片生成失败，返回错误",
 			logx.Field("successCount", successCount),
 			logx.Field("totalCount", 3),
+			logx.Field("firstError", firstErr),
 		)
+		return nil, fmt.Errorf("部分卡片生成失败（成功%d/3）: %w", successCount, firstErr)
 	}
 
 	// 4. 为每张卡片生成配图（图片生成）
