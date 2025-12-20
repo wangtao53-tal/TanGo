@@ -12,13 +12,15 @@ type CardContent struct {
 }
 
 type ConversationMessage struct {
-	Id          string      `json:"id"`                 // 消息ID
-	Type        string      `json:"type"`               // 消息类型：text/image/voice/card
-	Sender      string      `json:"sender"`             // 发送者：user/assistant
-	Content     interface{} `json:"content"`            // 消息内容（文本、图片、语音、卡片等）
-	Timestamp   string      `json:"timestamp"`          // 消息时间戳
-	SessionId   string      `json:"sessionId,optional"` // 会话ID
-	IsStreaming *bool       `json:"isStreaming,optional"` // 是否正在流式返回
+	Id           string      `json:"id"`                 // 消息ID
+	Type         string      `json:"type"`               // 消息类型：text/image/voice/card
+	Sender       string      `json:"sender"`             // 发送者：user/assistant
+	Content      interface{} `json:"content"`            // 消息内容（文本、图片、语音、卡片等）
+	Timestamp    string      `json:"timestamp"`          // 消息时间戳
+	SessionId    string      `json:"sessionId,optional"` // 会话ID
+	IsStreaming  *bool       `json:"isStreaming,optional"` // 是否正在流式返回
+	StreamingText string     `json:"streamingText,optional"` // 流式传输中的累积文本（仅系统消息）
+	Markdown     *bool       `json:"markdown,optional"` // 内容是否包含Markdown格式（仅文本消息）
 }
 
 type IdentificationContext struct {
@@ -181,4 +183,5 @@ type StreamEvent struct {
 	Progress  int         `json:"progress,optional"`    // 图片生成进度（0-100）
 	SessionId string      `json:"sessionId,optional"`  // 会话ID
 	MessageId string      `json:"messageId,optional"`   // 消息ID
+	Markdown  *bool       `json:"markdown,optional"`   // 内容是否为Markdown格式
 }

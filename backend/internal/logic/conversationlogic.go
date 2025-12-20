@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tango/explore/internal/svc"
 	"github.com/tango/explore/internal/types"
+	"github.com/tango/explore/internal/utils"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -108,13 +109,18 @@ func (l *ConversationLogic) ProcessMessage(req *types.ConversationRequest) (*typ
 		responseType = "cards"
 	} else {
 		// 文本回答
+		textContent := l.generateTextResponse(req.Message, sessionId)
+		isMarkdown := utils.DetectMarkdown(textContent)
+		markdownPtr := &isMarkdown
+
 		assistantMessage = types.ConversationMessage{
 			Id:        uuid.New().String(),
 			Type:      "text",
 			Sender:    "assistant",
-			Content:   l.generateTextResponse(req.Message, sessionId),
+			Content:   textContent,
 			Timestamp: time.Now().Format(time.RFC3339),
 			SessionId: sessionId,
+			Markdown:  markdownPtr,
 		}
 		responseType = "text"
 	}

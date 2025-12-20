@@ -141,6 +141,7 @@ export interface ConversationStreamEvent {
   sessionId?: string; // 会话ID
   messageId?: string; // 消息ID
   message?: string; // 错误消息
+  markdown?: boolean; // 内容是否为Markdown格式
 }
 
 // 语音识别请求

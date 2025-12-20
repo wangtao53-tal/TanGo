@@ -7,6 +7,9 @@ import React, { useState, useEffect } from 'react';
 import { cardStorage } from '../../services/storage';
 import type { KnowledgeCard } from '../../types/exploration';
 import type { PoetryCardContent } from '../../types/exploration';
+import { useTextToSpeech } from '../../hooks/useTextToSpeech';
+import { extractCardText, detectCardLanguage } from '../../utils/cardTextExtractor';
+import { usePlayingCard } from './ScienceCard';
 
 export interface PoetryCardProps {
   card: KnowledgeCard;
@@ -23,6 +26,53 @@ export const PoetryCard: React.FC<PoetryCardProps> = ({
 }) => {
   const [isCollected, setIsCollected] = useState(false);
   const content = card.content as PoetryCardContent;
+  const { playingCardId, setPlayingCardId } = usePlayingCard();
+  const isCurrentlyPlaying = playingCardId === card.id;
+
+  // 文本转语音Hook
+  const { isPlaying, isPaused, play, pause, resume, stop, isSupported } = useTextToSpeech({
+    rate: 0.9,
+    pitch: 1.0,
+    onStart: () => {
+      setPlayingCardId(card.id);
+    },
+    onEnd: () => {
+      setPlayingCardId(null);
+    },
+    onError: (error) => {
+      console.error('文本转语音错误:', error);
+      setPlayingCardId(null);
+    },
+  });
+
+  // 如果其他卡片开始播放，停止当前播放
+  useEffect(() => {
+    if (playingCardId !== null && playingCardId !== card.id && isPlaying) {
+      stop();
+    }
+  }, [playingCardId, card.id, isPlaying, stop]);
+
+  const handleListen = () => {
+    if (!isSupported) {
+      alert('您的浏览器不支持文本转语音功能');
+      return;
+    }
+
+    if (isPlaying && !isPaused) {
+      pause();
+    } else if (isPaused) {
+      resume();
+    } else {
+      const text = extractCardText(card);
+      const language = detectCardLanguage(card);
+      play(text, language);
+    }
+  };
+
+  const handleStop = () => {
+    stop();
+    setPlayingCardId(null);
+  };
 
   // 检查卡片是否已收藏
   useEffect(() => {
@@ -97,10 +147,27 @@ export const PoetryCard: React.FC<PoetryCardProps> = ({
 
         {/* 操作按钮 */}
         <div className="flex justify-between items-center mt-4 pt-2">
-          <button className="flex items-center gap-2 text-sm font-bold text-sunny-orange bg-sunny-orange/20 hover:bg-sunny-orange hover:text-white px-5 py-3 rounded-full transition-all shadow-sm hover:shadow-md">
-            <span className="material-symbols-outlined text-xl">play_circle</span>
-            Listen
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleListen}
+              disabled={!isSupported}
+              className="flex items-center gap-2 text-sm font-bold text-sunny-orange bg-sunny-orange/20 hover:bg-sunny-orange hover:text-white px-5 py-3 rounded-full transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="material-symbols-outlined text-xl">
+                {isPlaying && !isPaused ? 'pause' : 'play_circle'}
+              </span>
+              {isPlaying && !isPaused ? '暂停' : isPaused ? '继续' : '听'}
+            </button>
+            {isPlaying && (
+              <button
+                onClick={handleStop}
+                className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-700 px-3 py-2 rounded-full transition-all"
+              >
+                <span className="material-symbols-outlined text-lg">stop</span>
+                停止
+              </button>
+            )}
+          </div>
           <button
             onClick={handleCollect}
             className={`size-12 rounded-full flex items-center justify-center transition-all group-active:scale-90 shadow-sm border-2 ${

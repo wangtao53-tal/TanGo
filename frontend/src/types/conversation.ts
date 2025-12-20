@@ -18,6 +18,7 @@ export interface ConversationMessage {
   sessionId?: string; // 对话会话ID
   isStreaming?: boolean; // 是否正在流式返回（仅系统消息）
   streamingText?: string; // 流式文本内容（用于打字机效果）
+  markdown?: boolean; // 内容是否包含Markdown格式（仅文本消息）
 }
 
 // 对话会话
