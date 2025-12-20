@@ -140,7 +140,7 @@ func (n *ConversationNode) generateSystemPrompt(userAge int, objectName string, 
 	return prompt
 }
 
-// StreamConversation 流式对话，返回流式读取器
+// StreamConversation 流式对话，返回流式读取器，支持多模态输入
 func (n *ConversationNode) StreamConversation(
 	ctx context.Context,
 	message string,
@@ -148,6 +148,7 @@ func (n *ConversationNode) StreamConversation(
 	userAge int,
 	objectName string,
 	objectCategory string,
+	imageURL string, // 新增：图片URL参数，支持多模态输入
 ) (*schema.StreamReader[*schema.Message], error) {
 	if !n.initialized || n.chatModel == nil {
 		return nil, fmt.Errorf("ChatModel未初始化，无法进行流式对话")
@@ -166,14 +167,50 @@ func (n *ConversationNode) StreamConversation(
 		messages = append(messages, contextMessages...)
 	}
 
-	// 添加当前用户消息
-	messages = append(messages, schema.UserMessage(message))
+	// 构建用户消息（支持多模态）
+	var userMsg *schema.Message
+	if imageURL != "" {
+		// 多模态消息（图片+文本，如果文本不为空）
+		parts := []schema.MessageInputPart{
+			{
+				Type: schema.ChatMessagePartTypeImageURL,
+				Image: &schema.MessageInputImage{
+					MessagePartCommon: schema.MessagePartCommon{
+						URL: &imageURL,
+					},
+					Detail: schema.ImageURLDetailAuto,
+				},
+			},
+		}
+		// 只有当文本不为空时才添加文本部分
+		if message != "" {
+			parts = append(parts, schema.MessageInputPart{
+				Type: schema.ChatMessagePartTypeText,
+				Text: message,
+			})
+		}
+		userMsg = &schema.Message{
+			Role:                schema.User,
+			UserInputMultiContent: parts,
+		}
+		n.logger.Infow("构建多模态消息",
+			logx.Field("hasImage", true),
+			logx.Field("imageURL", imageURL),
+			logx.Field("textLength", len(message)),
+			logx.Field("hasText", message != ""),
+		)
+	} else {
+		// 文本消息
+		userMsg = schema.UserMessage(message)
+	}
+	messages = append(messages, userMsg)
 
 	n.logger.Infow("开始流式对话",
 		logx.Field("userAge", userAge),
 		logx.Field("objectName", objectName),
 		logx.Field("contextRounds", len(contextMessages)/2),
 		logx.Field("messageLength", len(message)),
+		logx.Field("hasImage", imageURL != ""),
 	)
 
 	// 调用Eino ChatModel的Stream接口

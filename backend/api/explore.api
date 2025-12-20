@@ -95,15 +95,15 @@ type (
 	}
 	// 对话消息
 	ConversationMessage {
-		Id           string      `json:"id"` // 消息ID
-		Type         string      `json:"type"` // 消息类型：text/image/voice/card
-		Sender       string      `json:"sender"` // 发送者：user/assistant
-		Content      interface{} `json:"content"` // 消息内容（文本、图片、语音、卡片等）
-		Timestamp    string      `json:"timestamp"` // 消息时间戳
-		SessionId    string      `json:"sessionId,optional"` // 会话ID
-		IsStreaming  *bool       `json:"isStreaming,optional"` // 是否正在流式返回
-		StreamingText string     `json:"streamingText,optional"` // 流式传输中的累积文本（仅系统消息）
-		Markdown     *bool       `json:"markdown,optional"` // 内容是否包含Markdown格式（仅文本消息）
+		Id            string      `json:"id"` // 消息ID
+		Type          string      `json:"type"` // 消息类型：text/image/voice/card
+		Sender        string      `json:"sender"` // 发送者：user/assistant
+		Content       interface{} `json:"content"` // 消息内容（文本、图片、语音、卡片等）
+		Timestamp     string      `json:"timestamp"` // 消息时间戳
+		SessionId     string      `json:"sessionId,optional"` // 会话ID
+		IsStreaming   *bool       `json:"isStreaming,optional"` // 是否正在流式返回
+		StreamingText string      `json:"streamingText,optional"` // 流式传输中的累积文本（仅系统消息）
+		Markdown      *bool       `json:"markdown,optional"` // 内容是否包含Markdown格式（仅文本消息）
 	}
 	// 对话会话
 	ConversationSession {
@@ -134,11 +134,11 @@ type (
 	}
 	// 对话请求
 	ConversationRequest {
-		Message                string                 `json:"message"` // 用户消息（文本）
-		Image                  string                 `json:"image,optional"` // 图片（base64，可选）
-		Voice                  string                 `json:"voice,optional"` // 语音（base64，可选）
-		SessionId              string                 `json:"sessionId,optional"` // 会话ID（可选）
-		IdentificationContext  *IdentificationContext `json:"identificationContext,optional"` // 识别结果上下文（可选）
+		Message               string                 `json:"message"` // 用户消息（文本）
+		Image                 string                 `json:"image,optional"` // 图片（base64，可选）
+		Voice                 string                 `json:"voice,optional"` // 语音（base64，可选）
+		SessionId             string                 `json:"sessionId,optional"` // 会话ID（可选）
+		IdentificationContext *IdentificationContext `json:"identificationContext,optional"` // 识别结果上下文（可选）
 	}
 	// 对话响应
 	ConversationResponse {
@@ -168,6 +168,38 @@ type (
 		Size         int    `json:"size,optional"` // 图片大小（字节）
 		UploadMethod string `json:"uploadMethod,optional"` // 上传方式（"github" 或 "base64"）
 	}
+	// 统一流式对话请求（通过messageType字段明确指定输入类型）
+	UnifiedStreamConversationRequest {
+		MessageType           string                 `json:"messageType"` // 消息类型（必填）：text/voice/image
+		Message               string                 `json:"message,optional"` // 文本消息，当messageType为text时必填
+		Audio                 string                 `json:"audio,optional"` // 语音数据（base64），当messageType为voice时必填
+		Image                 string                 `json:"image,optional"` // 图片数据（base64或URL），当messageType为image时必填
+		SessionId             string                 `json:"sessionId,optional"` // 会话ID，如果为空则创建新会话
+		IdentificationContext *IdentificationContext `json:"identificationContext,optional"` // 识别结果上下文（可选）
+		UserAge               int                    `json:"userAge,optional"` // 用户年龄（3-18岁），用于内容适配
+		MaxContextRounds      int                    `json:"maxContextRounds,optional"` // 最大上下文轮次，默认20轮
+	}
+	// 流式对话请求（兼容旧版本）
+	StreamConversationRequest {
+		SessionId             string                 `json:"sessionId,optional"` // 会话ID，如果为空则创建新会话
+		Message               string                 `json:"message"` // 用户消息内容（文本）
+		MessageType           string                 `json:"messageType,optional"` // 消息类型：text/image/voice，默认text
+		Image                 string                 `json:"image,optional"` // 图片数据（base64或URL），当messageType为image时必填
+		Voice                 string                 `json:"voice,optional"` // 语音数据（base64），当messageType为voice时必填
+		IdentificationContext *IdentificationContext `json:"identificationContext,optional"` // 识别结果上下文（可选，用于关联识别结果）
+		UserAge               int                    `json:"userAge,optional"` // 用户年龄（3-18岁），用于内容适配
+		MaxContextRounds      int                    `json:"maxContextRounds,optional"` // 最大上下文轮次，默认20轮
+	}
+	// SSE流式事件类型
+	StreamEvent {
+		Type      string      `json:"type"` // 事件类型：connected/message/image_progress/image_done/card/error/done
+		Content   interface{} `json:"content"` // 事件内容
+		Index     int         `json:"index,optional"` // 文本消息的字符索引（用于打字机效果）
+		Progress  int         `json:"progress,optional"` // 图片生成进度（0-100）
+		SessionId string      `json:"sessionId,optional"` // 会话ID
+		MessageId string      `json:"messageId,optional"` // 消息ID
+		Markdown  bool        `json:"markdown,optional"` // 内容是否包含Markdown格式（仅文本消息）
+	}
 )
 
 service explore {
@@ -195,9 +227,17 @@ service explore {
 	@handler VoiceHandler
 	post /api/conversation/voice (VoiceRequest) returns (VoiceResponse)
 
+	// 流式接口需要手动注册路由，goctl不支持stream类型
+	// @handler VoiceStreamHandler
+	// post /api/conversation/voice-stream (VoiceRequest) returns (stream)
 	// @handler StreamHandler
 	// get /api/conversation/stream returns (stream)
+	// @handler StreamConversationHandler
+	// post /api/conversation/stream (UnifiedStreamConversationRequest) returns (stream)
 	@handler UploadHandler
 	post /api/upload/image (UploadRequest) returns (UploadResponse)
+// 流式接口需要手动注册路由，goctl不支持stream类型
+// @handler UploadStreamHandler
+// post /api/upload/image-stream (UploadRequest) returns (stream)
 }
 

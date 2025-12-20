@@ -4,7 +4,7 @@
  * 解决 EventSource 只支持 GET 请求的限制
  */
 
-import type { ConversationStreamEvent, StreamConversationRequest } from '../types/api';
+import type { ConversationStreamEvent, UnifiedStreamConversationRequest } from '../types/api';
 
 export interface PostSSECallbacks {
   onMessage?: (event: ConversationStreamEvent) => void;
@@ -20,11 +20,12 @@ const API_BASE_URL =
     : 'http://localhost:8877');
 
 /**
- * 创建POST + SSE连接
+ * 创建POST + SSE连接（统一接口）
  * 使用 fetch API 发送 POST 请求，然后手动解析 SSE 流
+ * 支持文本、语音、图片三种输入方式
  */
 export function createPostSSEConnection(
-  request: StreamConversationRequest,
+  request: UnifiedStreamConversationRequest,
   callbacks: PostSSECallbacks
 ): AbortController {
   const abortController = new AbortController();

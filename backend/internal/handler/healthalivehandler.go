@@ -14,7 +14,6 @@ import (
 	"net/http"
 
 	"github.com/tango/explore/internal/svc"
-	"github.com/tango/explore/internal/types"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
@@ -22,7 +21,7 @@ import (
 // 用于 Kubernetes liveness probe，检查服务是否存活
 func HealthAliveHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var resp types.HealthAliveResponse
+		resp := map[string]string{"status": "alive"}
 		httpx.OkJsonCtx(r.Context(), w, resp)
 	}
 }

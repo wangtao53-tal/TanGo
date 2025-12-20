@@ -1,0 +1,64 @@
+// TanGo 对话服务 API - 统一流式对话接口
+// 支持文本输入、语音输入、图片输入三种输入方式，通过messageType字段明确指定输入类型
+
+syntax = "v1"
+
+info (
+	title:   "TanGo 对话服务 API - 统一流式对话"
+	desc:    "统一流式接口，支持文本、语音、图片三种输入方式，通过messageType字段明确指定输入类型"
+	version: "1.0.0"
+	author:  "TanGo Team"
+)
+
+type (
+	// 统一流式对话请求
+	UnifiedStreamConversationRequest {
+		MessageType           string                 `json:"messageType"`                       // 消息类型（必填）：text/voice/image
+		Message               string                 `json:"message,optional"`                  // 文本消息，当messageType为text时必填
+		Audio                 string                 `json:"audio,optional"`                    // 语音数据（base64），当messageType为voice时必填
+		Image                 string                 `json:"image,optional"`                    // 图片数据（base64或URL），当messageType为image时必填
+		SessionId             string                 `json:"sessionId,optional"`                // 会话ID，如果为空则创建新会话
+		IdentificationContext *IdentificationContext `json:"identificationContext,optional"`     // 识别结果上下文（可选）
+		UserAge               int                    `json:"userAge,optional"`                  // 用户年龄（3-18岁），用于内容适配
+		MaxContextRounds      int                    `json:"maxContextRounds,optional"`         // 最大上下文轮次，默认20轮
+	}
+
+	// 识别结果上下文
+	IdentificationContext {
+		ObjectName     string   `json:"objectName"`        // 对象名称
+		ObjectCategory string   `json:"objectCategory"`    // 对象类别
+		Confidence     float64  `json:"confidence"`       // 识别置信度
+		Keywords       []string `json:"keywords,optional"` // 相关关键词
+		Age            int      `json:"age,optional"`     // 用户年龄
+	}
+
+	// 语音识别请求（扩展支持流式返回）
+	VoiceRequest {
+		Audio                  string                 `json:"audio"`                        // base64编码的音频数据
+		SessionId              string                 `json:"sessionId,optional"`           // 会话ID（可选）
+		IdentificationContext  *IdentificationContext `json:"identificationContext,optional"` // 识别结果上下文（可选）
+		UserAge                int                    `json:"userAge,optional"`             // 用户年龄（3-18岁）
+		MaxContextRounds       int                    `json:"maxContextRounds,optional"`    // 最大上下文轮次，默认20轮
+	}
+
+	// 图片上传请求（扩展支持流式返回）
+	UploadRequest {
+		ImageData              string                 `json:"imageData"`                    // base64编码的图片数据（不含 data URL 前缀）
+		Filename               string                 `json:"filename,optional"`            // 可选：文件名
+		SessionId               string                 `json:"sessionId,optional"`           // 会话ID（可选）
+		Message                 string                 `json:"message,optional"`            // 用户消息内容（可选，用于图文对话）
+		IdentificationContext   *IdentificationContext `json:"identificationContext,optional"` // 识别结果上下文（可选）
+		UserAge                 int                    `json:"userAge,optional"`            // 用户年龄（3-18岁）
+		MaxContextRounds        int                    `json:"maxContextRounds,optional"`   // 最大上下文轮次，默认20轮
+	}
+)
+
+service explore {
+	// 统一流式对话接口（支持文本、语音、图片输入）
+	// POST /api/conversation/stream
+	// 返回: SSE流式响应
+	// 请求必须包含messageType字段（text/voice/image），根据messageType包含对应字段
+	@handler StreamConversationHandler
+	post /api/conversation/stream (UnifiedStreamConversationRequest) returns (stream)
+}
+

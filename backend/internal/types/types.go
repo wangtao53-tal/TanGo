@@ -3,8 +3,6 @@
 
 package types
 
-type HealthAliveResponse struct {
-}
 type CardContent struct {
 	Type    string      `json:"type"`    // 卡片类型：science/poetry/english
 	Title   string      `json:"title"`   // 卡片标题
@@ -12,23 +10,15 @@ type CardContent struct {
 }
 
 type ConversationMessage struct {
-	Id           string      `json:"id"`                 // 消息ID
-	Type         string      `json:"type"`               // 消息类型：text/image/voice/card
-	Sender       string      `json:"sender"`             // 发送者：user/assistant
-	Content      interface{} `json:"content"`            // 消息内容（文本、图片、语音、卡片等）
-	Timestamp    string      `json:"timestamp"`          // 消息时间戳
-	SessionId    string      `json:"sessionId,optional"` // 会话ID
-	IsStreaming  *bool       `json:"isStreaming,optional"` // 是否正在流式返回
-	StreamingText string     `json:"streamingText,optional"` // 流式传输中的累积文本（仅系统消息）
-	Markdown     *bool       `json:"markdown,optional"` // 内容是否包含Markdown格式（仅文本消息）
-}
-
-type IdentificationContext struct {
-	ObjectName     string   `json:"objectName"`        // 对象名称
-	ObjectCategory string   `json:"objectCategory"`    // 对象类别
-	Confidence     float64  `json:"confidence"`        // 识别置信度
-	Keywords       []string `json:"keywords,optional"` // 相关关键词
-	Age            int      `json:"age,optional"`      // 用户年龄
+	Id            string      `json:"id"`                     // 消息ID
+	Type          string      `json:"type"`                   // 消息类型：text/image/voice/card
+	Sender        string      `json:"sender"`                 // 发送者：user/assistant
+	Content       interface{} `json:"content"`                // 消息内容（文本、图片、语音、卡片等）
+	Timestamp     string      `json:"timestamp"`              // 消息时间戳
+	SessionId     string      `json:"sessionId,optional"`     // 会话ID
+	IsStreaming   *bool       `json:"isStreaming,optional"`   // 是否正在流式返回
+	StreamingText string      `json:"streamingText,optional"` // 流式传输中的累积文本（仅系统消息）
+	Markdown      *bool       `json:"markdown,optional"`      // 内容是否包含Markdown格式（仅文本消息）
 }
 
 type ConversationRequest struct {
@@ -108,6 +98,14 @@ type GetShareResponse struct {
 	ExpiresAt          string              `json:"expiresAt"`          // 过期时间
 }
 
+type IdentificationContext struct {
+	ObjectName     string   `json:"objectName"`        // 对象名称
+	ObjectCategory string   `json:"objectCategory"`    // 对象类别
+	Confidence     float64  `json:"confidence"`        // 识别置信度
+	Keywords       []string `json:"keywords,optional"` // 相关关键词
+	Age            int      `json:"age,optional"`      // 用户年龄
+}
+
 type IdentifyRequest struct {
 	Image string `json:"image"`        // base64编码的图片数据
 	Age   int    `json:"age,optional"` // 可选：孩子年龄，用于优化识别
@@ -141,6 +139,38 @@ type KnowledgeCard struct {
 	CollectedAt   string      `json:"collectedAt,optional"` // 收藏时间
 }
 
+type StreamConversationRequest struct {
+	SessionId             string                 `json:"sessionId,optional"`             // 会话ID，如果为空则创建新会话
+	Message               string                 `json:"message"`                        // 用户消息内容（文本）
+	MessageType           string                 `json:"messageType,optional"`           // 消息类型：text/image/voice，默认text
+	Image                 string                 `json:"image,optional"`                 // 图片数据（base64或URL），当messageType为image时必填
+	Voice                 string                 `json:"voice,optional"`                 // 语音数据（base64），当messageType为voice时必填
+	IdentificationContext *IdentificationContext `json:"identificationContext,optional"` // 识别结果上下文（可选，用于关联识别结果）
+	UserAge               int                    `json:"userAge,optional"`               // 用户年龄（3-18岁），用于内容适配
+	MaxContextRounds      int                    `json:"maxContextRounds,optional"`      // 最大上下文轮次，默认20轮
+}
+
+type StreamEvent struct {
+	Type      string      `json:"type"`               // 事件类型：connected/message/image_progress/image_done/card/error/done
+	Content   interface{} `json:"content"`            // 事件内容
+	Index     int         `json:"index,optional"`     // 文本消息的字符索引（用于打字机效果）
+	Progress  int         `json:"progress,optional"`  // 图片生成进度（0-100）
+	SessionId string      `json:"sessionId,optional"` // 会话ID
+	MessageId string      `json:"messageId,optional"` // 消息ID
+	Markdown  bool        `json:"markdown,optional"`  // 内容是否包含Markdown格式（仅文本消息）
+}
+
+type UnifiedStreamConversationRequest struct {
+	MessageType           string                 `json:"messageType"`                    // 消息类型（必填）：text/voice/image
+	Message               string                 `json:"message,optional"`               // 文本消息，当messageType为text时必填
+	Audio                 string                 `json:"audio,optional"`                 // 语音数据（base64），当messageType为voice时必填
+	Image                 string                 `json:"image,optional"`                 // 图片数据（base64或URL），当messageType为image时必填
+	SessionId             string                 `json:"sessionId,optional"`             // 会话ID，如果为空则创建新会话
+	IdentificationContext *IdentificationContext `json:"identificationContext,optional"` // 识别结果上下文（可选）
+	UserAge               int                    `json:"userAge,optional"`               // 用户年龄（3-18岁），用于内容适配
+	MaxContextRounds      int                    `json:"maxContextRounds,optional"`      // 最大上下文轮次，默认20轮
+}
+
 type UploadRequest struct {
 	ImageData string `json:"imageData"`         // base64编码的图片数据（不含 data URL 前缀）
 	Filename  string `json:"filename,optional"` // 可选：文件名（如果不提供，后端自动生成）
@@ -161,27 +191,4 @@ type VoiceRequest struct {
 type VoiceResponse struct {
 	Text      string `json:"text"`               // 识别的文本
 	SessionId string `json:"sessionId,optional"` // 会话ID（可选）
-}
-
-// StreamConversationRequest 流式对话请求
-type StreamConversationRequest struct {
-	SessionId             string                 `json:"sessionId,optional"`             // 会话ID，如果为空则创建新会话
-	Message               string                 `json:"message"`                       // 用户消息内容
-	MessageType           string                 `json:"messageType,optional"`          // 消息类型：text/image/voice，默认text
-	Image                 string                 `json:"image,optional"`                // 图片数据（base64或URL），当messageType为image时必填
-	Voice                 string                 `json:"voice,optional"`                // 语音数据（base64），当messageType为voice时必填
-	IdentificationContext *IdentificationContext `json:"identificationContext,optional"` // 识别结果上下文（可选，用于关联识别结果）
-	UserAge               int                    `json:"userAge,optional"`              // 用户年龄（3-18岁），用于内容适配
-	MaxContextRounds      int                    `json:"maxContextRounds,optional"`    // 最大上下文轮次，默认20轮
-}
-
-// StreamEvent SSE流式事件类型
-type StreamEvent struct {
-	Type      string      `json:"type"`                // 事件类型：connected/message/image_progress/image_done/card/error/done
-	Content   interface{} `json:"content"`              // 事件内容
-	Index     int         `json:"index,optional"`       // 文本消息的字符索引（用于打字机效果）
-	Progress  int         `json:"progress,optional"`    // 图片生成进度（0-100）
-	SessionId string      `json:"sessionId,optional"`  // 会话ID
-	MessageId string      `json:"messageId,optional"`   // 消息ID
-	Markdown  *bool       `json:"markdown,optional"`   // 内容是否为Markdown格式
 }
