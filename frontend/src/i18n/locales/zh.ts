@@ -20,7 +20,7 @@ export default {
 
   // Header
   header: {
-    title: '小小探索家',
+    title: '小探号',
     favorites: '我的收藏',
   },
 
@@ -164,7 +164,7 @@ export default {
   // 报告页面
   report: {
     weeklyReport: '周报',
-    greeting: '你好，小小探索家！',
+    greeting: '你好，小探号！',
     subtitle: '你做得很好！看看你这周的成长吧。',
     explorationStars: '探索次数',
     keepExploring: '继续探索！',

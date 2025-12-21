@@ -61,8 +61,12 @@ export async function exportCardAsImage(
                       const nestedArray = Array.from(nestedRules);
                       for (let j = nestedArray.length - 1; j >= 0; j--) {
                         const nestedRule = nestedArray[j];
-                        if (nestedRule.cssText && nestedRule.cssText.includes('oklch')) {
-                          rule.deleteRule(j);
+                        try {
+                          if (nestedRule.cssText && nestedRule.cssText.includes('oklch')) {
+                            (rule as CSSMediaRule | CSSKeyframesRule).deleteRule(j);
+                          }
+                        } catch (e) {
+                          // 忽略无法删除的嵌套规则
                         }
                       }
                     }
@@ -83,6 +87,8 @@ export async function exportCardAsImage(
         const allElements = clonedElement.querySelectorAll('*');
         const elementsArray = [clonedElement, ...Array.from(allElements)];
         
+        if (!clonedDoc.defaultView) return;
+        
         elementsArray.forEach((el) => {
           const htmlEl = el as HTMLElement;
           if (!htmlEl) return;
@@ -99,6 +105,7 @@ export async function exportCardAsImage(
             }
 
             // 使用 getComputedStyle 获取计算后的 RGB 值并设置为内联样式
+            if (!clonedDoc.defaultView) return;
             const computedStyle = clonedDoc.defaultView.getComputedStyle(htmlEl);
             if (computedStyle) {
               // 强制设置所有颜色属性为 RGB 值

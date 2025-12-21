@@ -44,7 +44,7 @@ export async function exportCardAsImage(
       windowWidth: element.scrollWidth,
       windowHeight: element.scrollHeight,
       // 确保所有样式都被渲染
-      onclone: (clonedDoc, element) => {
+      onclone: (clonedDoc) => {
         // 第一步：移除或禁用所有包含 oklch 的样式表规则
         // 这是最关键的步骤，必须在 html2canvas 解析样式之前完成
         try {
@@ -71,8 +71,12 @@ export async function exportCardAsImage(
                       const nestedArray = Array.from(nestedRules);
                       for (let j = nestedArray.length - 1; j >= 0; j--) {
                         const nestedRule = nestedArray[j];
-                        if (nestedRule.cssText && nestedRule.cssText.includes('oklch')) {
-                          rule.deleteRule(j);
+                        try {
+                          if (nestedRule.cssText && nestedRule.cssText.includes('oklch')) {
+                            (rule as CSSMediaRule | CSSKeyframesRule).deleteRule(j);
+                          }
+                        } catch (e) {
+                          // 忽略无法删除的嵌套规则
                         }
                       }
                     }
@@ -97,6 +101,8 @@ export async function exportCardAsImage(
         const allElements = clonedElement.querySelectorAll('*');
         const elementsArray = [clonedElement, ...Array.from(allElements)];
         
+        if (!clonedDoc.defaultView) return;
+        
         elementsArray.forEach((el) => {
           const htmlEl = el as HTMLElement;
           if (!htmlEl) return;
@@ -113,6 +119,7 @@ export async function exportCardAsImage(
             }
 
             // 使用 getComputedStyle 获取计算后的 RGB 值并设置为内联样式
+            if (!clonedDoc.defaultView) return;
             const computedStyle = clonedDoc.defaultView.getComputedStyle(htmlEl);
             if (computedStyle) {
               // 强制设置所有颜色属性为 RGB 值

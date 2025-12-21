@@ -6,12 +6,14 @@
 import { useEffect, useRef, useMemo } from 'react';
 import { ConversationMessageComponent } from './ConversationMessage';
 import { CardCarousel } from '../cards/CardCarousel';
+import { exportCardAsImage } from '../../utils/cardExport';
 import type { ConversationMessage } from '../../types/conversation';
 import type { KnowledgeCard } from '../../types/exploration';
 
 export interface ConversationListProps {
   messages: ConversationMessage[];
   onCollect?: (cardId: string) => void;
+  onExport?: (cardId: string) => void;
 }
 
 export function ConversationList({ messages, onCollect, onExport }: ConversationListProps) {
@@ -73,7 +75,7 @@ export function ConversationList({ messages, onCollect, onExport }: Conversation
 
   return (
     <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
-      {processedMessages.map((item, index) => {
+      {processedMessages.map((item) => {
         if (item.type === 'cards') {
           // 卡片组：使用CardCarousel
           const cardMessages = item.data as ConversationMessage[];
