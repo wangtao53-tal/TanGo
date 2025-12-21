@@ -74,7 +74,7 @@ export function ConversationList({ messages, onCollect, onExport }: Conversation
   }
 
   return (
-    <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+    <div ref={listRef} className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 space-y-2 w-full">
       {processedMessages.map((item) => {
         if (item.type === 'cards') {
           // 卡片组：使用CardCarousel
