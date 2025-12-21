@@ -117,7 +117,7 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
   return (
     <article
       id={id || `card-${card.id}`}
-      className={`flex flex-col rounded-[2.5rem] bg-white border-4 border-sky-blue shadow-card relative transition-transform hover:-translate-y-2 duration-300 group overflow-hidden w-full max-w-md mx-auto ${className}`}
+      className={`flex flex-col rounded-[2.5rem] bg-white border-4 border-sky-blue shadow-card relative transition-all hover:-translate-y-2 hover:shadow-xl hover:z-10 duration-300 group overflow-hidden w-full max-w-md mx-auto my-2 ${className}`}
     >
       {/* 内容区域（纯文本显示，不显示图片） */}
       <div className="bg-white p-6 flex flex-col justify-between relative rounded-[2.2rem] min-h-[400px]">
