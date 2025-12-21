@@ -184,13 +184,13 @@ function ConversationMessageComponentInner({ message, onCollect }: ConversationM
       {/* 头像 */}
       <div className={`size-10 rounded-full flex items-center justify-center shrink-0 ${
         isUser
-          ? 'bg-[var(--color-primary)]'
-          : 'bg-gray-200'
+          ? 'bg-gradient-to-br from-primary to-[#5aff2b] shadow-md'
+          : 'bg-gradient-to-br from-sky-blue to-blue-400 shadow-md'
       }`}>
         {isUser ? (
-          <span className="material-symbols-outlined text-white text-xl">person</span>
+          <span className="material-symbols-outlined text-white text-xl">face</span>
         ) : (
-          <span className="material-symbols-outlined text-gray-600 text-xl">smart_toy</span>
+          <span className="material-symbols-outlined text-white text-xl">auto_awesome</span>
         )}
       </div>
 
