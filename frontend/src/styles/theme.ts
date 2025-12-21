@@ -19,6 +19,11 @@ export const theme = {
   fonts: {
     display: ['Manrope', 'Noto Sans SC', 'sans-serif'],
     body: ['Noto Sans', 'Quicksand', 'sans-serif'],
+    // 儿童友好字体配置
+    childFriendly: {
+      chinese: ['Comfortaa', 'PingFang SC', 'Microsoft YaHei UI', 'sans-serif'],
+      english: ['Comfortaa', 'Nunito', 'sans-serif'],
+    },
   },
   borderRadius: {
     DEFAULT: '1rem',
@@ -26,6 +31,10 @@ export const theme = {
     xl: '3rem',
     '2xl': '4rem',
     full: '9999px',
+  },
+  // 固定比例配置
+  aspectRatio: {
+    card: '16/9',
   },
 } as const;
 

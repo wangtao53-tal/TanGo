@@ -1,19 +1,31 @@
 /**
- * 导出工具函数
- * 使用 html2canvas 将卡片导出为图片
+ * 卡片导出工具
+ * 封装 html2canvas，用于将卡片导出为图片
  */
 
 import html2canvas from 'html2canvas';
 
+export interface CardExportOptions {
+  scale?: number; // 图片清晰度（默认3）
+  backgroundColor?: string; // 背景色（默认白色）
+  filename?: string; // 文件名（不含扩展名）
+}
+
 /**
  * 导出卡片为图片
  * @param elementId 卡片元素的ID
- * @param filename 文件名（不含扩展名）
+ * @param options 导出选项
  */
 export async function exportCardAsImage(
   elementId: string,
-  filename: string = 'card'
+  options: CardExportOptions = {}
 ): Promise<void> {
+  const {
+    scale = 3,
+    backgroundColor = '#ffffff',
+    filename = `card-${Date.now()}`,
+  } = options;
+
   const element = document.getElementById(elementId);
   if (!element) {
     throw new Error(`找不到ID为 ${elementId} 的元素`);
@@ -22,8 +34,8 @@ export async function exportCardAsImage(
   try {
     // 使用 html2canvas 捕获元素，优化配置确保清晰度
     const canvas = await html2canvas(element, {
-      backgroundColor: '#ffffff',
-      scale: 3, // 提高图片清晰度（从2提升到3）
+      backgroundColor,
+      scale, // 提高图片清晰度
       useCORS: true,
       allowTaint: false,
       logging: false,
@@ -32,11 +44,9 @@ export async function exportCardAsImage(
       windowWidth: element.scrollWidth,
       windowHeight: element.scrollHeight,
       // 确保所有样式都被渲染
-      onclone: (clonedDoc) => {
-        const clonedElement = clonedDoc.getElementById(elementId);
-        if (!clonedElement || !clonedDoc.defaultView) return;
-
-        // 第一步：移除所有包含 oklch 的样式表规则
+      onclone: (clonedDoc, element) => {
+        // 第一步：移除或禁用所有包含 oklch 的样式表规则
+        // 这是最关键的步骤，必须在 html2canvas 解析样式之前完成
         try {
           const styleSheets = clonedDoc.styleSheets;
           const styleSheetsArray = Array.from(styleSheets);
@@ -73,11 +83,15 @@ export async function exportCardAsImage(
               }
             } catch (e) {
               // 跨域样式表可能无法访问，忽略
+              console.warn('无法访问样式表:', e);
             }
           });
         } catch (e) {
-          // 忽略样式表处理错误
+          console.warn('处理样式表时出错:', e);
         }
+
+        const clonedElement = clonedDoc.getElementById(elementId);
+        if (!clonedElement || !clonedDoc.defaultView) return;
 
         // 第二步：遍历所有元素，清理 style 属性中的 oklch，并使用 getComputedStyle 设置 RGB 值
         const allElements = clonedElement.querySelectorAll('*');
@@ -144,43 +158,34 @@ export async function exportCardAsImage(
       },
     });
 
-    // 转换为 blob
-    canvas.toBlob((blob) => {
-      if (!blob) {
-        throw new Error('生成图片失败');
-      }
+    // 转换为 blob 并下载
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error('生成图片失败'));
+          return;
+        }
 
-      // 创建下载链接
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${filename}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }, 'image/png');
+        // 创建下载链接
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${filename}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // 延迟释放URL，确保下载完成
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 100);
+        
+        resolve();
+      }, 'image/png', 1.0); // 最高质量
+    });
   } catch (error) {
     console.error('导出卡片失败:', error);
     throw error;
   }
 }
 
-/**
- * 导出多个卡片为图片（批量导出）
- * @param elementIds 卡片元素ID数组
- * @param baseFilename 基础文件名
- */
-export async function exportCardsAsImages(
-  elementIds: string[],
-  baseFilename: string = 'cards'
-): Promise<void> {
-  for (let i = 0; i < elementIds.length; i++) {
-    const elementId = elementIds[i];
-    await exportCardAsImage(elementId, `${baseFilename}-${i + 1}`);
-    // 添加延迟，避免浏览器阻止多个下载
-    if (i < elementIds.length - 1) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-  }
-}

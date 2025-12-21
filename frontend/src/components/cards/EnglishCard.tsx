@@ -10,6 +10,7 @@ import type { EnglishCardContent } from '../../types/exploration';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
 import { extractCardText, detectCardLanguage } from '../../utils/cardTextExtractor';
 import { usePlayingCard } from './ScienceCard';
+import { cardStyles } from '../../styles/cardStyles';
 
 export interface EnglishCardProps {
   card: KnowledgeCard;
@@ -84,21 +85,31 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
 
   const handleCollect = async () => {
     const newCollectedState = !isCollected;
+    
+    // 乐观更新UI
     setIsCollected(newCollectedState);
     
     if (onCollect) {
       onCollect(card.id);
     }
 
-    // 立即保存到本地存储
-    if (newCollectedState) {
-      const cardToSave = {
-        ...card,
-        collectedAt: new Date().toISOString(),
-      };
-      await cardStorage.save(cardToSave);
-    } else {
-      await cardStorage.delete(card.id);
+    try {
+      // 保存到本地存储
+      if (newCollectedState) {
+        const cardToSave = {
+          ...card,
+          collectedAt: new Date().toISOString(),
+        };
+        await cardStorage.save(cardToSave);
+      } else {
+        await cardStorage.delete(card.id);
+      }
+    } catch (error) {
+      // 如果保存失败，回滚状态
+      console.error('收藏操作失败:', error);
+      setIsCollected(!newCollectedState);
+      // 可选：显示错误提示
+      // alert('收藏操作失败，请重试');
     }
   };
 
@@ -109,16 +120,24 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
       className={`flex flex-col rounded-[2.5rem] bg-white border-4 border-sky-blue shadow-card relative transition-transform hover:-translate-y-2 duration-300 group overflow-hidden w-full max-w-md mx-auto ${className}`}
     >
       {/* 内容区域（纯文本显示，不显示图片） */}
-      <div className="bg-white p-6 flex flex-col justify-between relative rounded-[2.2rem]">
-        <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin">
+      <div className="bg-white p-6 flex flex-col justify-between relative rounded-[2.2rem] min-h-[400px]">
+        <div className="flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-3xl font-display font-bold text-sky-blue">
+            <h3 
+              className="font-bold"
+              style={{ 
+                fontSize: cardStyles.fonts.sizes.title,
+                lineHeight: cardStyles.fonts.lineHeight.title,
+                fontFamily: cardStyles.fonts.childFriendly.english,
+                color: '#0284C7' // 使用更深的蓝色，确保对比度≥4.5:1
+              }}
+            >
               {card.title}
             </h3>
             <button
               onClick={handleListen}
               disabled={!isSupported}
-              className={`size-10 rounded-full flex items-center justify-center transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`size-10 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 ${
                 isPlaying && !isPaused
                   ? 'bg-sky-blue text-white'
                   : 'bg-sky-blue/20 hover:bg-sky-blue hover:text-white text-sky-blue'
@@ -130,18 +149,32 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
             </button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 flex-1">
             {/* 核心单词 */}
             {content.words && content.words.length > 0 && (
               <div>
-                <h4 className="text-xs font-black text-sky-blue uppercase mb-2 tracking-wider">
+                <h4 
+                  className="font-black uppercase mb-2 tracking-wider"
+                  style={{ 
+                    fontSize: cardStyles.fonts.sizes.small,
+                    lineHeight: cardStyles.fonts.lineHeight.small,
+                    fontFamily: cardStyles.fonts.childFriendly.english,
+                    color: '#0284C7' // 使用更深的蓝色，确保对比度≥4.5:1
+                  }}
+                >
                   Magic Words
                 </h4>
                 <div className="flex gap-2 flex-wrap">
                   {content.words.map((word, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1.5 bg-sky-blue/10 rounded-xl text-xs font-bold text-sky-blue border border-sky-blue/20 hover:bg-sky-blue hover:text-white cursor-pointer transition-colors"
+                      className="px-3 py-1.5 bg-sky-blue/10 rounded-xl font-bold border border-sky-blue/20 hover:bg-sky-blue hover:text-white cursor-pointer transition-colors"
+                      style={{ 
+                        fontSize: cardStyles.fonts.sizes.small,
+                        lineHeight: cardStyles.fonts.lineHeight.small,
+                        fontFamily: cardStyles.fonts.childFriendly.english,
+                        color: '#0284C7' // 使用更深的蓝色，确保对比度≥4.5:1
+                      }}
                     >
                       {word}
                     </span>
@@ -153,15 +186,38 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
             {/* 口语表达 */}
             {content.expressions && content.expressions.length > 0 && (
               <div>
-                <h4 className="text-xs font-black text-sky-blue uppercase mb-2 tracking-wider">
+                <h4 
+                  className="font-black uppercase mb-2 tracking-wider"
+                  style={{ 
+                    fontSize: cardStyles.fonts.sizes.small,
+                    lineHeight: cardStyles.fonts.lineHeight.small,
+                    fontFamily: cardStyles.fonts.childFriendly.english,
+                    color: '#0284C7' // 使用更深的蓝色，确保对比度≥4.5:1
+                  }}
+                >
                   Let's Talk!
                 </h4>
                 <div className="bg-sky-50 p-4 rounded-2xl border-2 border-sky-blue/20 relative">
-                  <div className="absolute -top-3 right-4 bg-sky-200 text-sky-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  <div 
+                    className="absolute -top-3 right-4 bg-sky-200 text-sky-800 font-bold px-2 py-0.5 rounded-full"
+                    style={{ 
+                      fontSize: cardStyles.fonts.sizes.small,
+                      fontFamily: cardStyles.fonts.childFriendly.english
+                    }}
+                  >
                     Try saying this
                   </div>
                   {content.expressions.map((expr, index) => (
-                    <p key={index} className="text-sm text-slate-700 mb-2 font-bold">
+                    <p 
+                      key={index} 
+                      className="mb-2 font-bold"
+                      style={{ 
+                        fontSize: cardStyles.fonts.sizes.body,
+                        lineHeight: cardStyles.fonts.lineHeight.body,
+                        fontFamily: cardStyles.fonts.childFriendly.english,
+                        color: '#1F2937' // 使用更深的灰色，确保对比度≥4.5:1
+                      }}
+                    >
                       "{expr}"
                     </p>
                   ))}
@@ -177,7 +233,7 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
             <button
               onClick={handleListen}
               disabled={!isSupported}
-              className="flex items-center gap-2 text-sm font-bold text-sky-blue bg-sky-blue/20 hover:bg-sky-blue hover:text-white px-5 py-3 rounded-full transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 text-sm font-bold text-sky-blue bg-sky-blue/20 hover:bg-sky-blue hover:text-white px-5 py-3 rounded-full transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
             >
               <span className="material-symbols-outlined text-xl">
                 {isPlaying && !isPaused ? 'pause' : 'play_circle'}
@@ -187,7 +243,7 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
             {isPlaying && (
               <button
                 onClick={handleStop}
-                className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-700 px-3 py-2 rounded-full transition-all"
+                className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-700 px-3 py-2 rounded-full transition-all duration-200 active:scale-95"
               >
                 <span className="material-symbols-outlined text-lg">stop</span>
                 停止
@@ -196,13 +252,19 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
           </div>
           <button
             onClick={handleCollect}
-            className={`size-12 rounded-full flex items-center justify-center transition-all group-active:scale-90 shadow-sm border-2 ${
+            className={`size-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border-2 active:scale-90 ${
               isCollected
-                ? 'bg-yellow-300 text-yellow-800 border-yellow-400'
-                : 'bg-slate-100 text-slate-300 border-slate-200 hover:border-yellow-400'
+                ? 'bg-yellow-300 text-yellow-800 border-yellow-400 hover:bg-yellow-400 hover:scale-105'
+                : 'bg-slate-100 text-slate-300 border-slate-200 hover:border-yellow-400 hover:bg-yellow-50'
             }`}
           >
-            <span className="material-symbols-outlined text-2xl fill-current">star</span>
+            <span 
+              className={`material-symbols-outlined text-2xl transition-all duration-300 ${
+                isCollected ? 'fill-current scale-110' : 'fill-current'
+              }`}
+            >
+              star
+            </span>
           </button>
         </div>
       </div>

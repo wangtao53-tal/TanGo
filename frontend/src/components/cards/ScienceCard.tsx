@@ -9,6 +9,7 @@ import type { KnowledgeCard } from '../../types/exploration';
 import type { ScienceCardContent } from '../../types/exploration';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
 import { extractCardText, detectCardLanguage } from '../../utils/cardTextExtractor';
+import { cardStyles } from '../../styles/cardStyles';
 
 // 全局播放状态上下文（确保同时只播放一张卡片）
 interface AudioPlaybackContextType {
@@ -111,21 +112,31 @@ export const ScienceCard: React.FC<ScienceCardProps> = ({
 
   const handleCollect = async () => {
     const newCollectedState = !isCollected;
+    
+    // 乐观更新UI
     setIsCollected(newCollectedState);
     
     if (onCollect) {
       onCollect(card.id);
     }
 
-    // 立即保存到本地存储
-    if (newCollectedState) {
-      const cardToSave = {
-        ...card,
-        collectedAt: new Date().toISOString(),
-      };
-      await cardStorage.save(cardToSave);
-    } else {
-      await cardStorage.delete(card.id);
+    try {
+      // 保存到本地存储
+      if (newCollectedState) {
+        const cardToSave = {
+          ...card,
+          collectedAt: new Date().toISOString(),
+        };
+        await cardStorage.save(cardToSave);
+      } else {
+        await cardStorage.delete(card.id);
+      }
+    } catch (error) {
+      // 如果保存失败，回滚状态
+      console.error('收藏操作失败:', error);
+      setIsCollected(!newCollectedState);
+      // 可选：显示错误提示
+      // alert('收藏操作失败，请重试');
     }
   };
 
@@ -135,21 +146,47 @@ export const ScienceCard: React.FC<ScienceCardProps> = ({
       className={`flex flex-col rounded-[2.5rem] bg-white border-4 border-science-green shadow-card relative transition-transform hover:-translate-y-2 duration-300 group overflow-hidden w-full max-w-md mx-auto ${className}`}
     >
       {/* 内容区域（纯文本显示，不显示图片） */}
-      <div className="bg-white p-6 flex flex-col justify-between relative rounded-[2.2rem]">
-        <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin">
-          <h3 className="text-3xl font-display font-bold text-science-green mb-2">
+      <div className="bg-white p-6 flex flex-col justify-between relative rounded-[2.2rem] min-h-[400px]">
+        <div className="flex-1 flex flex-col">
+          <h3 
+            className="font-bold mb-2"
+            style={{ 
+              fontSize: cardStyles.fonts.sizes.title,
+              lineHeight: cardStyles.fonts.lineHeight.title,
+              fontFamily: cardStyles.fonts.childFriendly.chinese,
+              color: '#059669' // 使用更深的绿色，确保对比度≥4.5:1
+            }}
+          >
             {content.name || card.title}
           </h3>
-          <p className="text-base font-semibold text-slate-500 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100 italic">
+          <p 
+            className="font-semibold mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100 italic"
+            style={{ 
+              fontSize: cardStyles.fonts.sizes.body,
+              lineHeight: cardStyles.fonts.lineHeight.body,
+              fontFamily: cardStyles.fonts.childFriendly.chinese,
+              color: '#374151' // 使用更深的灰色，确保对比度≥4.5:1
+            }}
+          >
             "{content.explanation}"
           </p>
 
           {/* 关键事实 */}
-          <div className="space-y-3 mb-4">
+          <div className="space-y-3 mb-4 flex-1">
             {content.facts?.map((fact, index) => (
               <div key={index} className="flex gap-3 items-start group/item">
                 <div className="mt-1 size-2 rounded-full bg-science-green group-hover/item:scale-150 transition-transform" />
-                <p className="text-sm font-bold text-slate-600 leading-snug">{fact}</p>
+                <p 
+                  className="font-bold"
+                  style={{ 
+                    fontSize: cardStyles.fonts.sizes.body,
+                    lineHeight: cardStyles.fonts.lineHeight.body,
+                    fontFamily: cardStyles.fonts.childFriendly.chinese,
+                    color: '#374151' // 使用更深的灰色，确保对比度≥4.5:1
+                  }}
+                >
+                  {fact}
+                </p>
               </div>
             ))}
           </div>
@@ -160,10 +197,28 @@ export const ScienceCard: React.FC<ScienceCardProps> = ({
               <span className="absolute -top-3 -right-3 bg-science-green text-white rounded-full p-1 border-2 border-white shadow-sm">
                 <span className="material-symbols-outlined text-sm">lightbulb</span>
               </span>
-              <span className="text-xs font-black text-science-green uppercase tracking-wider block mb-1">
+              <span 
+                className="font-black uppercase tracking-wider block mb-1"
+                style={{ 
+                  fontSize: cardStyles.fonts.sizes.small,
+                  lineHeight: cardStyles.fonts.lineHeight.small,
+                  fontFamily: cardStyles.fonts.childFriendly.english,
+                  color: '#059669' // 使用更深的绿色，确保对比度≥4.5:1
+                }}
+              >
                 Fun Fact
               </span>
-              <p className="text-sm font-bold text-slate-700">{content.funFact}</p>
+              <p 
+                className="font-bold"
+                style={{ 
+                  fontSize: cardStyles.fonts.sizes.body,
+                  lineHeight: cardStyles.fonts.lineHeight.body,
+                  fontFamily: cardStyles.fonts.childFriendly.chinese,
+                  color: '#1F2937' // 使用更深的灰色，确保对比度≥4.5:1
+                }}
+              >
+                {content.funFact}
+              </p>
             </div>
           )}
         </div>
@@ -174,7 +229,7 @@ export const ScienceCard: React.FC<ScienceCardProps> = ({
             <button
               onClick={handleListen}
               disabled={!isSupported}
-              className="flex items-center gap-2 text-sm font-bold text-science-green bg-science-green/20 hover:bg-science-green hover:text-white px-5 py-3 rounded-full transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 text-sm font-bold text-science-green bg-science-green/20 hover:bg-science-green hover:text-white px-5 py-3 rounded-full transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
             >
               <span className="material-symbols-outlined text-xl">
                 {isPlaying && !isPaused ? 'pause' : 'play_circle'}
@@ -184,7 +239,7 @@ export const ScienceCard: React.FC<ScienceCardProps> = ({
             {isPlaying && (
               <button
                 onClick={handleStop}
-                className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-700 px-3 py-2 rounded-full transition-all"
+                className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-700 px-3 py-2 rounded-full transition-all duration-200 active:scale-95"
               >
                 <span className="material-symbols-outlined text-lg">stop</span>
                 停止
@@ -193,13 +248,19 @@ export const ScienceCard: React.FC<ScienceCardProps> = ({
           </div>
           <button
             onClick={handleCollect}
-            className={`size-12 rounded-full flex items-center justify-center transition-all group-active:scale-90 shadow-sm border-2 ${
+            className={`size-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border-2 active:scale-90 ${
               isCollected
-                ? 'bg-yellow-300 text-yellow-800 border-yellow-400'
-                : 'bg-slate-100 text-slate-300 border-slate-200 hover:border-yellow-400'
+                ? 'bg-yellow-300 text-yellow-800 border-yellow-400 hover:bg-yellow-400 hover:scale-105'
+                : 'bg-slate-100 text-slate-300 border-slate-200 hover:border-yellow-400 hover:bg-yellow-50'
             }`}
           >
-            <span className="material-symbols-outlined text-2xl fill-current">star</span>
+            <span 
+              className={`material-symbols-outlined text-2xl transition-all duration-300 ${
+                isCollected ? 'fill-current scale-110' : 'fill-current'
+              }`}
+            >
+              star
+            </span>
           </button>
         </div>
       </div>

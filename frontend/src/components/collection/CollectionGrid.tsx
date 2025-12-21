@@ -120,11 +120,12 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
             return (
               <div key={card.id} className="relative group">
                 {cardElement}
-                {/* 导出按钮 */}
+                {/* 导出按钮（PC和移动端都显示） */}
                 <button
                   onClick={() => handleExport(card.id)}
-                  className="absolute top-4 right-4 z-10 size-10 rounded-full bg-white/90 hover:bg-white text-gray-600 shadow-lg flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+                  className="absolute top-4 right-4 z-10 size-10 rounded-full bg-white/90 hover:bg-white active:scale-95 text-gray-600 shadow-lg flex items-center justify-center transition-all"
                   title={t('collection.exportCardTitle')}
+                  aria-label={t('collection.exportCardTitle')}
                 >
                   <span className="material-symbols-outlined">download</span>
                 </button>

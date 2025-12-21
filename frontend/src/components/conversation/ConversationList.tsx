@@ -3,16 +3,18 @@
  * 显示所有对话消息，支持流式更新
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { ConversationMessageComponent } from './ConversationMessage';
+import { CardCarousel } from '../cards/CardCarousel';
 import type { ConversationMessage } from '../../types/conversation';
+import type { KnowledgeCard } from '../../types/exploration';
 
 export interface ConversationListProps {
   messages: ConversationMessage[];
   onCollect?: (cardId: string) => void;
 }
 
-export function ConversationList({ messages, onCollect }: ConversationListProps) {
+export function ConversationList({ messages, onCollect, onExport }: ConversationListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -21,6 +23,41 @@ export function ConversationList({ messages, onCollect }: ConversationListProps)
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
+  }, [messages]);
+
+  // 检测连续的卡片消息并分组
+  const processedMessages = useMemo(() => {
+    const result: Array<{ type: 'message' | 'cards'; data: ConversationMessage | ConversationMessage[] }> = [];
+    let i = 0;
+
+    while (i < messages.length) {
+      const message = messages[i];
+
+      // 检测卡片消息
+      if (message.type === 'card' && message.sender === 'assistant') {
+        // 收集连续的卡片消息（最多3张）
+        const cardMessages: ConversationMessage[] = [];
+        let j = i;
+
+        while (j < messages.length && messages[j].type === 'card' && messages[j].sender === 'assistant' && cardMessages.length < 3) {
+          cardMessages.push(messages[j]);
+          j++;
+        }
+
+        // 如果有多张卡片，使用CardCarousel
+        if (cardMessages.length > 0) {
+          result.push({ type: 'cards', data: cardMessages });
+          i = j;
+          continue;
+        }
+      }
+
+      // 普通消息
+      result.push({ type: 'message', data: message });
+      i++;
+    }
+
+    return result;
   }, [messages]);
 
   if (messages.length === 0) {
@@ -36,13 +73,50 @@ export function ConversationList({ messages, onCollect }: ConversationListProps)
 
   return (
     <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
-      {messages.map((message) => (
-        <ConversationMessageComponent
-          key={message.id}
-          message={message}
-          onCollect={onCollect}
-        />
-      ))}
+      {processedMessages.map((item, index) => {
+        if (item.type === 'cards') {
+          // 卡片组：使用CardCarousel
+          const cardMessages = item.data as ConversationMessage[];
+          const cards: KnowledgeCard[] = cardMessages.map(msg => msg.content as KnowledgeCard);
+
+          return (
+            <div key={`cards-${cardMessages[0].id}`} className="flex gap-3 mb-4">
+              {/* 头像 */}
+              <div className="size-10 rounded-full flex items-center justify-center shrink-0 bg-gray-200">
+                <span className="material-symbols-outlined text-gray-600 text-xl">smart_toy</span>
+              </div>
+
+              {/* 卡片轮播 */}
+              <div className="flex-1">
+                <CardCarousel 
+                  cards={cards} 
+                  onCollect={onCollect}
+                  onExport={onExport || (async (cardId: string) => {
+                    try {
+                      await exportCardAsImage(`card-${cardId}`, { filename: `card-${cardId}-${Date.now()}` });
+                    } catch (error) {
+                      console.error('导出卡片失败:', error);
+                    }
+                  })}
+                />
+                <span className="text-xs text-gray-400 mt-1 block">
+                  {new Date(cardMessages[0].timestamp).toLocaleTimeString()}
+                </span>
+              </div>
+            </div>
+          );
+        } else {
+          // 普通消息
+          const message = item.data as ConversationMessage;
+          return (
+            <ConversationMessageComponent
+              key={message.id}
+              message={message}
+              onCollect={onCollect}
+            />
+          );
+        }
+      })}
       <div ref={messagesEndRef} />
     </div>
   );
