@@ -30,7 +30,7 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
   };
 
   return (
-    <div className="flex items-center gap-2 px-4 py-3 bg-white border-t border-gray-200">
+    <div className="flex items-center gap-2 w-full">
       <input
         type="text"
         value={input}
@@ -38,12 +38,12 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
         onKeyPress={handleKeyPress}
         placeholder={t('conversation.placeholder')}
         disabled={disabled}
-        className="flex-1 px-4 py-2 rounded-full border-2 border-gray-200 focus:border-[var(--color-primary)] focus:outline-none disabled:opacity-50"
+        className="flex-1 px-4 py-2 rounded-full border-2 border-gray-200 focus:border-[var(--color-primary)] focus:outline-none disabled:opacity-50 text-sm md:text-base"
       />
       <button
         onClick={handleSend}
         disabled={disabled || !input.trim()}
-        className="px-6 py-2 rounded-full bg-[var(--color-primary)] text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#5aff2b] transition-colors"
+        className="shrink-0 px-4 py-2 md:px-6 rounded-full bg-[var(--color-primary)] text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#5aff2b] transition-colors text-sm md:text-base whitespace-nowrap"
       >
         {t('conversation.send')}
       </button>
