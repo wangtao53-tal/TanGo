@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Header } from '../components/common/Header';
 import { CollectionGrid } from '../components/collection/CollectionGrid';
 import { CategoryFilter, type Category } from '../components/collection/CategoryFilter';
@@ -13,6 +14,7 @@ import type { ExplorationRecord } from '../types/exploration';
 import type { KnowledgeCard } from '../types/exploration';
 
 export default function Collection() {
+  const { t } = useTranslation();
   const [records, setRecords] = useState<ExplorationRecord[]>([]);
   const [cards, setCards] = useState<KnowledgeCard[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category>('all');
@@ -54,7 +56,7 @@ export default function Collection() {
       await exportCardAsImage(`card-${cardId}`, `card-${cardId}`);
     } catch (error) {
       console.error('导出卡片失败:', error);
-      alert('导出失败，请重试');
+      alert(t('collection.exportError'));
     }
   };
 
@@ -67,14 +69,14 @@ export default function Collection() {
       }
     } catch (error) {
       console.error('批量导出失败:', error);
-      alert('导出失败，请重试');
+      alert(t('collection.exportError'));
     }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-cloud-white flex items-center justify-center">
-        <div className="text-text-sub">加载中...</div>
+        <div className="text-text-sub">{t('common.loading')}</div>
       </div>
     );
   }
@@ -93,11 +95,11 @@ export default function Collection() {
                   <span className="material-symbols-outlined text-3xl">stars</span>
                 </div>
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-text-main to-orange-800">
-                  My Favorites
+                  {t('collection.title')}
                 </span>
               </h1>
               <p className="text-text-sub text-sm md:text-base font-medium pl-1 mt-2">
-                Keep exploring your collection of wonders!
+                {t('collection.subtitle')}
               </p>
             </div>
 
@@ -108,10 +110,10 @@ export default function Collection() {
                 <button
                   onClick={handleExportAll}
                   className="group flex items-center justify-center gap-2 bg-[var(--color-primary)] hover:bg-[#5aff2b] text-white px-4 py-2 rounded-full transition-all shadow-md hover:shadow-lg"
-                  title="导出所有卡片"
+                  title={t('collection.exportAllTitle')}
                 >
                   <span className="material-symbols-outlined text-lg">download</span>
-                  <span className="text-sm font-bold font-display hidden sm:inline">导出全部</span>
+                  <span className="text-sm font-bold font-display hidden sm:inline">{t('collection.exportAll')}</span>
                 </button>
               )}
               
@@ -120,16 +122,16 @@ export default function Collection() {
                 <div className="flex items-center gap-2 pl-3 pr-3 py-1.5 bg-gray-100 rounded-full">
                   <span className="material-symbols-outlined text-gray-500 text-sm">lock_open</span>
                   <span className="text-xs font-bold text-gray-500 uppercase tracking-wider font-display">
-                    Parent Mode
+                    {t('collection.parentMode')}
                   </span>
                 </div>
                 <button
                   onClick={handleClearAll}
                   className="group flex items-center justify-center gap-1.5 text-red-400 hover:text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-full transition-all cursor-pointer"
-                  title="Only available in Parent Mode"
+                  title={t('collection.clearAllHint')}
                 >
                   <span className="material-symbols-outlined text-lg">delete</span>
-                  <span className="text-sm font-bold font-display">Clear All</span>
+                  <span className="text-sm font-bold font-display">{t('collection.clearAll')}</span>
                 </button>
               </div>
             </div>
@@ -162,10 +164,10 @@ export default function Collection() {
                       <span className="material-symbols-outlined text-primary text-3xl">lightbulb</span>
                       <div>
                         <h4 className="text-primary font-bold font-display text-lg mb-1">
-                          Little Star Says:
+                          {t('collection.littleStarSays')}
                         </h4>
                         <p className="text-text-main font-medium leading-relaxed">
-                          Go explore interesting knowledge and collect more favorite cards! I'm waiting for your discoveries! ✨
+                          {t('collection.littleStarMessage')}
                         </p>
                       </div>
                     </div>

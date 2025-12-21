@@ -101,7 +101,7 @@ export default function Home() {
                 <span className="material-symbols-outlined text-3xl">science</span>
               </div>
               <h3 className="text-[var(--color-text-main)] text-lg font-bold text-center group-hover:text-[var(--color-science-green)] transition-colors font-[var(--font-display)]">
-                科学认知
+                {t('home.cardScience')}
               </h3>
             </div>
           </div>
@@ -114,7 +114,7 @@ export default function Home() {
                 <span className="material-symbols-outlined text-3xl">auto_stories</span>
               </div>
               <h3 className="text-text-main text-lg font-bold text-center group-hover:text-sunny-orange transition-colors font-display">
-                人文素养
+                {t('home.cardHumanities')}
               </h3>
             </div>
           </div>
@@ -127,7 +127,7 @@ export default function Home() {
                 <span className="material-symbols-outlined text-3xl">forum</span>
               </div>
               <h3 className="text-text-main text-lg font-bold text-center group-hover:text-sky-blue transition-colors font-display">
-                语言能力
+                {t('home.cardLanguage')}
               </h3>
             </div>
           </div>
@@ -135,7 +135,7 @@ export default function Home() {
       </main>
 
       {/* Little Star对话气泡 */}
-      <LittleStar message="拍一拍，发现有趣的知识吧～" />
+      <LittleStar message={t('home.littleStarMessage')} />
 
       {/* 背景装饰元素 */}
       <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
