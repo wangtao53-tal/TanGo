@@ -1,12 +1,18 @@
 /**
  * 快速拍照按钮组件
- * 固定在页面底部，所有页面可见
+ * 固定在页面底部，所有页面可见（除了对话页面）
  */
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export function QuickCaptureButton() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // 在对话页面（Result）不显示，避免与底部输入栏重叠
+  if (location.pathname === '/result') {
+    return null;
+  }
 
   const handleClick = () => {
     navigate('/capture');
