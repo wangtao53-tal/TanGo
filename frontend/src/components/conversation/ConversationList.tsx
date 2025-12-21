@@ -84,8 +84,8 @@ export function ConversationList({ messages, onCollect, onExport }: Conversation
           return (
             <div key={`cards-${cardMessages[0].id}`} className="flex gap-3 mb-4">
               {/* 头像 */}
-              <div className="size-10 rounded-full flex items-center justify-center shrink-0 bg-gray-200">
-                <span className="material-symbols-outlined text-gray-600 text-xl">smart_toy</span>
+              <div className="size-10 rounded-full flex items-center justify-center shrink-0 bg-gradient-to-br from-sky-blue to-blue-400 shadow-md">
+                <span className="material-symbols-outlined text-white text-xl">auto_awesome</span>
               </div>
 
               {/* 卡片轮播 */}
