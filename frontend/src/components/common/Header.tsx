@@ -25,10 +25,12 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center justify-between rounded-full bg-white/80 backdrop-blur-md border border-white shadow-lg px-4 py-2">
         <div className="flex items-center gap-3">
           <div className="size-12 rounded-full border-2 border-warm-yellow overflow-hidden bg-white shadow-sm">
-            {/* 头像占位符 */}
-            <div className="w-full h-full bg-gradient-to-br from-yellow-200 to-orange-200 flex items-center justify-center">
-              <span className="text-xl">🚀</span>
-            </div>
+            {/* 头像图标 */}
+            <img 
+              src="/icon.png" 
+              alt="TanGo" 
+              className="w-full h-full object-cover"
+            />
           </div>
           <h2 className="hidden sm:block text-text-main text-lg font-bold tracking-tight font-display">
             {title || t('header.title')}

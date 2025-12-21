@@ -20,7 +20,7 @@ export default {
 
   // Header
   header: {
-    title: 'Little Explorer',
+    title: 'TanGo',
     favorites: 'My Favorites',
   },
 
@@ -162,7 +162,7 @@ export default {
   // Report page
   report: {
     weeklyReport: 'Weekly Report',
-    greeting: 'Hi, Little Explorer!',
+    greeting: 'Hi, TanGo!',
     subtitle: 'You\'re doing great! Look at your growth this week.',
     explorationStars: 'Exploration Stars',
     keepExploring: 'Keep exploring!',
