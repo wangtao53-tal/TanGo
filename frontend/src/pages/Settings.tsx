@@ -8,32 +8,19 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Header } from '../components/common/Header';
 import { LanguageSwitcher } from '../components/common/LanguageSwitcher';
-import { userSettingsStorage, userProfileStorage } from '../services/storage';
-import type { UserSettings } from '../types/settings';
+import { userProfileStorage } from '../services/storage';
 import type { UserProfile } from '../types/exploration';
 
 export default function Settings() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [settings, setSettings] = useState<UserSettings | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [grade, setGrade] = useState<string>('');
 
   useEffect(() => {
-    loadSettings();
     loadProfile();
   }, []);
 
-  const loadSettings = () => {
-    const savedSettings = userSettingsStorage.get();
-    if (savedSettings) {
-      setSettings(savedSettings);
-    } else {
-      const defaultSettings = userSettingsStorage.getDefault();
-      userSettingsStorage.save(defaultSettings);
-      setSettings(defaultSettings);
-    }
-  };
 
   const loadProfile = () => {
     const savedProfile = userProfileStorage.get();
@@ -66,21 +53,21 @@ export default function Settings() {
   };
 
   const grades = [
-    { value: 'K1', label: 'Kindergarten 1' },
-    { value: 'K2', label: 'Kindergarten 2' },
-    { value: 'K3', label: 'Kindergarten 3' },
-    { value: 'G1', label: 'Grade 1' },
-    { value: 'G2', label: 'Grade 2' },
-    { value: 'G3', label: 'Grade 3' },
-    { value: 'G4', label: 'Grade 4' },
-    { value: 'G5', label: 'Grade 5' },
-    { value: 'G6', label: 'Grade 6' },
-    { value: 'G7', label: 'Grade 7' },
-    { value: 'G8', label: 'Grade 8' },
-    { value: 'G9', label: 'Grade 9' },
-    { value: 'G10', label: 'Grade 10' },
-    { value: 'G11', label: 'Grade 11' },
-    { value: 'G12', label: 'Grade 12' },
+    { value: 'K1', labelKey: 'settings.gradeK1' },
+    { value: 'K2', labelKey: 'settings.gradeK2' },
+    { value: 'K3', labelKey: 'settings.gradeK3' },
+    { value: 'G1', labelKey: 'settings.gradeG1' },
+    { value: 'G2', labelKey: 'settings.gradeG2' },
+    { value: 'G3', labelKey: 'settings.gradeG3' },
+    { value: 'G4', labelKey: 'settings.gradeG4' },
+    { value: 'G5', labelKey: 'settings.gradeG5' },
+    { value: 'G6', labelKey: 'settings.gradeG6' },
+    { value: 'G7', labelKey: 'settings.gradeG7' },
+    { value: 'G8', labelKey: 'settings.gradeG8' },
+    { value: 'G9', labelKey: 'settings.gradeG9' },
+    { value: 'G10', labelKey: 'settings.gradeG10' },
+    { value: 'G11', labelKey: 'settings.gradeG11' },
+    { value: 'G12', labelKey: 'settings.gradeG12' },
   ];
 
   return (
@@ -128,7 +115,7 @@ export default function Settings() {
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {g.label}
+                {t(g.labelKey as any)}
               </button>
             ))}
           </div>
@@ -143,7 +130,7 @@ export default function Settings() {
             <p>
               <span className="font-bold">{t('settings.version')}:</span> 1.0.0
             </p>
-            <p>TanGo - 探索世界的知识卡片应用</p>
+            <p>{t('settings.appDescription')}</p>
           </div>
         </div>
 

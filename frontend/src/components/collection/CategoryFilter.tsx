@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 export type Category = 'all' | '自然类' | '生活类' | '人文类';
 
@@ -15,31 +16,31 @@ export interface CategoryFilterProps {
 const categories: Array<{ 
   value: Category; 
   icon: string; 
-  label: string; 
+  labelKey: string; 
   colorClasses: { bg: string; text: string; hoverBg: string; hoverBorder: string; icon: string }
 }> = [
   { 
     value: 'all', 
     icon: 'grid_view', 
-    label: 'All', 
+    labelKey: 'collection.category.all', 
     colorClasses: { bg: 'bg-yellow-100', text: 'text-yellow-300', hoverBg: 'bg-yellow-200', hoverBorder: 'border-yellow-200', icon: 'text-yellow-300' }
   },
   { 
     value: '自然类', 
     icon: 'forest', 
-    label: 'Natural', 
+    labelKey: 'collection.category.natural', 
     colorClasses: { bg: 'bg-green-100', text: 'text-green-600', hoverBg: 'bg-green-200', hoverBorder: 'border-green-200', icon: 'text-green-600' }
   },
   { 
     value: '生活类', 
     icon: 'house', 
-    label: 'Life', 
+    labelKey: 'collection.category.life', 
     colorClasses: { bg: 'bg-orange-100', text: 'text-orange-500', hoverBg: 'bg-orange-200', hoverBorder: 'border-orange-200', icon: 'text-orange-500' }
   },
   { 
     value: '人文类', 
     icon: 'palette', 
-    label: 'Humanities', 
+    labelKey: 'collection.category.humanities', 
     colorClasses: { bg: 'bg-purple-100', text: 'text-purple-500', hoverBg: 'bg-purple-200', hoverBorder: 'border-purple-200', icon: 'text-purple-500' }
   },
 ];
@@ -48,6 +49,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   selected,
   onSelect,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-wrap items-center gap-4 sticky top-0 md:relative z-20 py-2">
       {categories.map((category) => {
@@ -74,7 +76,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </div>
             )}
             <span className="text-sm font-bold font-display">
-              {category.label}
+              {t(category.labelKey as any)}
             </span>
           </button>
         );

@@ -14,7 +14,7 @@ export interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  title = 'Little Explorer',
+  title,
   showFavorites = true,
   showReport = true,
 }) => {
@@ -31,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
           <h2 className="hidden sm:block text-text-main text-lg font-bold tracking-tight font-display">
-            {title}
+            {title || t('header.title')}
           </h2>
         </div>
         <div className="flex items-center gap-3">
@@ -43,7 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="material-symbols-outlined text-warm-yellow group-hover:scale-110 transition-transform">
                 star
               </span>
-              <span className="text-sm font-medium text-text-main hidden sm:block">My Favorites</span>
+              <span className="text-sm font-medium text-text-main hidden sm:block">{t('header.favorites')}</span>
             </Link>
           )}
           {showReport && (
@@ -54,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="material-symbols-outlined text-sky-blue group-hover:scale-110 transition-transform">
                 menu_book
               </span>
-              <span className="text-sm font-medium text-text-main hidden sm:block">{t('common.report', 'Learning Report')}</span>
+              <span className="text-sm font-medium text-text-main hidden sm:block">{t('common.report')}</span>
             </Link>
           )}
           <Link
@@ -64,7 +64,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="material-symbols-outlined text-slate-600 group-hover:scale-110 transition-transform">
               settings
             </span>
-            <span className="text-sm font-medium text-text-main hidden sm:block">{t('settings.title', 'Settings')}</span>
+            <span className="text-sm font-medium text-text-main hidden sm:block">{t('settings.title')}</span>
           </Link>
         </div>
       </div>

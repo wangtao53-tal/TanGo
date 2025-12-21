@@ -47,7 +47,7 @@ export default function Result() {
   const [identificationContext, setIdentificationContext] = useState<IdentificationContext | null>(null);
   const [isGeneratingCards, setIsGeneratingCards] = useState(false);
   const hasGeneratedCardsRef = useRef(false); // 使用 ref 防止重复调用
-  const generateTimeoutRef = useRef<NodeJS.Timeout | null>(null); // 存储定时器引用
+  const generateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 存储定时器引用
   // 用于流式对话的ref（必须在组件顶层）
   const accumulatedTextRef = useRef('');
   const markdownRef = useRef<boolean>(false);
@@ -82,7 +82,7 @@ export default function Result() {
         {
           id: `msg-init-${Date.now()}`,
           type: 'text',
-          content: `${t('result.identifiedAs', '识别为')} ${state.objectName}！置信度：${(state.confidence * 100).toFixed(0)}%`,
+          content: `${t('result.identifiedAs')} ${state.objectName}！置信度：${(state.confidence * 100).toFixed(0)}%`,
           timestamp: new Date().toISOString(),
           sender: 'assistant',
           sessionId: newSessionId,
@@ -136,7 +136,7 @@ export default function Result() {
       const loadingMessage: ConversationMessage = {
         id: loadingMessageId,
         type: 'text',
-        content: '正在为您生成知识卡片...',
+        content: t('conversation.generatingCards'),
         timestamp: new Date().toISOString(),
         sender: 'assistant',
         sessionId,
@@ -165,7 +165,7 @@ export default function Result() {
               const updated = [...prev];
               updated[index] = {
                 ...updated[index],
-                content: '正在生成知识卡片，请稍候...',
+                content: t('conversation.generatingCardsWait'),
               };
               return updated;
             }
@@ -224,7 +224,7 @@ export default function Result() {
           const errorMessage: ConversationMessage = {
             id: `msg-error-${Date.now()}`,
             type: 'text',
-            content: `生成卡片失败：${error?.message || '未知错误'}。您可以稍后通过对话重新生成。`,
+            content: t('conversation.generateCardsError', { error: error?.message || t('conversation.unknownError') }),
             timestamp: new Date().toISOString(),
             sender: 'assistant',
             sessionId,
@@ -254,7 +254,7 @@ export default function Result() {
       const errorMessage: ConversationMessage = {
         id: `msg-error-${Date.now()}`,
         type: 'text',
-        content: `生成卡片失败：${error?.message || '未知错误'}。您可以稍后通过对话重新生成。`,
+        content: t('conversation.generateCardsError', { error: error?.message || t('conversation.unknownError') }),
         timestamp: new Date().toISOString(),
         sender: 'assistant',
         sessionId,
@@ -367,7 +367,7 @@ export default function Result() {
                 updated[index] = {
                   ...updated[index],
                   isStreaming: false,
-                  content: accumulatedTextRef.current || `抱歉，生成回答时出现错误：${error.message}`,
+                  content: accumulatedTextRef.current || t('conversation.generateAnswerError', { error: error.message }),
                   streamingText: undefined,
                 };
                 return updated;
@@ -406,7 +406,7 @@ export default function Result() {
       const errorMessage: ConversationMessage = {
         id: `msg-error-${Date.now()}`,
         type: 'text',
-        content: `抱歉，发送消息失败：${error?.message || '未知错误'}。请检查网络连接后重试。`,
+        content: t('conversation.sendMessageError', { error: error?.message || t('conversation.unknownError') }),
         timestamp: new Date().toISOString(),
         sender: 'assistant',
         sessionId,
@@ -498,7 +498,7 @@ export default function Result() {
                 updated[index] = {
                   ...updated[index],
                   isStreaming: false,
-                  content: accumulatedTextRef.current || `抱歉，生成回答时出现错误：${error.message}`,
+                  content: accumulatedTextRef.current || t('conversation.generateAnswerError', { error: error.message }),
                   streamingText: undefined,
                 };
                 return updated;
@@ -537,7 +537,7 @@ export default function Result() {
       const errorMessage: ConversationMessage = {
         id: `msg-error-${Date.now()}`,
         type: 'text',
-        content: `抱歉，发送语音消息失败：${error?.message || '未知错误'}。请重试。`,
+        content: t('conversation.sendVoiceError', { error: error?.message || t('conversation.unknownError') }),
         timestamp: new Date().toISOString(),
         sender: 'assistant',
         sessionId,
@@ -671,7 +671,7 @@ export default function Result() {
                 updated[index] = {
                   ...updated[index],
                   isStreaming: false,
-                  content: accumulatedTextRef.current || `抱歉，生成回答时出现错误：${error.message}`,
+                  content: accumulatedTextRef.current || t('conversation.generateAnswerError', { error: error.message }),
                   streamingText: undefined,
                 };
                 return updated;
@@ -710,7 +710,7 @@ export default function Result() {
       const errorMessage: ConversationMessage = {
         id: `msg-error-${Date.now()}`,
         type: 'text',
-        content: `抱歉，发送图片失败：${error?.message || '未知错误'}。请检查图片格式和大小后重试。`,
+        content: t('conversation.sendImageError', { error: error?.message || t('conversation.unknownError') }),
         timestamp: new Date().toISOString(),
         sender: 'assistant',
         sessionId,
@@ -730,7 +730,7 @@ export default function Result() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8 w-full">
           <div className="flex flex-col items-start gap-2 relative">
             <span className="absolute -top-6 -left-2 rotate-[-5deg] bg-yellow-300 text-yellow-800 px-3 py-1 rounded-lg text-xs font-display shadow-sm border-2 border-yellow-100 transform z-10">
-              You found a new friend!
+              {t('result.foundNewFriend')}
             </span>
             <div className="flex items-center gap-3">
               <span className={`px-4 py-1.5 rounded-full ${
@@ -743,7 +743,7 @@ export default function Result() {
               </span>
             </div>
             <h1 className="text-4xl md:text-6xl font-display font-extrabold text-slate-800 leading-tight mt-2 drop-shadow-sm">
-              It's a <span className="text-transparent bg-clip-text bg-gradient-to-r from-science-green to-green-500 relative inline-block">
+              {t('result.itsA')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-science-green to-green-500 relative inline-block">
                 {objectName}
                 <svg
                   className="absolute w-full h-3 -bottom-1 left-0 text-science-green"
@@ -763,10 +763,10 @@ export default function Result() {
             </div>
             <div>
               <p className="text-sm font-bold text-slate-500 uppercase mb-0.5 font-display">
-                AI Companion says:
+                {t('result.aiCompanionSays')}
               </p>
               <p className="text-base font-bold text-slate-800 leading-tight font-display">
-                {t('result.continueChat', `"Wow! A ${objectName}! Let's explore its secrets!"`)}
+                {t('result.aiCompanionMessage', { objectName })}
               </p>
             </div>
             <button className="absolute -top-2 -right-2 size-10 rounded-full bg-sky-blue text-white shadow-md border-4 border-white flex items-center justify-center hover:bg-sky-blue-dark transition-colors">

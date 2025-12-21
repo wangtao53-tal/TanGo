@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ExplorationRecord } from '../../types/exploration';
 import type { KnowledgeCard } from '../../types/exploration';
 import { CollectionCard } from './CollectionCard';
@@ -27,6 +28,7 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
   onReExplore,
   onExport,
 }) => {
+  const { t } = useTranslation();
   const filteredRecords =
     category === 'all'
       ? records
@@ -54,7 +56,7 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
       try {
         await exportCardAsImage(`card-${cardId}`, `card-${cardId}`);
       } catch (error) {
-        console.error('导出失败:', error);
+        console.error(t('collection.exportError'));
       }
     }
   };
@@ -64,7 +66,7 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
       <div className="flex flex-col items-center justify-center py-20">
         <div className="text-6xl mb-4">📚</div>
         <p className="text-text-sub text-lg font-display">
-          还没有收藏任何卡片，快去探索吧！
+          {t('collection.emptyMessage')}
         </p>
       </div>
     );
@@ -119,7 +121,7 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
                 <button
                   onClick={() => handleExport(card.id)}
                   className="absolute top-4 right-4 z-10 size-10 rounded-full bg-white/90 hover:bg-white text-gray-600 shadow-lg flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-                  title="导出卡片"
+                  title={t('collection.exportCardTitle')}
                 >
                   <span className="material-symbols-outlined">download</span>
                 </button>

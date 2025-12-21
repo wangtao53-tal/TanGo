@@ -73,9 +73,9 @@ export default function Capture() {
       });
     } catch (error: any) {
       console.error('处理图片失败:', error);
-      const errorMessage = error?.message || error?.detail || '识别失败，请重试';
+      const errorMessage = error?.message || error?.detail || t('capture.identifyError');
       // 友好的错误提示
-      alert(`识别失败: ${errorMessage}\n\n请检查：\n1. 图片是否清晰\n2. 网络连接是否正常\n3. 稍后重试`);
+      alert(t('capture.identifyErrorDetail', { error: errorMessage }));
     } finally {
       setIsProcessing(false);
       // 清空input，允许重复选择同一文件
@@ -118,7 +118,7 @@ export default function Capture() {
 
       recognition.start();
     } else {
-      alert('您的浏览器不支持语音识别功能');
+      alert(t('capture.voiceNotSupported'));
     }
   };
 
@@ -128,7 +128,7 @@ export default function Capture() {
       <div className="relative z-30 w-full px-6 py-4 flex justify-between items-center">
         <div className="flex items-center gap-2 bg-white px-5 py-2 rounded-full border border-gray-100 shadow-soft">
           <span className="material-symbols-outlined text-warm-yellow text-2xl fill-1">auto_awesome</span>
-          <span className="text-sm font-bold tracking-wide text-slate-600">AI Auto-Detect</span>
+          <span className="text-sm font-bold tracking-wide text-slate-600">{t('capture.aiAutoDetect')}</span>
         </div>
         <button className="size-12 flex items-center justify-center rounded-full bg-white text-slate-400 hover:text-warm-yellow hover:bg-yellow-50 transition-colors border border-gray-100 shadow-soft">
           <span className="material-symbols-outlined">settings</span>

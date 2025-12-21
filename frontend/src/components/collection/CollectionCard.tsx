@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { ExplorationRecord } from '@/types/exploration';
 
 export interface CollectionCardProps {
@@ -12,7 +13,7 @@ export interface CollectionCardProps {
   onReExplore?: (recordId: string) => void;
 }
 
-const categoryConfig: Record<string, { icon: string; colorClasses: { bg: string; text: string; border: string }; label: string }> = {
+const categoryConfig: Record<string, { icon: string; colorClasses: { bg: string; text: string; border: string }; labelKey: string }> = {
   自然类: {
     icon: 'forest',
     colorClasses: {
@@ -20,7 +21,7 @@ const categoryConfig: Record<string, { icon: string; colorClasses: { bg: string;
       text: 'text-green-600',
       border: 'border-green-100',
     },
-    label: 'Natural',
+    labelKey: 'collection.category.natural',
   },
   生活类: {
     icon: 'house',
@@ -29,7 +30,7 @@ const categoryConfig: Record<string, { icon: string; colorClasses: { bg: string;
       text: 'text-orange-600',
       border: 'border-orange-100',
     },
-    label: 'Life',
+    labelKey: 'collection.category.life',
   },
   人文类: {
     icon: 'palette',
@@ -38,7 +39,7 @@ const categoryConfig: Record<string, { icon: string; colorClasses: { bg: string;
       text: 'text-purple-600',
       border: 'border-purple-100',
     },
-    label: 'Humanities',
+    labelKey: 'collection.category.humanities',
   },
 };
 
@@ -46,6 +47,7 @@ export const CollectionCard: React.FC<CollectionCardProps> = ({
   record,
   onReExplore,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const config = categoryConfig[record.objectCategory] || categoryConfig['自然类'];
   const timeAgo = getTimeAgo(record.timestamp);
@@ -69,7 +71,7 @@ export const CollectionCard: React.FC<CollectionCardProps> = ({
           {config.icon}
         </span>
         <span className={`text-xs font-bold ${config.colorClasses.text} font-display`}>
-          {config.label}
+          {t(config.labelKey as any)}
         </span>
       </div>
 
@@ -102,7 +104,7 @@ export const CollectionCard: React.FC<CollectionCardProps> = ({
             onClick={handleReExplore}
             className="flex items-center gap-2 bg-primary hover:bg-[#5aff2b] text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-md shadow-primary/20 active:scale-95"
           >
-            <span>Re-explore</span>
+            <span>{t('collection.reExplore')}</span>
             <span className="material-symbols-outlined text-lg">rocket_launch</span>
           </button>
         </div>

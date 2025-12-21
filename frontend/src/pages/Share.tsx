@@ -5,12 +5,14 @@
 
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getShare } from '../services/api';
 import type { GetShareResponse } from '../types/api';
 import { CollectionGrid } from '../components/collection/CollectionGrid';
 import type { ExplorationRecord } from '../types/exploration';
 
 export default function Share() {
+  const { t } = useTranslation();
   const { shareId } = useParams<{ shareId: string }>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +23,7 @@ export default function Share() {
     if (shareId) {
       loadShareData(shareId);
     } else {
-      setError('分享链接无效');
+      setError(t('share.invalidLink'));
       setLoading(false);
     }
   }, [shareId]);
@@ -51,7 +53,7 @@ export default function Share() {
 
       setRecords(convertedRecords);
     } catch (err: any) {
-      setError(err.message || '加载分享数据失败');
+      setError(err.message || t('share.loadError'));
     } finally {
       setLoading(false);
     }
@@ -60,7 +62,7 @@ export default function Share() {
   if (loading) {
     return (
       <div className="min-h-screen bg-cloud-white flex items-center justify-center">
-        <div className="text-text-sub">加载中...</div>
+        <div className="text-text-sub">{t('common.loading')}</div>
       </div>
     );
   }
@@ -70,7 +72,7 @@ export default function Share() {
       <div className="min-h-screen bg-cloud-white flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">😢</div>
-          <p className="text-text-main text-lg font-display mb-2">加载失败</p>
+          <p className="text-text-main text-lg font-display mb-2">{t('share.loadFailed')}</p>
           <p className="text-text-sub">{error}</p>
         </div>
       </div>
@@ -84,13 +86,13 @@ export default function Share() {
           {/* 页面头部 */}
           <header className="flex flex-col gap-4 bg-white/60 backdrop-blur-sm p-6 rounded-3xl border border-white shadow-sm">
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-text-main font-display">
-              孩子的探索成果
+              {t('share.title')}
             </h1>
             {shareData && (
               <div className="flex items-center gap-4 text-text-sub text-sm">
-                <span>创建时间: {new Date(shareData.createdAt).toLocaleString('zh-CN')}</span>
+                <span>{t('share.createdAt')}: {new Date(shareData.createdAt).toLocaleString('zh-CN')}</span>
                 <span>•</span>
-                <span>过期时间: {new Date(shareData.expiresAt).toLocaleString('zh-CN')}</span>
+                <span>{t('share.expiresAt')}: {new Date(shareData.expiresAt).toLocaleString('zh-CN')}</span>
               </div>
             )}
           </header>
@@ -101,7 +103,7 @@ export default function Share() {
           ) : (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="text-6xl mb-4">📚</div>
-              <p className="text-text-sub text-lg font-display">暂无探索记录</p>
+              <p className="text-text-sub text-lg font-display">{t('share.noRecords')}</p>
             </div>
           )}
         </div>
