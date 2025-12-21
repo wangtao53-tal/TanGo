@@ -19,6 +19,7 @@ export interface CollectionGridProps {
   category?: 'all' | '自然类' | '生活类' | '人文类';
   onReExplore?: (recordId: string) => void;
   onExport?: (cardId: string) => void;
+  onToggleCollect?: (recordId: string, collected: boolean) => void; // 切换收藏回调
 }
 
 export const CollectionGrid: React.FC<CollectionGridProps> = ({
@@ -27,6 +28,7 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
   category = 'all',
   onReExplore,
   onExport,
+  onToggleCollect,
 }) => {
   const { t } = useTranslation();
   const filteredRecords =
@@ -81,7 +83,9 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
             <CollectionCard
               key={record.id}
               record={record}
+              isCollected={record.collected}
               onReExplore={onReExplore}
+              onToggleCollect={onToggleCollect}
             />
           ))}
         </div>
@@ -91,26 +95,25 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
       {filteredCards.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
           {filteredCards.map((card) => {
+            // 知识卡片组件有自己的收藏逻辑，不需要传入onCollect
+            // onCollect prop原本是用于导出功能的，但导出功能应该通过单独的导出按钮实现
             const cardElement = card.type === 'science' ? (
               <ScienceCard 
                 key={card.id} 
                 card={card} 
                 id={`card-${card.id}`}
-                onCollect={handleExport}
               />
             ) : card.type === 'poetry' ? (
               <PoetryCard 
                 key={card.id} 
                 card={card} 
                 id={`card-${card.id}`}
-                onCollect={handleExport}
               />
             ) : (
               <EnglishCard 
                 key={card.id} 
                 card={card} 
                 id={`card-${card.id}`}
-                onCollect={handleExport}
               />
             );
 

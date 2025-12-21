@@ -5,11 +5,13 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/common/Header';
 import { explorationStorage, cardStorage } from '../services/storage';
 
 export default function LearningReport() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [totalExplorations, setTotalExplorations] = useState(0);
   const [totalCollectedCards, setTotalCollectedCards] = useState(0);
   const [categoryDistribution, setCategoryDistribution] = useState<Record<string, number>>({
@@ -36,10 +38,29 @@ export default function LearningReport() {
         生活类: 0,
         人文类: 0,
       };
+      
       records.forEach((r) => {
-        distribution[r.objectCategory] = (distribution[r.objectCategory] || 0) + 1;
+        // 确保objectCategory有效
+        const category = r.objectCategory || '自然类'; // 默认值
+        if (['自然类', '生活类', '人文类'].includes(category)) {
+          distribution[category] = (distribution[category] || 0) + 1;
+        } else {
+          // 如果分类无效，使用默认值
+          console.warn('无效的分类值，使用默认值"自然类":', category, '记录ID:', r.id);
+          distribution['自然类'] = (distribution['自然类'] || 0) + 1;
+        }
       });
+      
       setCategoryDistribution(distribution);
+      
+      // 验证数据一致性
+      const totalCategories = Object.values(distribution).reduce((a, b) => a + b, 0);
+      if (totalCategories !== records.length) {
+        console.warn('数据不一致：知识地图总数与探索次数不匹配', {
+          totalCategories,
+          totalExplorations: records.length,
+        });
+      }
     } catch (error) {
       console.error('加载报告数据失败:', error);
     }
@@ -85,7 +106,10 @@ export default function LearningReport() {
           {/* 统计卡片 */}
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {/* 探索次数 */}
-            <div className="group relative overflow-hidden rounded-3xl bg-white p-6 transition-all hover:-translate-y-1 shadow-card border-2 border-warm-yellow/20 hover:border-warm-yellow">
+            <div 
+              onClick={() => navigate('/capture')}
+              className="group relative overflow-hidden rounded-3xl bg-white p-6 transition-all hover:-translate-y-1 shadow-card border-2 border-warm-yellow/20 hover:border-warm-yellow cursor-pointer"
+            >
               <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-warm-yellow/10 transition-all group-hover:scale-110" />
               <div className="flex items-start justify-between relative z-10">
                 <div className="flex flex-col gap-2">
@@ -103,7 +127,10 @@ export default function LearningReport() {
             </div>
 
             {/* 收藏卡片数 */}
-            <div className="group relative overflow-hidden rounded-3xl bg-white p-6 transition-all hover:-translate-y-1 shadow-card border-2 border-peach-pink/20 hover:border-peach-pink">
+            <div 
+              onClick={() => navigate('/collection')}
+              className="group relative overflow-hidden rounded-3xl bg-white p-6 transition-all hover:-translate-y-1 shadow-card border-2 border-peach-pink/20 hover:border-peach-pink cursor-pointer"
+            >
               <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-peach-pink/10 transition-all group-hover:scale-110" />
               <div className="flex items-start justify-between relative z-10">
                 <div className="flex flex-col gap-2">
@@ -148,9 +175,6 @@ export default function LearningReport() {
                   <div className="h-8 w-2 rounded-full bg-primary" />
                   <h3 className="text-xl font-extrabold text-text-main">{t('report.knowledgeMap')}</h3>
                 </div>
-                <button className="rounded-full bg-gray-100 p-2 text-text-sub hover:bg-gray-200 hover:text-text-main transition-colors">
-                  <span className="material-symbols-outlined text-xl">info</span>
-                </button>
               </div>
               <div className="flex flex-col items-center sm:flex-row sm:justify-center gap-10">
                 <div

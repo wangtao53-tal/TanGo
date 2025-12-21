@@ -10,7 +10,9 @@ import type { ExplorationRecord } from '@/types/exploration';
 
 export interface CollectionCardProps {
   record: ExplorationRecord;
+  isCollected?: boolean; // 收藏状态
   onReExplore?: (recordId: string) => void;
+  onToggleCollect?: (recordId: string, collected: boolean) => void; // 切换收藏回调
 }
 
 const categoryConfig: Record<string, { icon: string; colorClasses: { bg: string; text: string; border: string }; labelKey: string }> = {
@@ -45,7 +47,9 @@ const categoryConfig: Record<string, { icon: string; colorClasses: { bg: string;
 
 export const CollectionCard: React.FC<CollectionCardProps> = ({
   record,
+  isCollected = true, // 默认已收藏（因为收藏页面只显示已收藏的记录）
   onReExplore,
+  onToggleCollect,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -61,8 +65,25 @@ export const CollectionCard: React.FC<CollectionCardProps> = ({
     }
   };
 
+  const handleToggleCollect = (e: React.MouseEvent) => {
+    e.stopPropagation(); // 阻止事件冒泡
+    if (onToggleCollect) {
+      onToggleCollect(record.id, !isCollected);
+    }
+  };
+
+  const handleCardClick = () => {
+    // 如果未收藏，点击卡片收藏
+    if (!isCollected && onToggleCollect) {
+      onToggleCollect(record.id, true);
+    }
+  };
+
   return (
-    <div className="group relative flex flex-col bg-white rounded-3xl p-4 border border-white shadow-card hover:shadow-card-hover-green transition-all duration-300 hover:-translate-y-2">
+    <div 
+      className="group relative flex flex-col bg-white rounded-3xl p-4 border border-white shadow-card hover:shadow-card-hover-green transition-all duration-300 hover:-translate-y-2 cursor-pointer"
+      onClick={handleCardClick}
+    >
       {/* 类别标签 */}
       <div
         className={`absolute top-6 right-6 z-10 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 border ${config.colorClasses.border}`}
@@ -74,6 +95,21 @@ export const CollectionCard: React.FC<CollectionCardProps> = ({
           {t(config.labelKey as any)}
         </span>
       </div>
+
+      {/* 收藏按钮 */}
+      <button
+        onClick={handleToggleCollect}
+        className={`absolute top-6 left-6 z-10 p-2 rounded-full transition-all shadow-md ${
+          isCollected
+            ? 'bg-yellow-400 hover:bg-yellow-500 text-yellow-900'
+            : 'bg-white/90 hover:bg-white text-gray-400 hover:text-yellow-500'
+        }`}
+        title={isCollected ? t('collection.uncollect') : t('collection.collect')}
+      >
+        <span className={`material-symbols-outlined text-xl ${isCollected ? 'fill' : ''}`}>
+          {isCollected ? 'star' : 'star_border'}
+        </span>
+      </button>
 
       {/* 缩略图 */}
       <div className="w-full aspect-[4/3] rounded-2xl bg-gray-100 mb-4 overflow-hidden relative shadow-inner">
@@ -101,7 +137,10 @@ export const CollectionCard: React.FC<CollectionCardProps> = ({
             {timeAgo}
           </span>
           <button
-            onClick={handleReExplore}
+            onClick={(e) => {
+              e.stopPropagation(); // 阻止事件冒泡
+              handleReExplore();
+            }}
             className="flex items-center gap-2 bg-primary hover:bg-[#5aff2b] text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-md shadow-primary/20 active:scale-95"
           >
             <span>{t('collection.reExplore')}</span>
