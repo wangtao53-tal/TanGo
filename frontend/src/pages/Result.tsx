@@ -773,7 +773,7 @@ export default function Result() {
       <div className="min-h-screen bg-cloud-white font-display flex flex-col">
         <Header />
         
-        <main className="flex-1 flex flex-col items-center px-4 py-6 w-full max-w-7xl mx-auto overflow-hidden">
+        <main className="flex-1 flex flex-col items-center px-4 py-6 w-full max-w-7xl mx-auto overflow-x-hidden overflow-y-auto">
         {/* 对象信息展示区域 */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8 w-full">
           <div className="flex flex-col items-start gap-2 relative">
