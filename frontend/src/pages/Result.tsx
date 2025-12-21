@@ -77,17 +77,39 @@ export default function Result() {
       };
       setIdentificationContext(context);
 
-      // 创建初始系统消息，展示识别结果
-      const initialMessages: ConversationMessage[] = [
-        {
-          id: `msg-init-${Date.now()}`,
-          type: 'text',
-          content: `${t('result.identifiedAs')} ${state.objectName}！置信度：${(state.confidence * 100).toFixed(0)}%`,
+      // 创建初始消息列表
+      const initialMessages: ConversationMessage[] = [];
+      
+      // 如果有图片数据，先添加用户图片消息
+      if (state.imageData) {
+        // 确保图片数据格式正确（支持 data URL 或纯 base64）
+        let imageContent = state.imageData;
+        if (!imageContent.startsWith('data:') && !imageContent.startsWith('http')) {
+          // 如果是纯 base64，添加 data URL 前缀
+          imageContent = `data:image/jpeg;base64,${imageContent}`;
+        }
+        
+        const userImageMessage: ConversationMessage = {
+          id: `msg-user-image-${Date.now()}`,
+          type: 'image',
+          content: imageContent,
           timestamp: new Date().toISOString(),
-          sender: 'assistant',
+          sender: 'user',
           sessionId: newSessionId,
-        },
-      ];
+        };
+        initialMessages.push(userImageMessage);
+      }
+
+      // 添加识别结果消息
+      initialMessages.push({
+        id: `msg-init-${Date.now()}`,
+        type: 'text',
+        content: `${t('result.identifiedAs')} ${state.objectName}！置信度：${(state.confidence * 100).toFixed(0)}%`,
+        timestamp: new Date().toISOString(),
+        sender: 'assistant',
+        sessionId: newSessionId,
+      });
+      
       setMessages(initialMessages);
 
       // 标记为已生成，防止重复调用
