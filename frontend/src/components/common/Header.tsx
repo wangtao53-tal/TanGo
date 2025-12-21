@@ -21,8 +21,8 @@ export const Header: React.FC<HeaderProps> = ({
   const { t } = useTranslation();
   
   return (
-    <header className="w-full max-w-[1024px] px-4 py-6 z-10">
-      <div className="flex items-center justify-between rounded-full bg-white/80 backdrop-blur-md border border-white shadow-lg px-4 py-2">
+    <header className="w-full px-4 py-6 z-10">
+      <div className="flex items-center justify-between rounded-full bg-white/80 backdrop-blur-md border border-white shadow-lg px-4 py-2 max-w-[1024px] mx-auto">
         <div className="flex items-center gap-3">
           <div className="size-12 rounded-full border-2 border-warm-yellow overflow-hidden bg-white shadow-sm">
             {/* 头像图标 */}
