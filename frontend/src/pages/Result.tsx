@@ -15,14 +15,14 @@ import type { ConversationMessage } from '../types/conversation';
 import type { IdentificationContext } from '../types/api';
 import { useState, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
-import { cardStorage } from '../services/storage';
+import { cardStorage, explorationStorage } from '../services/storage';
 import { sendMessage, createStreamConnection, recognizeUserIntent, createStreamConnectionUnified } from '../services/conversation';
 import { createPostSSEConnection, closePostSSEConnection } from '../services/sse-post';
 import type { UnifiedStreamConversationRequest, ConversationStreamEvent } from '../types/api';
 import { fileToBase64, extractBase64Data, compressImage } from '../utils/image';
 import { uploadImage, generateCards, generateCardsStream } from '../services/api';
 import type { GenerateCardsRequest, GenerateCardsResponse } from '../types/api';
-import type { KnowledgeCard } from '../types/exploration';
+import type { KnowledgeCard, ExplorationRecord } from '../types/exploration';
 import { AudioPlaybackProvider } from '../components/cards/ScienceCard';
 
 interface LocationState {
@@ -231,7 +231,7 @@ export default function Result() {
           };
           setMessages((prev) => [...prev, errorMessage]);
         },
-        onComplete: () => {
+        onComplete: async () => {
           clearTimeout(progressTimeout);
           // 移除加载消息
           setMessages((prev) => prev.filter(msg => msg.id !== loadingMessageId));
@@ -239,6 +239,32 @@ export default function Result() {
           // 确保所有卡片都已添加
           if (receivedCards.length < 3) {
             console.warn(`只收到${receivedCards.length}张卡片，预期3张`);
+          }
+
+          // 保存探索记录到IndexedDB
+          try {
+            // 验证objectCategory字段
+            const category = state.objectCategory || '自然类';
+            if (!['自然类', '生活类', '人文类'].includes(category)) {
+              console.warn('无效的分类值，使用默认值"自然类":', category);
+            }
+
+            const explorationRecord: ExplorationRecord = {
+              id: `exp-${timestamp}`,
+              timestamp: new Date().toISOString(),
+              objectName: state.objectName,
+              objectCategory: category as '自然类' | '生活类' | '人文类',
+              confidence: state.confidence || 0.95,
+              age: state.age || 8,
+              imageData: state.imageData,
+              cards: receivedCards,
+              collected: false,
+            };
+
+            await explorationStorage.save(explorationRecord);
+            console.log('探索记录已保存:', explorationRecord.id, '分类:', explorationRecord.objectCategory);
+          } catch (error) {
+            console.error('保存探索记录失败:', error);
           }
         },
       });

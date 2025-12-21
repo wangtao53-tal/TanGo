@@ -7,7 +7,6 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Header } from '../components/common/Header';
 import { CollectionGrid } from '../components/collection/CollectionGrid';
-import { CategoryFilter, type Category } from '../components/collection/CategoryFilter';
 import { explorationStorage, cardStorage } from '../services/storage';
 import { exportCardAsImage } from '../utils/export';
 import type { ExplorationRecord } from '../types/exploration';
@@ -17,7 +16,6 @@ export default function Collection() {
   const { t } = useTranslation();
   const [records, setRecords] = useState<ExplorationRecord[]>([]);
   const [cards, setCards] = useState<KnowledgeCard[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<Category>('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,9 +44,30 @@ export default function Collection() {
     console.log('重新探索:', recordId);
   };
 
-  const handleClearAll = () => {
-    // TODO: 实现清空所有收藏功能（需要家长模式）
-    console.log('清空所有收藏');
+  const handleToggleCollect = async (recordId: string, collected: boolean) => {
+    try {
+      const record = records.find(r => r.id === recordId);
+      if (record) {
+        // 更新探索记录的collected字段
+        record.collected = collected;
+        await explorationStorage.save(record);
+        
+        // 如果取消收藏，从列表中移除该记录
+        if (!collected) {
+          setRecords(records.filter(r => r.id !== recordId));
+        } else {
+          // 如果收藏，添加到列表（如果不在列表中）
+          if (!records.find(r => r.id === recordId)) {
+            setRecords([...records, record]);
+          }
+        }
+        
+        // 重新加载数据以更新UI
+        await loadRecords();
+      }
+    } catch (error) {
+      console.error('切换收藏状态失败:', error);
+    }
   };
 
   const handleExportCard = async (cardId: string) => {
@@ -56,19 +75,6 @@ export default function Collection() {
       await exportCardAsImage(`card-${cardId}`, `card-${cardId}`);
     } catch (error) {
       console.error('导出卡片失败:', error);
-      alert(t('collection.exportError'));
-    }
-  };
-
-  const handleExportAll = async () => {
-    try {
-      for (const card of cards) {
-        await exportCardAsImage(`card-${card.id}`, `card-${card.id}`);
-        // 添加延迟，避免浏览器阻止多个下载
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
-    } catch (error) {
-      console.error('批量导出失败:', error);
       alert(t('collection.exportError'));
     }
   };
@@ -103,50 +109,16 @@ export default function Collection() {
               </p>
             </div>
 
-            {/* 操作按钮组 */}
-            <div className="flex items-center gap-2">
-              {/* 导出所有按钮 */}
-              {cards.length > 0 && (
-                <button
-                  onClick={handleExportAll}
-                  className="group flex items-center justify-center gap-2 bg-[var(--color-primary)] hover:bg-[#5aff2b] text-white px-4 py-2 rounded-full transition-all shadow-md hover:shadow-lg"
-                  title={t('collection.exportAllTitle')}
-                >
-                  <span className="material-symbols-outlined text-lg">download</span>
-                  <span className="text-sm font-bold font-display hidden sm:inline">{t('collection.exportAll')}</span>
-                </button>
-              )}
-              
-              {/* 家长模式控制 */}
-              <div className="flex items-center gap-2 bg-white p-1.5 pr-3 rounded-full border border-gray-100 shadow-sm">
-                <div className="flex items-center gap-2 pl-3 pr-3 py-1.5 bg-gray-100 rounded-full">
-                  <span className="material-symbols-outlined text-gray-500 text-sm">lock_open</span>
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider font-display">
-                    {t('collection.parentMode')}
-                  </span>
-                </div>
-                <button
-                  onClick={handleClearAll}
-                  className="group flex items-center justify-center gap-1.5 text-red-400 hover:text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-full transition-all cursor-pointer"
-                  title={t('collection.clearAllHint')}
-                >
-                  <span className="material-symbols-outlined text-lg">delete</span>
-                  <span className="text-sm font-bold font-display">{t('collection.clearAll')}</span>
-                </button>
-              </div>
-            </div>
           </header>
-
-          {/* 分类筛选 */}
-          <CategoryFilter selected={selectedCategory} onSelect={setSelectedCategory} />
 
           {/* 收藏卡片网格 */}
           <CollectionGrid
             records={records}
             cards={cards}
-            category={selectedCategory}
+            category="all"
             onReExplore={handleReExplore}
             onExport={handleExportCard}
+            onToggleCollect={handleToggleCollect}
           />
 
           {/* Little Star 鼓励消息 */}

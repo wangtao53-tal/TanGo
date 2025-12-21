@@ -80,6 +80,8 @@ export default {
     exportCardTitle: '导出卡片',
     emptyMessage: '还没有收藏任何卡片，快去探索吧！',
     reExplore: '重新探索',
+    collect: '收藏',
+    uncollect: '取消收藏',
     category: {
       all: '全部',
       natural: '自然类',
