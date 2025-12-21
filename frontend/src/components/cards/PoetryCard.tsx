@@ -10,6 +10,7 @@ import type { PoetryCardContent } from '../../types/exploration';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
 import { extractCardText, detectCardLanguage } from '../../utils/cardTextExtractor';
 import { usePlayingCard } from './ScienceCard';
+import { cardStyles } from '../../styles/cardStyles';
 
 export interface PoetryCardProps {
   card: KnowledgeCard;
@@ -84,21 +85,31 @@ export const PoetryCard: React.FC<PoetryCardProps> = ({
 
   const handleCollect = async () => {
     const newCollectedState = !isCollected;
+    
+    // 乐观更新UI
     setIsCollected(newCollectedState);
     
     if (onCollect) {
       onCollect(card.id);
     }
 
-    // 立即保存到本地存储
-    if (newCollectedState) {
-      const cardToSave = {
-        ...card,
-        collectedAt: new Date().toISOString(),
-      };
-      await cardStorage.save(cardToSave);
-    } else {
-      await cardStorage.delete(card.id);
+    try {
+      // 保存到本地存储
+      if (newCollectedState) {
+        const cardToSave = {
+          ...card,
+          collectedAt: new Date().toISOString(),
+        };
+        await cardStorage.save(cardToSave);
+      } else {
+        await cardStorage.delete(card.id);
+      }
+    } catch (error) {
+      // 如果保存失败，回滚状态
+      console.error('收藏操作失败:', error);
+      setIsCollected(!newCollectedState);
+      // 可选：显示错误提示
+      // alert('收藏操作失败，请重试');
     }
   };
 
@@ -108,28 +119,72 @@ export const PoetryCard: React.FC<PoetryCardProps> = ({
       className={`flex flex-col rounded-[2.5rem] bg-white border-4 border-sunny-orange shadow-card relative transition-transform hover:-translate-y-2 duration-300 group overflow-hidden w-full max-w-md mx-auto ${className}`}
     >
       {/* 内容区域（纯文本显示，不显示图片） */}
-      <div className="bg-white p-6 flex flex-col justify-between relative rounded-[2.2rem]">
-        <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin">
-          <h3 className="text-3xl font-display font-bold text-sunny-orange mb-3">
+      <div className="bg-white p-6 flex flex-col justify-between relative rounded-[2.2rem] min-h-[400px]">
+        <div className="flex-1 flex flex-col">
+          <h3 
+            className="font-bold mb-3"
+            style={{ 
+              fontSize: cardStyles.fonts.sizes.title,
+              lineHeight: cardStyles.fonts.lineHeight.title,
+              fontFamily: cardStyles.fonts.childFriendly.chinese,
+              color: '#EA580C' // 使用更深的橙色，确保对比度≥4.5:1
+            }}
+          >
             {card.title}
           </h3>
 
           {/* 诗词内容 */}
           {content.poem && (
             <div className="relative pl-5 border-l-4 border-sunny-orange/40 mb-4 bg-orange-50 p-3 rounded-r-xl">
-              <p className="text-slate-700 text-lg font-serif italic">"{content.poem}"</p>
+              <p 
+                className="font-serif italic"
+                style={{ 
+                  fontSize: cardStyles.fonts.sizes.body,
+                  lineHeight: cardStyles.fonts.lineHeight.body,
+                  fontFamily: cardStyles.fonts.childFriendly.chinese,
+                  color: '#1F2937' // 使用更深的灰色，确保对比度≥4.5:1
+                }}
+              >
+                "{content.poem}"
+              </p>
               {content.author && (
-                <p className="text-xs text-slate-500 mt-1">— {content.author}</p>
+                <p 
+                  className="mt-1"
+                  style={{ 
+                    fontSize: cardStyles.fonts.sizes.small,
+                    lineHeight: cardStyles.fonts.lineHeight.small,
+                    fontFamily: cardStyles.fonts.childFriendly.chinese,
+                    color: '#4B5563' // 使用更深的灰色，确保对比度≥4.5:1
+                  }}
+                >
+                  — {content.author}
+                </p>
               )}
             </div>
           )}
 
           {/* 解释 */}
-          <div className="mb-4">
-            <h4 className="text-xs font-black text-sunny-orange uppercase mb-1 tracking-wider">
+          <div className="mb-4 flex-1">
+            <h4 
+              className="font-black uppercase mb-1 tracking-wider"
+              style={{ 
+                fontSize: cardStyles.fonts.sizes.small,
+                lineHeight: cardStyles.fonts.lineHeight.small,
+                fontFamily: cardStyles.fonts.childFriendly.english,
+                color: '#EA580C' // 使用更深的橙色，确保对比度≥4.5:1
+              }}
+            >
               What it means
             </h4>
-            <p className="text-sm font-bold text-slate-600 leading-relaxed">
+            <p 
+              className="font-bold"
+              style={{ 
+                fontSize: cardStyles.fonts.sizes.body,
+                lineHeight: cardStyles.fonts.lineHeight.body,
+                fontFamily: cardStyles.fonts.childFriendly.chinese,
+                color: '#374151' // 使用更深的灰色，确保对比度≥4.5:1
+              }}
+            >
               {content.explanation}
             </p>
           </div>
@@ -140,7 +195,17 @@ export const PoetryCard: React.FC<PoetryCardProps> = ({
               <div className="bg-white p-1 rounded-full shadow-sm text-sunny-orange">
                 <span className="material-symbols-outlined text-lg">emoji_nature</span>
               </div>
-              <p className="text-xs font-bold text-slate-700">{content.context}</p>
+              <p 
+                className="font-bold"
+                style={{ 
+                  fontSize: cardStyles.fonts.sizes.small,
+                  lineHeight: cardStyles.fonts.lineHeight.small,
+                  fontFamily: cardStyles.fonts.childFriendly.chinese,
+                  color: '#1F2937' // 使用更深的灰色，确保对比度≥4.5:1
+                }}
+              >
+                {content.context}
+              </p>
             </div>
           )}
         </div>
@@ -151,7 +216,7 @@ export const PoetryCard: React.FC<PoetryCardProps> = ({
             <button
               onClick={handleListen}
               disabled={!isSupported}
-              className="flex items-center gap-2 text-sm font-bold text-sunny-orange bg-sunny-orange/20 hover:bg-sunny-orange hover:text-white px-5 py-3 rounded-full transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 text-sm font-bold text-sunny-orange bg-sunny-orange/20 hover:bg-sunny-orange hover:text-white px-5 py-3 rounded-full transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
             >
               <span className="material-symbols-outlined text-xl">
                 {isPlaying && !isPaused ? 'pause' : 'play_circle'}
@@ -161,7 +226,7 @@ export const PoetryCard: React.FC<PoetryCardProps> = ({
             {isPlaying && (
               <button
                 onClick={handleStop}
-                className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-700 px-3 py-2 rounded-full transition-all"
+                className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-700 px-3 py-2 rounded-full transition-all duration-200 active:scale-95"
               >
                 <span className="material-symbols-outlined text-lg">stop</span>
                 停止
@@ -170,13 +235,19 @@ export const PoetryCard: React.FC<PoetryCardProps> = ({
           </div>
           <button
             onClick={handleCollect}
-            className={`size-12 rounded-full flex items-center justify-center transition-all group-active:scale-90 shadow-sm border-2 ${
+            className={`size-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border-2 active:scale-90 ${
               isCollected
-                ? 'bg-yellow-300 text-yellow-800 border-yellow-400'
-                : 'bg-slate-100 text-slate-300 border-slate-200 hover:border-yellow-400'
+                ? 'bg-yellow-300 text-yellow-800 border-yellow-400 hover:bg-yellow-400 hover:scale-105'
+                : 'bg-slate-100 text-slate-300 border-slate-200 hover:border-yellow-400 hover:bg-yellow-50'
             }`}
           >
-            <span className="material-symbols-outlined text-2xl fill-current">star</span>
+            <span 
+              className={`material-symbols-outlined text-2xl transition-all duration-300 ${
+                isCollected ? 'fill-current scale-110' : 'fill-current'
+              }`}
+            >
+              star
+            </span>
           </button>
         </div>
       </div>
