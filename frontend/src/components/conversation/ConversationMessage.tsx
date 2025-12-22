@@ -12,7 +12,6 @@ import { ScienceCard } from '../cards/ScienceCard';
 import { PoetryCard } from '../cards/PoetryCard';
 import { EnglishCard } from '../cards/EnglishCard';
 import type { KnowledgeCard } from '../../types/exploration';
-import { useTypingEffect } from '../../hooks/useTypingEffect';
 
 export interface ConversationMessageProps {
   message: ConversationMessage;

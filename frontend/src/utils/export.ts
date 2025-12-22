@@ -63,7 +63,11 @@ export async function exportCardAsImage(
                         const nestedRule = nestedArray[j];
                         try {
                           if (nestedRule.cssText && nestedRule.cssText.includes('oklch')) {
-                            (rule as CSSMediaRule | CSSKeyframesRule).deleteRule(j);
+                            if (rule instanceof CSSMediaRule) {
+                              rule.deleteRule(j);
+                            } else if (rule instanceof CSSKeyframesRule) {
+                              rule.deleteRule(j);
+                            }
                           }
                         } catch (e) {
                           // 忽略无法删除的嵌套规则
