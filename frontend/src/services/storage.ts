@@ -355,14 +355,35 @@ export const conversationStorage = {
    * 保存对话消息
    */
   async saveMessage(message: ConversationMessage): Promise<void> {
-    const db = await initDB();
-    const transaction = db.transaction('conversations', 'readwrite');
-    const store = transaction.objectStore('conversations');
-    await new Promise<void>((resolve, reject) => {
-      const request = store.put(message);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
+    try {
+      const db = await initDB();
+      const transaction = db.transaction('conversations', 'readwrite');
+      const store = transaction.objectStore('conversations');
+      await new Promise<void>((resolve, reject) => {
+        const request = store.put(message);
+        request.onsuccess = () => resolve();
+        request.onerror = () => {
+          const error = request.error;
+          // 处理存储配额错误
+          if (error && error.name === 'QuotaExceededError') {
+            console.error('存储空间不足，无法保存消息:', error);
+            // 可以尝试降级到localStorage保存关键信息
+            // 这里仅记录错误，不中断用户操作
+          }
+          reject(error);
+        };
+      });
+    } catch (error: any) {
+      // 捕获IndexedDB错误，尝试降级到localStorage保存关键信息
+      if (error && error.name === 'QuotaExceededError') {
+        console.error('存储空间不足:', error);
+        // 可以提示用户清理存储空间
+      } else {
+        console.error('保存消息到IndexedDB失败:', error);
+      }
+      // 不中断用户操作，仅记录错误
+      throw error;
+    }
   },
 
   /**

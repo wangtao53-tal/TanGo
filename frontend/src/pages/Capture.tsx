@@ -61,6 +61,9 @@ export default function Capture() {
       });
 
       // 跳转到问答页面，只传递识别结果（不生成卡片）
+      // 使用sessionStorage标记从Capture页面跳转，刷新页面时sessionStorage会清空
+      sessionStorage.setItem('fromCapturePage', 'true');
+      
       navigate('/result', {
         state: {
           objectName: identifyResult.objectName,

@@ -67,8 +67,15 @@ export default function Result() {
   const saveCurrentSessionId = (sessionId: string): void => {
     try {
       localStorage.setItem('currentSessionId', sessionId);
-    } catch (error) {
-      console.error('保存会话ID失败:', error);
+    } catch (error: any) {
+      // 处理localStorage错误
+      if (error && error.name === 'QuotaExceededError') {
+        console.error('存储空间不足，无法保存会话ID:', error);
+        // 可以提示用户清理存储空间
+      } else {
+        console.error('保存会话ID失败:', error);
+      }
+      // 不中断用户操作，仅记录错误
     }
   };
 
@@ -76,8 +83,15 @@ export default function Result() {
   const saveIdentificationContext = (context: IdentificationContext): void => {
     try {
       localStorage.setItem('identificationContext', JSON.stringify(context));
-    } catch (error) {
-      console.error('保存识别上下文失败:', error);
+    } catch (error: any) {
+      // 处理localStorage错误
+      if (error && error.name === 'QuotaExceededError') {
+        console.error('存储空间不足，无法保存识别上下文:', error);
+        // 可以提示用户清理存储空间
+      } else {
+        console.error('保存识别上下文失败:', error);
+      }
+      // 不中断用户操作，仅记录错误
     }
   };
 
@@ -86,10 +100,30 @@ export default function Result() {
     try {
       const stored = localStorage.getItem('identificationContext');
       if (stored) {
-        return JSON.parse(stored) as IdentificationContext;
+        const context = JSON.parse(stored) as IdentificationContext;
+        
+        // 数据验证：确保上下文格式正确
+        if (context && typeof context === 'object') {
+          // 验证必需字段
+          if (context.objectName && context.objectCategory) {
+            // 确保分类值有效
+            if (!['自然类', '生活类', '人文类'].includes(context.objectCategory)) {
+              console.warn('无效的分类值，使用默认值"自然类"');
+              context.objectCategory = '自然类';
+            }
+            return context;
+          } else {
+            console.warn('识别上下文缺少必需字段');
+            return null;
+          }
+        } else {
+          console.warn('识别上下文格式不正确');
+          return null;
+        }
       }
     } catch (error) {
       console.error('恢复识别上下文失败:', error);
+      // 如果恢复失败，返回null，使用默认值
     }
     return null;
   };
@@ -97,20 +131,73 @@ export default function Result() {
   // 恢复对话记录
   const restoreConversation = async (sessionId: string) => {
     try {
+      console.log('开始恢复对话记录，sessionId:', sessionId);
+      // 注意：hasGeneratedCardsRef.current应该在调用此函数之前就已经设置为true
+      // 这里只是确保状态正确，防止在恢复过程中误调用生成卡片接口
+      // 刷新页面时不应该生成卡片，只有在首次拍照（从Capture页面跳转）时才生成卡片
+      if (!hasGeneratedCardsRef.current) {
+        hasGeneratedCardsRef.current = true;
+        console.log('确保hasGeneratedCardsRef.current为true，防止误生成卡片');
+      }
+      
       const savedMessages = await conversationStorage.getMessagesBySessionId(sessionId);
+      console.log('从IndexedDB获取到的消息数量:', savedMessages.length);
+      
       if (savedMessages.length > 0) {
-        setMessages(savedMessages);
-        console.log(`已恢复 ${savedMessages.length} 条对话记录`);
+        // 确保所有流式消息标记为已完成（清除isStreaming和streamingText字段）
+        const cleanedMessages = savedMessages.map(msg => ({
+          ...msg,
+          isStreaming: false,
+          streamingText: undefined,
+        }));
         
-        // 检查是否已有卡片消息，如果有，标记为已生成，防止重新生成
-        const hasCards = savedMessages.some(msg => msg.type === 'card' && msg.sender === 'assistant');
-        if (hasCards) {
-          hasGeneratedCardsRef.current = true;
-          console.log('检测到已有卡片消息，标记为已生成');
+        // 按时间顺序排序（确保顺序正确）
+        cleanedMessages.sort((a, b) => 
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+        
+        // 数据验证：确保消息格式正确
+        const validMessages = cleanedMessages.filter(msg => 
+          msg.id && 
+          msg.type && 
+          msg.sender && 
+          msg.timestamp && 
+          msg.sessionId === sessionId
+        );
+        
+        if (validMessages.length !== cleanedMessages.length) {
+          console.warn(`恢复的消息中有 ${cleanedMessages.length - validMessages.length} 条格式不正确，已过滤`);
         }
+        
+        setMessages(validMessages);
+        console.log(`已恢复 ${validMessages.length} 条对话记录`);
+        
+        // 检查是否已有卡片消息（用于日志记录）
+        // 重要：判断逻辑是"是否需要生成卡片"（即是否已经有卡片了），而不是"是否有需要识别就重新生成卡片"
+        const hasCards = validMessages.some(msg => msg.type === 'card' && msg.sender === 'assistant');
+        const cardMessages = validMessages.filter(msg => msg.type === 'card' && msg.sender === 'assistant');
+        console.log(`检测到 ${cardMessages.length} 条卡片消息`);
+        
+        if (hasCards) {
+          // hasGeneratedCardsRef.current已经在函数开始时设置为true，这里只是记录日志
+          console.log('检测到已有卡片消息，不会重新生成卡片');
+        } else {
+          // 即使没有卡片消息，也不会生成卡片（hasGeneratedCardsRef.current已经在函数开始时设置为true）
+          console.log('没有检测到卡片消息，不会生成卡片（刷新页面时不应该生成卡片）');
+        }
+        
+        // 再次确认hasGeneratedCardsRef.current为true，防止任何误调用
+        hasGeneratedCardsRef.current = true;
+        console.log('恢复完成，hasGeneratedCardsRef.current =', hasGeneratedCardsRef.current);
+      } else {
+        console.log('没有找到对话记录');
+        // hasGeneratedCardsRef.current已经在函数开始时设置为true，这里只是记录日志
       }
     } catch (error) {
       console.error('恢复对话记录失败:', error);
+      // 显示友好提示（可选，可以通过toast或状态显示）
+      // 这里仅记录错误，不中断用户操作
+      // hasGeneratedCardsRef.current已经在函数开始时设置为true，确保不会误生成卡片
     }
   };
 
@@ -118,29 +205,46 @@ export default function Result() {
   useEffect(() => {
     // 防止重复初始化
     if (isInitializedRef.current) {
+      console.log('已初始化，跳过重复初始化');
       return;
     }
     isInitializedRef.current = true;
+    console.log('开始初始化，location.state:', location.state);
 
     const state = location.state as LocationState;
     
-    if (state && state.objectName) {
-      // 从Capture页面传入新识别结果，创建新会话
-      console.log('检测到新识别结果，创建新会话');
+    // ========== 核心逻辑：基于会话ID来源决定是否生成卡片 ==========
+    // 规则：新生成会话ID → 生成卡片；从本地读取会话ID → 不生成卡片
+    // ============================================================
+    
+    // 检测是否从Capture页面跳转过来
+    // 使用sessionStorage标记，因为刷新页面时sessionStorage会清空，可以可靠地区分跳转和刷新
+    const fromCapturePage = sessionStorage.getItem('fromCapturePage') === 'true';
+    const hasState = state && state.objectName && typeof state.objectName === 'string' && state.objectName.trim() !== '';
+    
+    // 关键判断：只有同时满足"从Capture页面跳转"和"state有值"时，才创建新会话
+    // 刷新页面时，即使state有值（浏览器可能保留），但sessionStorage会清空，所以不会创建新会话
+    if (fromCapturePage && hasState) {
+      // 场景1：从Capture页面进入 → 新生成会话ID → 生成卡片
+      console.log('从Capture页面进入（sessionStorage标记），创建新会话，objectName:', state.objectName);
       
-      // 重置状态，准备创建新会话
-      hasGeneratedCardsRef.current = false;
+      // 重要：在创建新会话之前清除标记，避免useEffect再次执行时误判
+      sessionStorage.removeItem('fromCapturePage');
       
-      // 清空当前消息列表（如果有的话）
+      // 清空当前消息列表（清空旧会话）
       setMessages([]);
 
       setObjectName(state.objectName || 'Unknown');
       setObjectCategory(state.objectCategory || '自然类');
       
-      // 生成新会话ID
+      // 生成新会话ID（关键：新生成的会话ID需要生成卡片）
       const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       setSessionId(newSessionId);
       saveCurrentSessionId(newSessionId);
+      console.log('新生成会话ID:', newSessionId, '→ 将生成卡片');
+      
+      // 重要：新生成会话ID时，允许生成卡片
+      hasGeneratedCardsRef.current = false;
 
       // 保存识别结果上下文
       const context: IdentificationContext = {
@@ -197,23 +301,32 @@ export default function Result() {
       
       setMessages(initialMessages);
 
-      // 标记为已生成，防止重复调用
-      hasGeneratedCardsRef.current = true;
-
-      // 自动生成卡片（延迟一下，确保初始消息已显示）
+      // 自动生成卡片（新生成会话ID时，必须生成卡片）
       // 清除之前的定时器（如果存在）
       if (generateTimeoutRef.current) {
         clearTimeout(generateTimeoutRef.current);
       }
+      console.log('新生成会话ID，准备生成卡片，sessionId:', newSessionId);
       generateTimeoutRef.current = setTimeout(() => {
-        generateCardsAutomatically(state, newSessionId);
-        generateTimeoutRef.current = null;
+        console.log('定时器触发，调用generateCardsAutomatically，sessionId:', newSessionId);
+        // 检查定时器是否仍然有效（可能被清理函数清除了）
+        if (generateTimeoutRef.current) {
+          generateCardsAutomatically(state, newSessionId);
+          generateTimeoutRef.current = null;
+        } else {
+          console.warn('定时器已被清除，跳过卡片生成');
+        }
       }, 500);
     } else {
-      // 没有新识别结果，尝试恢复之前的会话
+      // 场景2：刷新对话页面 → 从本地读取会话ID → 不生成卡片
+      console.log('刷新对话页面，尝试恢复本地会话');
+      
+      // 重要：从本地读取会话ID时，不允许生成卡片
+      hasGeneratedCardsRef.current = true;
+      
       const currentSessionId = getCurrentSessionId();
       if (currentSessionId) {
-        console.log('恢复之前的会话:', currentSessionId);
+        console.log('从本地读取会话ID:', currentSessionId, '→ 不生成卡片');
         setSessionId(currentSessionId);
         
         // 恢复识别上下文
@@ -222,43 +335,77 @@ export default function Result() {
           setIdentificationContext(restoredContext);
           setObjectName(restoredContext.objectName || 'Unknown');
           setObjectCategory(restoredContext.objectCategory || '自然类');
+          console.log('恢复识别上下文成功:', restoredContext);
+        } else {
+          // 如果上下文恢复失败，尝试使用默认值
+          console.warn('识别上下文恢复失败，使用默认值');
+          setObjectName('Unknown');
+          setObjectCategory('自然类');
         }
         
-        // 恢复对话记录（异步，但不等待，因为恢复后会自动更新UI）
-        restoreConversation(currentSessionId).catch(err => {
-          console.error('恢复对话记录失败:', err);
-        });
+        // 恢复对话记录（异步，等待恢复完成）
+        // 从本地读取的会话ID，不生成卡片
+        restoreConversation(currentSessionId)
+          .then(() => {
+            console.log('对话记录恢复完成，不会重新生成卡片（从本地读取的会话ID）');
+            // 再次确认hasGeneratedCardsRef.current为true，防止任何误调用
+            hasGeneratedCardsRef.current = true;
+          })
+          .catch(err => {
+            console.error('恢复对话记录失败:', err);
+            // 恢复失败时，可以选择显示友好提示或引导用户重新开始
+            // 这里仅记录错误，不中断用户操作
+            // 即使恢复失败，也确保不会生成卡片（因为是从本地读取的会话ID）
+            hasGeneratedCardsRef.current = true;
+          });
       } else {
         // 如果没有会话记录，返回首页
         console.log('没有找到会话记录，返回首页');
+        // 确保不会生成卡片
+        hasGeneratedCardsRef.current = true;
         navigate('/');
       }
     }
 
     // 清理函数：关闭SSE连接和清除定时器
+    // 注意：这个清理函数会在useEffect重新执行之前执行（当依赖项变化时）
+    // 但是，如果isInitializedRef.current已经是true，useEffect不会重新执行
+    // 所以清理函数不应该清除正在进行的操作（如定时器）
     return () => {
+      // 只在组件卸载时清理SSE连接
+      // 注意：不要在依赖项变化时清除定时器，因为可能会中断正在进行的操作
+      // 定时器会在组件卸载时自动清理
       if (sseConnection) {
         closePostSSEConnection(sseConnection);
       }
-      if (generateTimeoutRef.current) {
-        clearTimeout(generateTimeoutRef.current);
-        generateTimeoutRef.current = null;
-      }
+      // 注意：不要在这里清除generateTimeoutRef，因为可能会中断卡片生成
+      // 定时器会在组件卸载时自动清理，或者在下次设置新定时器时清除旧的
       // 注意：不要重置 hasGeneratedCardsRef，因为恢复会话时需要保持这个状态
       // 只有在创建新会话时才会重置（在创建新会话的逻辑中处理）
       // hasGeneratedCardsRef.current = false;
-      isInitializedRef.current = false;
+      // 重要：不要重置isInitializedRef，避免useEffect重复执行
+      // 只有在组件卸载时才应该重置，但这里不需要，因为组件卸载时会自动清理
+      // isInitializedRef.current = false;
     };
-  }, [location.state]); // 只依赖 location.state，避免不必要的重复执行
+  }, [location, navigate, t]); // 依赖 location, navigate, t，确保location变化时触发恢复
 
   // 自动生成卡片函数
+  // 规则：只有新生成会话ID时才会调用此函数
+  // 从本地读取会话ID时，hasGeneratedCardsRef.current会被设置为true，不会调用此函数
   const generateCardsAutomatically = async (state: LocationState, sessionId: string) => {
+    console.log('generateCardsAutomatically被调用，sessionId:', sessionId, 'hasGeneratedCardsRef.current:', hasGeneratedCardsRef.current, 'isGeneratingCards:', isGeneratingCards);
+    
     // 如果正在生成或已经生成过，直接返回
-    if (isGeneratingCards) {
+    // 这个检查确保从本地读取会话ID时不会误调用生成卡片接口
+    if (isGeneratingCards || hasGeneratedCardsRef.current) {
+      console.log('跳过卡片生成：正在生成或已生成过，hasGeneratedCardsRef.current =', hasGeneratedCardsRef.current, 'isGeneratingCards =', isGeneratingCards);
       return;
     }
     
+    // 在开始生成前，先标记为已生成，防止重复调用
+    hasGeneratedCardsRef.current = true;
     setIsGeneratingCards(true);
+    console.log('开始生成卡片，设置hasGeneratedCardsRef.current = true, isGeneratingCards = true');
     const loadingMessageId = `msg-loading-${Date.now()}`;
     
     try {
@@ -652,23 +799,37 @@ export default function Result() {
           });
           setIsSending(false);
         },
-        onClose: () => {
+        onClose: async () => {
           // 流式输出完成
+          let completedMessage: ConversationMessage | null = null;
           flushSync(() => {
             setMessages((prev) => {
               const index = prev.findIndex((m) => m.id === assistantMessageId);
               if (index >= 0) {
                 const updated = [...prev];
-                updated[index] = {
+                // 创建完成的消息对象，清除isStreaming和streamingText字段
+                completedMessage = {
                   ...updated[index],
                   isStreaming: false,
                   streamingText: undefined,
                 };
+                updated[index] = completedMessage;
                 return updated;
               }
               return prev;
             });
           });
+          
+          // 保存完成的消息到IndexedDB（清除isStreaming和streamingText字段）
+          if (completedMessage && completedMessage.content) {
+            try {
+              await conversationStorage.saveMessage(completedMessage);
+            } catch (err) {
+              console.error('保存流式消息失败:', err);
+              // 不中断用户操作，仅记录错误
+            }
+          }
+          
           setIsSending(false);
         },
       });
@@ -794,23 +955,37 @@ export default function Result() {
           });
           setIsSending(false);
         },
-        onClose: () => {
+        onClose: async () => {
           // 流式输出完成
+          let completedMessage: ConversationMessage | null = null;
           flushSync(() => {
             setMessages((prev) => {
               const index = prev.findIndex((m) => m.id === assistantMessageId);
               if (index >= 0) {
                 const updated = [...prev];
-                updated[index] = {
+                // 创建完成的消息对象，清除isStreaming和streamingText字段
+                completedMessage = {
                   ...updated[index],
                   isStreaming: false,
                   streamingText: undefined,
                 };
+                updated[index] = completedMessage;
                 return updated;
               }
               return prev;
             });
           });
+          
+          // 保存完成的消息到IndexedDB（清除isStreaming和streamingText字段）
+          if (completedMessage && completedMessage.content) {
+            try {
+              await conversationStorage.saveMessage(completedMessage);
+            } catch (err) {
+              console.error('保存流式语音消息失败:', err);
+              // 不中断用户操作，仅记录错误
+            }
+          }
+          
           setIsSending(false);
         },
       });
@@ -932,10 +1107,10 @@ export default function Result() {
         maxContextRounds: 20,
       };
 
-      // 首次发送时传递识别结果上下文
-      if (identificationContext && !hasGeneratedCardsRef.current) {
-        streamRequest.identificationContext = identificationContext;
-      }
+      // 注意：在对话页面中上传图片时，不应该传递identificationContext
+      // 因为这不是新的识别结果，而是继续当前会话的对话
+      // 只有从Capture页面跳转过来时（新会话）才会传递identificationContext
+      // 这里不传递identificationContext，确保不会生成新的知识卡片
 
       // 重置累积文本和markdown状态
       accumulatedTextRef.current = '';
@@ -983,23 +1158,37 @@ export default function Result() {
           });
           setIsSending(false);
         },
-        onClose: () => {
+        onClose: async () => {
           // 流式输出完成
+          let completedMessage: ConversationMessage | null = null;
           flushSync(() => {
             setMessages((prev) => {
               const index = prev.findIndex((m) => m.id === assistantMessageId);
               if (index >= 0) {
                 const updated = [...prev];
-                updated[index] = {
+                // 创建完成的消息对象，清除isStreaming和streamingText字段
+                completedMessage = {
                   ...updated[index],
                   isStreaming: false,
                   streamingText: undefined,
                 };
+                updated[index] = completedMessage;
                 return updated;
               }
               return prev;
             });
           });
+          
+          // 保存完成的消息到IndexedDB（清除isStreaming和streamingText字段）
+          if (completedMessage && completedMessage.content) {
+            try {
+              await conversationStorage.saveMessage(completedMessage);
+            } catch (err) {
+              console.error('保存流式图片消息失败:', err);
+              // 不中断用户操作，仅记录错误
+            }
+          }
+          
           setIsSending(false);
         },
       });
