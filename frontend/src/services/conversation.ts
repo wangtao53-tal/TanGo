@@ -156,10 +156,12 @@ export function createStreamConnectionUnified(
           }
 
           // 创建临时消息对象（用于实时显示）
+          // 同时设置 content 和 streamingText，streamingText 用于实时显示流式效果
           const message: ConversationMessage = {
             id: assistantMessageId || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             type: 'text',
             content: fullText,
+            streamingText: fullText, // 设置 streamingText 以实现实时流式显示
             timestamp: new Date().toISOString(),
             sender: 'assistant',
             sessionId: request.sessionId || '',
