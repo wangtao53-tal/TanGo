@@ -820,7 +820,7 @@ export default function Result() {
           });
           
           // 保存完成的消息到IndexedDB（清除isStreaming和streamingText字段）
-          if (completedMessage && typeof completedMessage.content !== 'undefined') {
+          if (completedMessage && completedMessage !== null && 'content' in completedMessage) {
             try {
               await conversationStorage.saveMessage(completedMessage);
             } catch (err) {
@@ -1008,7 +1008,7 @@ export default function Result() {
             });
             
             // 在状态更新后保存消息
-            if (completedMessage && typeof completedMessage.content !== 'undefined') {
+            if (completedMessage && completedMessage !== null && 'content' in completedMessage) {
               conversationStorage.saveMessage(completedMessage).catch(err => {
                 console.error('保存流式语音消息失败:', err);
               });
@@ -1209,7 +1209,7 @@ export default function Result() {
           });
           
           // 保存完成的消息到IndexedDB（清除isStreaming和streamingText字段）
-          if (completedMessage && typeof completedMessage.content !== 'undefined') {
+          if (completedMessage && completedMessage !== null && 'content' in completedMessage) {
             try {
               await conversationStorage.saveMessage(completedMessage);
             } catch (err) {

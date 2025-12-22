@@ -92,9 +92,9 @@ export async function exportCardAsImage(
                         try {
                           if (nestedRule.cssText && nestedRule.cssText.includes('oklch')) {
                             if (rule instanceof CSSMediaRule) {
-                              rule.deleteRule(j);
+                              rule.deleteRule(j as any);
                             } else if (rule instanceof CSSKeyframesRule) {
-                              rule.deleteRule(j);
+                              rule.deleteRule(j as any);
                             }
                           }
                         } catch (e) {

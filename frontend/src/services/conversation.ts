@@ -4,7 +4,7 @@
  */
 
 import { sendConversationMessage, recognizeIntent } from './api';
-import { createSSEConnectionUnified, closeSSEConnection, type SSECallbacks } from './sse';
+import { createSSEConnectionUnified, type SSECallbacks } from './sse';
 import { conversationStorage } from './storage';
 import type { ConversationMessage } from '../types/conversation';
 import type { ConversationStreamEvent, IdentificationContext, UnifiedStreamConversationRequest } from '../types/api';
@@ -179,7 +179,7 @@ export function createStreamConnectionUnified(
       let messageType: 'text' | 'card' | 'image' | 'voice' = 'text';
       if (event.type === 'card') {
         messageType = 'card';
-      } else if (event.type === 'image_uploaded' || event.type === 'image_done') {
+      } else if (event.type === 'image_progress' || event.type === 'image_done') {
         messageType = 'image';
       }
       
