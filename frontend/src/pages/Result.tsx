@@ -15,7 +15,7 @@ import type { ConversationMessage } from '../types/conversation';
 import type { IdentificationContext } from '../types/api';
 import { useState, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
-import { cardStorage, explorationStorage } from '../services/storage';
+import { cardStorage, explorationStorage, conversationStorage } from '../services/storage';
 import { sendMessage, createStreamConnection, recognizeUserIntent, createStreamConnectionUnified } from '../services/conversation';
 import { createPostSSEConnection, closePostSSEConnection } from '../services/sse-post';
 import type { UnifiedStreamConversationRequest, ConversationStreamEvent } from '../types/api';
@@ -52,21 +52,95 @@ export default function Result() {
   // 用于流式对话的ref（必须在组件顶层）
   const accumulatedTextRef = useRef('');
   const markdownRef = useRef<boolean>(false);
+  const isInitializedRef = useRef(false); // 防止重复初始化
 
-  useEffect(() => {
-    const state = location.state as LocationState;
-    if (state && state.objectName) {
-      // 如果已经生成过卡片，不再重复生成
-      if (hasGeneratedCardsRef.current) {
-        return;
+  // 从localStorage获取当前会话ID
+  const getCurrentSessionId = (): string | null => {
+    try {
+      return localStorage.getItem('currentSessionId');
+    } catch {
+      return null;
+    }
+  };
+
+  // 保存当前会话ID到localStorage
+  const saveCurrentSessionId = (sessionId: string): void => {
+    try {
+      localStorage.setItem('currentSessionId', sessionId);
+    } catch (error) {
+      console.error('保存会话ID失败:', error);
+    }
+  };
+
+  // 保存识别上下文到localStorage
+  const saveIdentificationContext = (context: IdentificationContext): void => {
+    try {
+      localStorage.setItem('identificationContext', JSON.stringify(context));
+    } catch (error) {
+      console.error('保存识别上下文失败:', error);
+    }
+  };
+
+  // 从localStorage恢复识别上下文
+  const restoreIdentificationContext = (): IdentificationContext | null => {
+    try {
+      const stored = localStorage.getItem('identificationContext');
+      if (stored) {
+        return JSON.parse(stored) as IdentificationContext;
       }
+    } catch (error) {
+      console.error('恢复识别上下文失败:', error);
+    }
+    return null;
+  };
+
+  // 恢复对话记录
+  const restoreConversation = async (sessionId: string) => {
+    try {
+      const savedMessages = await conversationStorage.getMessagesBySessionId(sessionId);
+      if (savedMessages.length > 0) {
+        setMessages(savedMessages);
+        console.log(`已恢复 ${savedMessages.length} 条对话记录`);
+        
+        // 检查是否已有卡片消息，如果有，标记为已生成，防止重新生成
+        const hasCards = savedMessages.some(msg => msg.type === 'card' && msg.sender === 'assistant');
+        if (hasCards) {
+          hasGeneratedCardsRef.current = true;
+          console.log('检测到已有卡片消息，标记为已生成');
+        }
+      }
+    } catch (error) {
+      console.error('恢复对话记录失败:', error);
+    }
+  };
+
+  // 初始化：处理新会话或恢复会话
+  useEffect(() => {
+    // 防止重复初始化
+    if (isInitializedRef.current) {
+      return;
+    }
+    isInitializedRef.current = true;
+
+    const state = location.state as LocationState;
+    
+    if (state && state.objectName) {
+      // 从Capture页面传入新识别结果，创建新会话
+      console.log('检测到新识别结果，创建新会话');
+      
+      // 重置状态，准备创建新会话
+      hasGeneratedCardsRef.current = false;
+      
+      // 清空当前消息列表（如果有的话）
+      setMessages([]);
 
       setObjectName(state.objectName || 'Unknown');
       setObjectCategory(state.objectCategory || '自然类');
       
-      // 生成会话ID
+      // 生成新会话ID
       const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       setSessionId(newSessionId);
+      saveCurrentSessionId(newSessionId);
 
       // 保存识别结果上下文
       const context: IdentificationContext = {
@@ -77,6 +151,7 @@ export default function Result() {
         age: state.age,
       };
       setIdentificationContext(context);
+      saveIdentificationContext(context);
 
       // 创建初始消息列表
       const initialMessages: ConversationMessage[] = [];
@@ -99,17 +174,26 @@ export default function Result() {
           sessionId: newSessionId,
         };
         initialMessages.push(userImageMessage);
+        // 保存到IndexedDB
+        conversationStorage.saveMessage(userImageMessage).catch(err => 
+          console.error('保存图片消息失败:', err)
+        );
       }
 
       // 添加识别结果消息
-      initialMessages.push({
+      const initMessage: ConversationMessage = {
         id: `msg-init-${Date.now()}`,
         type: 'text',
         content: `${t('result.identifiedAs')} ${state.objectName}！置信度：${(state.confidence * 100).toFixed(0)}%`,
         timestamp: new Date().toISOString(),
         sender: 'assistant',
         sessionId: newSessionId,
-      });
+      };
+      initialMessages.push(initMessage);
+      // 保存到IndexedDB
+      conversationStorage.saveMessage(initMessage).catch(err => 
+        console.error('保存初始消息失败:', err)
+      );
       
       setMessages(initialMessages);
 
@@ -126,8 +210,29 @@ export default function Result() {
         generateTimeoutRef.current = null;
       }, 500);
     } else {
-      // 如果没有数据，返回首页
-      navigate('/');
+      // 没有新识别结果，尝试恢复之前的会话
+      const currentSessionId = getCurrentSessionId();
+      if (currentSessionId) {
+        console.log('恢复之前的会话:', currentSessionId);
+        setSessionId(currentSessionId);
+        
+        // 恢复识别上下文
+        const restoredContext = restoreIdentificationContext();
+        if (restoredContext) {
+          setIdentificationContext(restoredContext);
+          setObjectName(restoredContext.objectName || 'Unknown');
+          setObjectCategory(restoredContext.objectCategory || '自然类');
+        }
+        
+        // 恢复对话记录（异步，但不等待，因为恢复后会自动更新UI）
+        restoreConversation(currentSessionId).catch(err => {
+          console.error('恢复对话记录失败:', err);
+        });
+      } else {
+        // 如果没有会话记录，返回首页
+        console.log('没有找到会话记录，返回首页');
+        navigate('/');
+      }
     }
 
     // 清理函数：关闭SSE连接和清除定时器
@@ -139,8 +244,10 @@ export default function Result() {
         clearTimeout(generateTimeoutRef.current);
         generateTimeoutRef.current = null;
       }
-      // 重置标志，以便下次进入页面时可以重新生成
-      hasGeneratedCardsRef.current = false;
+      // 注意：不要重置 hasGeneratedCardsRef，因为恢复会话时需要保持这个状态
+      // 只有在创建新会话时才会重置（在创建新会话的逻辑中处理）
+      // hasGeneratedCardsRef.current = false;
+      isInitializedRef.current = false;
     };
   }, [location.state]); // 只依赖 location.state，避免不必要的重复执行
 
@@ -248,7 +355,7 @@ export default function Result() {
             });
           }
         },
-        onCard: (card, index) => {
+        onCard: async (card, index) => {
           // 验证卡片数据格式
           if (!card || !card.type || !card.title || !card.content) {
             console.error('卡片数据格式不正确:', card);
@@ -280,6 +387,11 @@ export default function Result() {
             sessionId,
           };
 
+          // 保存卡片消息到IndexedDB
+          await conversationStorage.saveMessage(cardMessage).catch(err => 
+            console.error('保存卡片消息失败:', err)
+          );
+
           // 使用flushSync立即更新UI
           flushSync(() => {
             setMessages((prev) => {
@@ -289,7 +401,7 @@ export default function Result() {
             });
           });
         },
-        onError: (error) => {
+        onError: async (error) => {
           clearTimeout(progressTimeout);
           console.error('流式生成卡片失败:', error);
           
@@ -326,6 +438,10 @@ export default function Result() {
             sessionId,
           };
           setMessages((prev) => [...prev, errorMessage]);
+          // 保存错误消息到IndexedDB
+          await conversationStorage.saveMessage(errorMessage).catch(err => 
+            console.error('保存错误消息失败:', err)
+          );
         },
         onComplete: async () => {
           clearTimeout(progressTimeout);
@@ -337,12 +453,17 @@ export default function Result() {
                 const updated = [...prev];
                 // 如果有流式文本，保留消息并标记为完成；否则移除
                 if (streamFullText) {
-                  updated[index] = {
+                  const completedMessage: ConversationMessage = {
                     ...updated[index],
                     isStreaming: false,
                     streamingText: undefined,
                     content: streamFullText,
                   };
+                  updated[index] = completedMessage;
+                  // 保存完成的流式消息到IndexedDB
+                  conversationStorage.saveMessage(completedMessage).catch(err => 
+                    console.error('保存流式消息失败:', err)
+                  );
                   return updated;
                 } else {
                   // 移除加载消息
@@ -403,6 +524,10 @@ export default function Result() {
         sessionId,
       };
       setMessages((prev) => [...prev, errorMessage]);
+      // 保存错误消息到IndexedDB
+      await conversationStorage.saveMessage(errorMessage).catch(err => 
+        console.error('保存错误消息失败:', err)
+      );
     } finally {
       setIsGeneratingCards(false);
     }
@@ -444,6 +569,10 @@ export default function Result() {
         sessionId,
       };
       setMessages((prev) => [...prev, userMessage]);
+      // 保存用户消息到IndexedDB
+      await conversationStorage.saveMessage(userMessage).catch(err => 
+        console.error('保存用户消息失败:', err)
+      );
 
       // 直接使用POST + SSE流式接口，从请求体传递参数，避免中文在URL中的编码问题
       // 创建助手消息占位符
@@ -558,6 +687,10 @@ export default function Result() {
         sessionId,
       };
       setMessages((prev) => [...prev, errorMessage]);
+      // 保存错误消息到IndexedDB
+      await conversationStorage.saveMessage(errorMessage).catch(err => 
+        console.error('保存错误消息失败:', err)
+      );
       setIsSending(false);
     }
   };
@@ -577,6 +710,10 @@ export default function Result() {
         sessionId,
       };
       setMessages((prev) => [...prev, userMessage]);
+      // 保存用户消息到IndexedDB
+      await conversationStorage.saveMessage(userMessage).catch(err => 
+        console.error('保存语音消息失败:', err)
+      );
 
       // 创建助手消息占位符
       const assistantMessageId = `msg-assistant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -692,6 +829,10 @@ export default function Result() {
         sessionId,
       };
       setMessages((prev) => [...prev, errorMessage]);
+      // 保存错误消息到IndexedDB
+      await conversationStorage.saveMessage(errorMessage).catch(err => 
+        console.error('保存错误消息失败:', err)
+      );
       setIsSending(false);
     }
   };
@@ -712,6 +853,7 @@ export default function Result() {
         sessionId,
       };
       setMessages((prev) => [...prev, userMessage]);
+      // 注意：图片消息会在更新为最终URL后再次保存
 
       // 2. 压缩图片
       const compressedBlob = await compressImage(file, 1920, 1920, 0.8);
@@ -745,6 +887,14 @@ export default function Result() {
         }
         return prev;
       });
+      // 保存更新后的图片消息到IndexedDB
+      const updatedImageMessage: ConversationMessage = {
+        ...userMessage,
+        content: imageUrl,
+      };
+      await conversationStorage.saveMessage(updatedImageMessage).catch(err => 
+        console.error('保存图片消息失败:', err)
+      );
       
       // 6. 创建助手消息占位符
       const assistantMessageId = `msg-assistant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -868,6 +1018,10 @@ export default function Result() {
         sessionId,
       };
       setMessages((prev) => [...prev, errorMessage]);
+      // 保存错误消息到IndexedDB
+      await conversationStorage.saveMessage(errorMessage).catch(err => 
+        console.error('保存错误消息失败:', err)
+      );
       setIsSending(false);
     }
   };
