@@ -107,17 +107,99 @@ func (n *TextGenerationNode) initChatModel(ctx context.Context) error {
 	return nil
 }
 
+// getAgePrompt 根据年龄生成对应的prompt要求
+func (n *TextGenerationNode) getAgePrompt(age int, cardType string) string {
+	var agePrompt string
+	
+	// 根据年龄段划分：3-6岁（幼儿）、7-12岁（小学）、13-18岁（中学）
+	if age <= 6 {
+		// 幼儿阶段（3-6岁）
+		switch cardType {
+		case "science":
+			agePrompt = `要求：
+1. 用最简单、最生动的语言解释{objectName}的科学知识，避免专业术语
+2. 使用比喻和拟人手法，让内容像故事一样有趣
+3. 提供2-3个简单有趣的事实，每个事实不超过一句话
+4. 添加一个趣味知识，用"你知道吗？"开头
+5. 内容要符合3-6岁孩子的认知水平，使用日常词汇
+6. 可以加入互动元素，如"你见过吗？"、"你觉得呢？"等`
+		case "poetry":
+			agePrompt = `要求：
+1. 找到与{objectName}相关的古诗词，优先选择简短、朗朗上口的诗句
+2. 标注诗词来源（作者和诗名）
+3. 用最简单、最形象的语言解释诗词含义，多用比喻
+4. 提供简单的文化背景说明，不超过两句话
+5. 解释要符合3-6岁孩子的理解能力，避免复杂概念`
+		case "english":
+			agePrompt = `要求：
+1. 提供{objectName}的英语关键词（3-4个），选择最简单、最常用的单词
+2. 提供2-3个适合3-6岁孩子的英语表达句子，句子要简短（3-5个单词）
+3. 提供简单的发音指导，用中文拼音或音标标注
+4. 可以加入简单的英语儿歌或韵律，帮助记忆`
+		}
+	} else if age <= 12 {
+		// 小学阶段（7-12岁）
+		switch cardType {
+		case "science":
+			agePrompt = `要求：
+1. 用简单易懂的语言解释{objectName}的科学知识，可以适当使用基础科学术语
+2. 结合生活实际，让孩子能够联系到日常经验
+3. 提供2-3个有趣的事实，每个事实可以包含简单的科学原理
+4. 添加一个趣味知识，可以涉及科学小实验或观察方法
+5. 内容要符合7-12岁孩子的认知水平，激发探索兴趣
+6. 可以加入"为什么"、"怎么样"等引导性问题`
+		case "poetry":
+			agePrompt = `要求：
+1. 找到与{objectName}相关的古诗词（优先选择经典名句）
+2. 标注诗词来源（作者和诗名）
+3. 用7-12岁孩子能理解的语言解释诗词含义，可以适当讲解修辞手法
+4. 提供文化背景说明，包括历史背景和诗人创作意图
+5. 可以引导孩子思考诗词中的情感和意境`
+		case "english":
+			agePrompt = `要求：
+1. 提供{objectName}的英语关键词（3-5个），包括基础词汇和相关表达
+2. 提供2-3个适合7-12岁孩子的英语表达句子，句子可以稍长（5-8个单词）
+3. 提供发音指导，包括音标和发音技巧
+4. 可以加入简单的语法点或常用搭配，帮助扩展词汇`
+		}
+	} else {
+		// 中学阶段（13-18岁）
+		switch cardType {
+		case "science":
+			agePrompt = `要求：
+1. 用准确、专业的语言解释{objectName}的科学知识，可以使用科学术语
+2. 深入讲解科学原理，可以涉及物理、化学、生物等学科知识
+3. 提供2-3个有深度的事实，每个事实可以包含科学原理和实际应用
+4. 添加一个趣味知识，可以涉及前沿科学或跨学科知识
+5. 内容要符合13-18岁学生的认知水平，培养科学思维
+6. 可以引导思考科学问题，培养批判性思维`
+		case "poetry":
+			agePrompt = `要求：
+1. 找到与{objectName}相关的古诗词（优先选择经典名句，可以包含较长的诗句）
+2. 标注诗词来源（作者和诗名），可以介绍诗人的生平和创作背景
+3. 深入解释诗词含义，分析修辞手法、意象和艺术特色
+4. 提供详细的文化背景说明，包括历史背景、文学流派和艺术价值
+5. 可以引导分析诗词的深层含义和思想情感，培养文学鉴赏能力`
+		case "english":
+			agePrompt = `要求：
+1. 提供{objectName}的英语关键词（4-6个），包括高级词汇和相关表达
+2. 提供2-3个适合13-18岁学生的英语表达句子，句子可以更复杂（8-12个单词）
+3. 提供详细的发音指导，包括音标、重音和语调
+4. 可以加入语法点、固定搭配和高级表达，帮助提升英语水平
+5. 可以介绍相关的英语文化背景或使用场景`
+		}
+	}
+	
+	return agePrompt
+}
+
 // initTemplates 初始化所有消息模板
 func (n *TextGenerationNode) initTemplates() {
-	// 科学认知卡模板
+	// 科学认知卡模板（使用动态prompt，根据年龄调整）
 	n.scienceTemplate = prompt.FromMessages(schema.FString,
 		schema.SystemMessage(`你是一个K12教育内容生成助手，专门为{age}岁的孩子生成科学认知卡片内容。
 
-要求：
-1. 用简单易懂的语言解释{objectName}的科学知识
-2. 提供2-3个有趣的事实
-3. 添加一个趣味知识
-4. 内容要符合{age}岁孩子的认知水平
+{agePrompt}
 
 请返回JSON格式，包含以下字段：
 - name: 对象名称（字符串）
@@ -127,15 +209,11 @@ func (n *TextGenerationNode) initTemplates() {
 		schema.UserMessage("请为{objectName}生成科学认知卡内容，适合{age}岁孩子。"),
 	)
 
-	// 古诗词卡模板
+	// 古诗词卡模板（使用动态prompt，根据年龄调整）
 	n.poetryTemplate = prompt.FromMessages(schema.FString,
 		schema.SystemMessage(`你是一个古诗词专家，专门为K12教育生成古诗词卡片内容。
 
-要求：
-1. 找到与{objectName}相关的古诗词（优先选择经典名句）
-2. 标注诗词来源（作者和诗名）
-3. 用{age}岁孩子能理解的语言解释诗词含义
-4. 提供文化背景说明
+{agePrompt}
 
 请返回JSON格式，包含以下字段：
 - poem: 古诗词内容（字符串）
@@ -145,14 +223,11 @@ func (n *TextGenerationNode) initTemplates() {
 		schema.UserMessage("请为{objectName}生成古诗词卡片内容，适合{age}岁孩子。"),
 	)
 
-	// 英语表达卡模板
+	// 英语表达卡模板（使用动态prompt，根据年龄调整）
 	n.englishTemplate = prompt.FromMessages(schema.FString,
 		schema.SystemMessage(`你是一个英语教学专家，专门为K12教育生成英语表达卡片内容。
 
-要求：
-1. 提供{objectName}的英语关键词（3-5个）
-2. 提供2-3个适合{age}岁孩子的英语表达句子
-3. 提供发音指导
+{agePrompt}
 
 请返回JSON格式，包含以下字段：
 - keywords: 英语关键词列表（字符串数组，3-5个）
@@ -390,9 +465,13 @@ func (n *TextGenerationNode) generateScienceCardReal(ctx context.Context, data *
 		logx.Field("age", data.Age),
 	)
 
+	// 根据年龄生成对应的prompt
+	agePrompt := n.getAgePrompt(data.Age, "science")
+	
 	messages, err := n.scienceTemplate.Format(ctx, map[string]any{
 		"objectName": data.ObjectName,
 		"age":        strconv.Itoa(data.Age),
+		"agePrompt":  agePrompt,
 	})
 
 	if err != nil {
@@ -462,9 +541,13 @@ func (n *TextGenerationNode) generatePoetryCardReal(ctx context.Context, data *G
 		logx.Field("age", data.Age),
 	)
 
+	// 根据年龄生成对应的prompt
+	agePrompt := n.getAgePrompt(data.Age, "poetry")
+	
 	messages, err := n.poetryTemplate.Format(ctx, map[string]any{
 		"objectName": data.ObjectName,
 		"age":        strconv.Itoa(data.Age),
+		"agePrompt":  agePrompt,
 	})
 	if err != nil {
 		n.logger.Errorw("模板格式化失败", logx.Field("error", err))
@@ -531,9 +614,13 @@ func (n *TextGenerationNode) generateEnglishCardReal(ctx context.Context, data *
 		logx.Field("age", data.Age),
 	)
 
+	// 根据年龄生成对应的prompt
+	agePrompt := n.getAgePrompt(data.Age, "english")
+	
 	messages, err := n.englishTemplate.Format(ctx, map[string]any{
 		"objectName": data.ObjectName,
 		"age":        strconv.Itoa(data.Age),
+		"agePrompt":  agePrompt,
 	})
 	if err != nil {
 		n.logger.Errorw("模板格式化失败", logx.Field("error", err))

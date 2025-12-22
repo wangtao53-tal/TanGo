@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { Header } from '../components/common/Header';
 import { LanguageSwitcher } from '../components/common/LanguageSwitcher';
 import { userProfileStorage } from '../services/storage';
+import { gradeToAge } from '../utils/age';
 import type { UserProfile } from '../types/exploration';
 
 export default function Settings() {
@@ -32,10 +33,16 @@ export default function Settings() {
 
   const handleGradeChange = (newGrade: string) => {
     setGrade(newGrade);
+    
+    // 从年级转换为年龄
+    const ageFromGrade = gradeToAge(newGrade);
+    const age = ageFromGrade !== undefined ? ageFromGrade : 8; // 如果转换失败，使用默认值8
+    
     if (profile) {
       const updatedProfile: UserProfile = {
         ...profile,
         grade: newGrade,
+        age, // 更新年龄
         lastUpdated: new Date().toISOString(),
       };
       userProfileStorage.save(updatedProfile);
@@ -43,7 +50,7 @@ export default function Settings() {
     } else {
       // 创建新档案
       const newProfile: UserProfile = {
-        age: 8, // 默认年龄
+        age,
         grade: newGrade,
         lastUpdated: new Date().toISOString(),
       };

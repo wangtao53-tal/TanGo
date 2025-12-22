@@ -24,6 +24,7 @@ import { uploadImage, generateCards, generateCardsStream } from '../services/api
 import type { GenerateCardsRequest, GenerateCardsResponse } from '../types/api';
 import type { KnowledgeCard, ExplorationRecord } from '../types/exploration';
 import { AudioPlaybackProvider } from '../components/cards/ScienceCard';
+import { getUserAgeFromStorage } from '../utils/age';
 
 interface LocationState {
   objectName: string;
@@ -165,11 +166,14 @@ export default function Result() {
       };
       setMessages((prev) => [...prev, loadingMessage]);
 
+      // 获取用户年龄（优先使用state中的年龄，否则从存储中获取）
+      const userAge = state.age || getUserAgeFromStorage();
+      
       // 调用流式生成卡片API
       const request: GenerateCardsRequest = {
         objectName: state.objectName,
         objectCategory: state.objectCategory,
-        age: state.age || 8, // 默认8岁
+        age: userAge,
         keywords: state.keywords,
       };
 
@@ -368,7 +372,7 @@ export default function Result() {
               objectName: state.objectName,
               objectCategory: category as '自然类' | '生活类' | '人文类',
               confidence: state.confidence || 0.95,
-              age: state.age || 8,
+              age: userAge,
               imageData: state.imageData,
               cards: receivedCards,
               collected: false,
@@ -456,12 +460,15 @@ export default function Result() {
       };
       setMessages((prev) => [...prev, assistantMessage]);
 
+      // 获取用户年龄（优先使用识别上下文中的年龄，否则从存储中获取）
+      const userAge = identificationContext?.age || getUserAgeFromStorage();
+      
       // 构建统一流式请求参数
       const streamRequest: UnifiedStreamConversationRequest = {
         messageType: 'text',
         message: text,
         sessionId,
-        userAge: identificationContext?.age,
+        userAge,
         maxContextRounds: 20,
       };
 
@@ -585,6 +592,9 @@ export default function Result() {
       };
       setMessages((prev) => [...prev, assistantMessage]);
 
+      // 获取用户年龄（优先使用识别上下文中的年龄，否则从存储中获取）
+      const userAge = identificationContext?.age || getUserAgeFromStorage();
+      
       // 构建统一流式请求参数
       // 注意：如果前端已经识别了语音，可以发送文本；如果需要后端识别，需要发送音频数据
       const streamRequest: UnifiedStreamConversationRequest = {
@@ -592,7 +602,7 @@ export default function Result() {
         audio: audioBase64 || '', // 如果有音频数据，使用音频；否则为空
         message: text, // 语音识别后的文本
         sessionId,
-        userAge: identificationContext?.age,
+        userAge,
         maxContextRounds: 20,
       };
 
@@ -761,11 +771,14 @@ export default function Result() {
         }
       }
 
+      // 获取用户年龄（优先使用识别上下文中的年龄，否则从存储中获取）
+      const userAge = identificationContext?.age || getUserAgeFromStorage();
+      
       const streamRequest: UnifiedStreamConversationRequest = {
         messageType: 'image',
         image: finalImageData, // 使用base64数据或URL
         sessionId,
-        userAge: identificationContext?.age,
+        userAge,
         maxContextRounds: 20,
       };
 

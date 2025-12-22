@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { identifyImage, uploadImage } from '../services/api';
 import { userProfileStorage } from '../services/storage';
 import { fileToBase64, extractBase64Data, compressImage } from '../utils/image';
+import { getUserAgeFromStorage } from '../utils/age';
 import type { IdentifyResponse } from '../types/api';
 
 export default function Capture() {
@@ -28,9 +29,8 @@ export default function Capture() {
 
     setIsProcessing(true);
     try {
-      // 获取用户档案（年龄）
-      const profile = userProfileStorage.get();
-      const age = profile?.age || 8; // 默认8岁
+      // 获取用户年龄（从存储中获取，优先从年级转换）
+      const age = getUserAgeFromStorage();
 
       // 1. 压缩图片
       const compressedBlob = await compressImage(file, 1920, 1920, 0.8);
