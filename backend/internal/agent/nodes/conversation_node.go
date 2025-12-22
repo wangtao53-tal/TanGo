@@ -107,34 +107,49 @@ func (n *ConversationNode) initTemplate() {
 	)
 }
 
-// generateSystemPrompt 根据用户年级生成系统prompt
+// generateSystemPrompt 根据用户年龄生成系统prompt
 func (n *ConversationNode) generateSystemPrompt(userAge int, objectName string, objectCategory string) string {
 	var difficulty string
 	var contentStyle string
+	var interactionStyle string
+	var knowledgeDepth string
 
-	// 根据年龄确定难度和风格
+	// 根据年龄段确定难度、风格和交互方式
+	// 3-6岁：幼儿阶段
 	if userAge <= 6 {
-		difficulty = "简单易懂，使用儿童语言"
-		contentStyle = "生动有趣，多用比喻和故事"
+		difficulty = "最简单易懂，使用儿童语言，避免专业术语"
+		contentStyle = "生动有趣，多用比喻、拟人和故事，像讲故事一样"
+		interactionStyle = "多用提问和互动，如'你见过吗？'、'你觉得呢？'，鼓励孩子观察和表达"
+		knowledgeDepth = "基础认知，重点培养观察力和好奇心，内容要贴近日常生活"
 	} else if userAge <= 12 {
-		difficulty = "中等难度，使用日常语言"
-		contentStyle = "结合生活实际，激发探索兴趣"
+		// 7-12岁：小学阶段
+		difficulty = "简单易懂，使用日常语言，可以适当使用基础科学术语"
+		contentStyle = "结合生活实际，激发探索兴趣，可以加入简单的科学原理"
+		interactionStyle = "引导式提问，如'为什么？'、'怎么样？'，培养思考习惯"
+		knowledgeDepth = "中等深度，结合课本知识但以拓展为主，培养科学思维和探索精神"
 	} else {
-		difficulty = "较高难度，可以使用专业术语"
-		contentStyle = "深入浅出，培养科学思维"
+		// 13-18岁：中学阶段
+		difficulty = "准确专业，可以使用科学术语，但要深入浅出地解释"
+		contentStyle = "深入浅出，培养科学思维，可以涉及跨学科知识和前沿科学"
+		interactionStyle = "引导深度思考，培养批判性思维，可以讨论科学问题和实际应用"
+		knowledgeDepth = "较高深度，可以涉及学科知识、科学原理和实际应用，培养科学素养"
 	}
 
 	prompt := fmt.Sprintf(`你是一个面向%d岁学生的AI助手，专门帮助学生学习课外知识。
+
 要求：
-1. 使用%s的语言风格
-2. 内容%s
-3. 结合%s相关的科学知识、古诗词和英语表达
-4. 拓展素质教育，培养探索精神
-5. 内容贴合K12课程，但以课外拓展为主`, userAge, difficulty, contentStyle, objectName)
+1. 语言风格：%s
+2. 内容风格：%s
+3. 交互方式：%s
+4. 知识深度：%s
+5. 结合%s相关的科学知识、古诗词和英语表达
+6. 拓展素质教育，培养探索精神和学习兴趣
+7. 内容贴合K12课程，但以课外拓展为主，避免直接讲解课本内容`, 
+		userAge, difficulty, contentStyle, interactionStyle, knowledgeDepth, objectName)
 
 	// 如果有识别对象信息，添加到prompt
 	if objectName != "" {
-		prompt += fmt.Sprintf("\n6. 当前讨论的对象是：%s（%s）", objectName, objectCategory)
+		prompt += fmt.Sprintf("\n8. 当前讨论的对象是：%s（%s），可以围绕这个对象展开相关知识的拓展", objectName, objectCategory)
 	}
 
 	return prompt
