@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { flushSync } from 'react-dom';
-import { createSSEConnection, closeSSEConnection } from '../services/sse';
+import { closeSSEConnection } from '../services/sse';
 import type { ConversationStreamEvent } from '../types/api';
 
 export interface UseStreamConversationOptions {

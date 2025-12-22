@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -44,6 +45,10 @@ func main() {
 
 	ctx := svc.NewServiceContext(c)
 	handler.RegisterHandlers(server, ctx)
+
+	// 注册静态文件服务（可选，用于 Docker 部署）
+	// 如果使用 Nginx，可以跳过此步骤
+	registerStaticFileServer(server)
 
 	fmt.Printf("Starting server at %s:%d...\n", c.Host, c.Port)
 	server.Start()
@@ -201,4 +206,89 @@ func parseCommaSeparatedList(s string) []string {
 		}
 	}
 	return result
+}
+
+// registerStaticFileServer 注册静态文件服务
+// 用于 Docker 部署时，后端同时提供前端静态文件服务
+// 如果使用 Nginx，可以通过环境变量 ENABLE_STATIC_SERVER=false 禁用
+func registerStaticFileServer(server *rest.Server) {
+	// 检查是否启用静态文件服务（默认启用）
+	enableStatic := os.Getenv("ENABLE_STATIC_SERVER")
+	if enableStatic == "false" || enableStatic == "0" {
+		return
+	}
+
+	// 查找前端静态文件目录
+	staticDirs := []string{
+		"frontend",       // 当前目录下的 frontend
+		"../frontend",    // 上一级目录
+		"../../frontend", // 上两级目录
+		"/app/frontend",  // Docker 容器中的路径
+	}
+
+	var staticDir string
+	for _, dir := range staticDirs {
+		if absPath, err := filepath.Abs(dir); err == nil {
+			if info, err := os.Stat(absPath); err == nil && info.IsDir() {
+				// 检查是否有 index.html
+				if _, err := os.Stat(filepath.Join(absPath, "index.html")); err == nil {
+					staticDir = absPath
+					break
+				}
+			}
+		}
+	}
+
+	if staticDir == "" {
+		// 如果找不到静态文件目录，静默跳过（可能使用 Nginx）
+		return
+	}
+
+	// 创建文件服务器
+	fileServer := http.FileServer(http.Dir(staticDir))
+
+	// 注册静态文件路由（优先级低于 API 路由）
+	// 使用通配符匹配所有非 API 路径
+	server.AddRoute(rest.Route{
+		Method: http.MethodGet,
+		Path:   "/",
+		Handler: func(w http.ResponseWriter, r *http.Request) {
+			// 如果是 API 路径，不处理（由 API 路由处理）
+			if strings.HasPrefix(r.URL.Path, "/api") {
+				http.NotFound(w, r)
+				return
+			}
+			// 提供静态文件服务
+			fileServer.ServeHTTP(w, r)
+		},
+	})
+
+	// 处理前端路由（SPA 路由回退到 index.html）
+	server.AddRoute(rest.Route{
+		Method: http.MethodGet,
+		Path:   "/*",
+		Handler: func(w http.ResponseWriter, r *http.Request) {
+			// 如果是 API 路径，不处理
+			if strings.HasPrefix(r.URL.Path, "/api") {
+				http.NotFound(w, r)
+				return
+			}
+
+			// 检查文件是否存在
+			filePath := filepath.Join(staticDir, r.URL.Path)
+			if info, err := os.Stat(filePath); err == nil && !info.IsDir() {
+				// 文件存在，直接提供
+				fileServer.ServeHTTP(w, r)
+				return
+			}
+
+			// 文件不存在，可能是前端路由，返回 index.html
+			indexPath := filepath.Join(staticDir, "index.html")
+			if _, err := os.Stat(indexPath); err == nil {
+				http.ServeFile(w, r, indexPath)
+			} else {
+				http.NotFound(w, r)
+			}
+		},
+	})
 }

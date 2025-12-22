@@ -176,9 +176,16 @@ export function createStreamConnectionUnified(
       }
 
       // 其他类型的事件（card等）
+      let messageType: 'text' | 'card' | 'image' | 'voice' = 'text';
+      if (event.type === 'card') {
+        messageType = 'card';
+      } else if (event.type === 'image_uploaded' || event.type === 'image_done') {
+        messageType = 'image';
+      }
+      
       const message: ConversationMessage = {
         id: event.messageId || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        type: event.type === 'card' ? 'card' : event.type === 'image' ? 'image' : 'text',
+        type: messageType,
         content: event.content,
         timestamp: new Date().toISOString(),
         sender: 'assistant',

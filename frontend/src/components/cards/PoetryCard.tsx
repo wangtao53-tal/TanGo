@@ -28,7 +28,6 @@ export const PoetryCard: React.FC<PoetryCardProps> = ({
   const [isCollected, setIsCollected] = useState(false);
   const content = card.content as PoetryCardContent;
   const { playingCardId, setPlayingCardId } = usePlayingCard();
-  const isCurrentlyPlaying = playingCardId === card.id;
 
   // 文本转语音Hook
   const { isPlaying, isPaused, play, pause, resume, stop, isSupported } = useTextToSpeech({

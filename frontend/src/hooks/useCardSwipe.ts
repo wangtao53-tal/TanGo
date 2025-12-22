@@ -23,7 +23,6 @@ export function useCardSwipe({
   threshold = 0.3, // 30%屏幕宽度
 }: UseCardSwipeOptions = {}): UseCardSwipeReturn {
   const [isSwiping, setIsSwiping] = useState(false);
-  const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
 
   const handleSwipe = useCallback((deltaX: number, deltaY: number) => {
@@ -54,7 +53,6 @@ export function useCardSwipe({
 
     setIsSwiping(false);
     setCurrentX(0);
-    setStartX(0);
   }, [isSwiping, currentX, threshold, onSwipeLeft, onSwipeRight]);
 
   return {

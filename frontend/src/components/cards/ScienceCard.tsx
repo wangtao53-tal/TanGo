@@ -55,7 +55,6 @@ export const ScienceCard: React.FC<ScienceCardProps> = ({
   const [isCollected, setIsCollected] = useState(false);
   const content = card.content as ScienceCardContent;
   const { playingCardId, setPlayingCardId } = usePlayingCard();
-  const isCurrentlyPlaying = playingCardId === card.id;
 
   // 文本转语音Hook
   const { isPlaying, isPaused, play, pause, resume, stop, isSupported } = useTextToSpeech({

@@ -16,12 +16,12 @@ import type { IdentificationContext } from '../types/api';
 import { useState, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { cardStorage, explorationStorage, conversationStorage } from '../services/storage';
-import { sendMessage, createStreamConnection, recognizeUserIntent, createStreamConnectionUnified } from '../services/conversation';
-import { createPostSSEConnection, closePostSSEConnection } from '../services/sse-post';
-import type { UnifiedStreamConversationRequest, ConversationStreamEvent } from '../types/api';
+import { createStreamConnectionUnified } from '../services/conversation';
+import { closePostSSEConnection } from '../services/sse-post';
+import type { UnifiedStreamConversationRequest } from '../types/api';
 import { fileToBase64, extractBase64Data, compressImage } from '../utils/image';
-import { uploadImage, generateCards, generateCardsStream } from '../services/api';
-import type { GenerateCardsRequest, GenerateCardsResponse } from '../types/api';
+import { uploadImage, generateCardsStream } from '../services/api';
+import type { GenerateCardsRequest } from '../types/api';
 import type { KnowledgeCard, ExplorationRecord } from '../types/exploration';
 import { AudioPlaybackProvider } from '../components/cards/ScienceCard';
 import { getUserAgeFromStorage } from '../utils/age';
@@ -434,7 +434,6 @@ export default function Result() {
       // 使用流式API，每生成完一张卡片立即显示
       const timestamp = Date.now();
       const receivedCards: KnowledgeCard[] = [];
-      let progressStartTime = Date.now();
 
       // 2秒后显示进度提示
       const progressTimeout = setTimeout(() => {
@@ -459,7 +458,7 @@ export default function Result() {
       let streamFullText = '';
 
       const abortController = generateCardsStream(request, {
-        onMessage: (char: string, fullText: string) => {
+        onMessage: (_char: string, fullText: string) => {
           // 处理流式文本消息（逐字符返回）
           streamFullText = fullText;
           
@@ -821,7 +820,7 @@ export default function Result() {
           });
           
           // 保存完成的消息到IndexedDB（清除isStreaming和streamingText字段）
-          if (completedMessage && completedMessage.content) {
+          if (completedMessage && typeof completedMessage.content !== 'undefined') {
             try {
               await conversationStorage.saveMessage(completedMessage);
             } catch (err) {
@@ -1009,7 +1008,7 @@ export default function Result() {
             });
             
             // 在状态更新后保存消息
-            if (completedMessage && completedMessage.content) {
+            if (completedMessage && typeof completedMessage.content !== 'undefined') {
               conversationStorage.saveMessage(completedMessage).catch(err => {
                 console.error('保存流式语音消息失败:', err);
               });
@@ -1210,7 +1209,7 @@ export default function Result() {
           });
           
           // 保存完成的消息到IndexedDB（清除isStreaming和streamingText字段）
-          if (completedMessage && completedMessage.content) {
+          if (completedMessage && typeof completedMessage.content !== 'undefined') {
             try {
               await conversationStorage.saveMessage(completedMessage);
             } catch (err) {

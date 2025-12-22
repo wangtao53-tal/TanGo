@@ -61,7 +61,7 @@ export function createSSEConnectionUnified(
 
         for (const line of lines) {
           if (line.startsWith('event: ')) {
-            const eventType = line.substring(7).trim();
+            // 事件类型已解析，继续处理下一行
             continue;
           }
           if (line.startsWith('data: ')) {

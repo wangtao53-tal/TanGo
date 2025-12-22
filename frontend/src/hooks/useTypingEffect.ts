@@ -15,7 +15,7 @@ export function useTypingEffect(options: UseTypingEffectOptions): string {
   const { text, speed = 30, enabled = true } = options;
   const [displayedText, setDisplayedText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 当text更新时，重置并重新开始
   useEffect(() => {

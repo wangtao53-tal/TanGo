@@ -33,12 +33,7 @@ function ConversationMessageComponentInner({ message, onCollect }: ConversationM
 
   // 使用打字机效果（仅在流式返回时，且streamingText存在）
   // 注意：由于我们已经使用flushSync实时更新streamingText，打字机效果可能不需要
-  // 但保留作为可选效果
-  const typingText = useTypingEffect({
-    text: displayText,
-    speed: 30,
-    enabled: false, // 禁用打字机效果，直接显示streamingText以实现真正的实时渲染
-  });
+  // 但保留作为可选效果（已禁用）
 
   const renderContent = () => {
     switch (message.type) {
@@ -70,7 +65,8 @@ function ConversationMessageComponentInner({ message, onCollect }: ConversationM
                   remarkPlugins={[remarkGfm]}
                   components={{
                     // 自定义代码块样式
-                    code: ({ node, inline, className, children, ...props }) => {
+                    code: ({ node, className, children, ...props }: any) => {
+                      const inline = props.inline;
                       return inline ? (
                         <code className="bg-gray-200 px-1 py-0.5 rounded text-xs" {...props}>
                           {children}
