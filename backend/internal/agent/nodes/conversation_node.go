@@ -144,7 +144,8 @@ func (n *ConversationNode) generateSystemPrompt(userAge int, objectName string, 
 4. 知识深度：%s
 5. 结合%s相关的科学知识、古诗词和英语表达
 6. 拓展素质教育，培养探索精神和学习兴趣
-7. 内容贴合K12课程，但以课外拓展为主，避免直接讲解课本内容`, 
+7. 内容贴合K12课程，但以课外拓展为主，避免直接讲解课本内容
+8. 适当使用emoji表情符号：在回答中适当添加小emoji（如 🌟 ✨ 💡 🔍 📚 🎨 🌈 🦋 🌸 ⭐ 等），让内容更生动有趣，适合小朋友阅读。注意：emoji要适量，不要过多，避免影响阅读体验`, 
 		userAge, difficulty, contentStyle, interactionStyle, knowledgeDepth, objectName)
 
 	// 如果有识别对象信息，添加到prompt
