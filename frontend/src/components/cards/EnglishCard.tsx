@@ -3,12 +3,25 @@
  * 蓝色主题，基于设计稿
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { cardStorage } from '../../services/storage';
 import type { KnowledgeCard } from '../../types/exploration';
 import type { EnglishCardContent } from '../../types/exploration';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
 import { extractCardText, detectCardLanguage } from '../../utils/cardTextExtractor';
+
+/**
+ * 移除文本中的所有emoji表情符号
+ */
+function removeEmojis(text: string): string {
+  if (!text) return text;
+  
+  // 更全面的emoji Unicode范围正则表达式
+  const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F900}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{1F191}-\u{1F251}]|[\u{2934}\u{2935}]|[\u{2190}-\u{21FF}]|[\u{2B00}-\u{2BFF}]|[\u{FE00}-\u{FE0F}]|[\u{200D}]/gu;
+  
+  // 移除emoji并清理多余的空格
+  return text.replace(emojiRegex, '').replace(/\s+/g, ' ').trim();
+}
 import { usePlayingCard } from './ScienceCard';
 import { cardStyles } from '../../styles/cardStyles';
 
@@ -26,32 +39,120 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
   id,
 }) => {
   const [isCollected, setIsCollected] = useState(false);
-  const content = card.content as EnglishCardContent;
+  // 处理字段映射：后端可能返回 keywords，前端使用 words
+  const rawContent = card.content as any;
+  const content: EnglishCardContent = {
+    words: rawContent.words || rawContent.keywords || [],
+    expressions: rawContent.expressions || [],
+    pronunciation: rawContent.pronunciation,
+  };
   const { playingCardId, setPlayingCardId } = usePlayingCard();
   const isCurrentlyPlaying = playingCardId === card.id;
+  // 用于跟踪正在高亮的单词
+  const [highlightedWords, setHighlightedWords] = useState<Set<string>>(new Set());
+  // 用于跟踪是否正在播放自定义序列
+  const [isPlayingSequence, setIsPlayingSequence] = useState(false);
 
-  // 文本转语音Hook
+  // 文本转语音Hook - 英语卡片使用更慢的语速（0.7）以便学习
   const { isPlaying, isPaused, play, pause, resume, stop, isSupported } = useTextToSpeech({
-    rate: 0.9,
+    rate: 0.7,
     pitch: 1.0,
     onStart: () => {
       setPlayingCardId(card.id);
     },
     onEnd: () => {
       setPlayingCardId(null);
+      setHighlightedWords(new Set());
     },
     onError: (error) => {
       console.error('文本转语音错误:', error);
       setPlayingCardId(null);
+      setHighlightedWords(new Set());
     },
   });
 
   // 如果其他卡片开始播放，停止当前播放
   useEffect(() => {
-    if (playingCardId !== null && playingCardId !== card.id && isPlaying) {
-      stop();
+    if (playingCardId !== null && playingCardId !== card.id) {
+      // 停止自定义播放序列
+      if (synthRef.current && isPlayingSequence) {
+        synthRef.current.cancel();
+        setIsPlayingSequence(false);
+        setHighlightedWords(new Set());
+        currentIndexRef.current = 0;
+      }
+      // 停止 useTextToSpeech hook 的播放
+      if (isPlaying) {
+        stop();
+      }
     }
-  }, [playingCardId, card.id, isPlaying, stop]);
+  }, [playingCardId, card.id, isPlaying, isPlayingSequence, stop]);
+
+  // 用于存储播放序列的引用
+  const playSequenceRef = useRef<Array<{ text: string; highlightWords?: boolean }>>([]);
+  const currentIndexRef = useRef(0);
+  const synthRef = useRef<SpeechSynthesis | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      synthRef.current = window.speechSynthesis;
+    }
+  }, []);
+
+  // 顺序播放函数
+  const playSequence = useCallback((sequence: Array<{ text: string; highlightWords?: boolean }>, language: string) => {
+    if (!synthRef.current || sequence.length === 0) return;
+
+    // 停止当前播放
+    synthRef.current.cancel();
+    
+    playSequenceRef.current = sequence;
+    currentIndexRef.current = 0;
+    setIsPlayingSequence(true);
+    setPlayingCardId(card.id);
+
+    const playNext = () => {
+      if (currentIndexRef.current >= playSequenceRef.current.length) {
+        // 播放完成
+        setIsPlayingSequence(false);
+        setPlayingCardId(null);
+        setHighlightedWords(new Set());
+        return;
+      }
+
+      const item = playSequenceRef.current[currentIndexRef.current];
+      
+      // 如果需要高亮单词，设置高亮状态
+      if (item.highlightWords && content.words) {
+        setHighlightedWords(new Set(content.words));
+      } else {
+        // 其他部分播放时，清除单词高亮
+        setHighlightedWords(new Set());
+      }
+
+      // 播放当前文本
+      const utterance = new SpeechSynthesisUtterance(item.text);
+      utterance.lang = language;
+      utterance.rate = 0.7;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+
+      utterance.onend = () => {
+        currentIndexRef.current++;
+        // 短暂延迟后播放下一段
+        setTimeout(playNext, 200);
+      };
+
+      utterance.onerror = () => {
+        currentIndexRef.current++;
+        setTimeout(playNext, 200);
+      };
+
+      synthRef.current.speak(utterance);
+    };
+
+    playNext();
+  }, [card.id, content.words, setPlayingCardId]);
 
   const handleListen = () => {
     if (!isSupported) {
@@ -59,20 +160,57 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
       return;
     }
 
-    if (isPlaying && !isPaused) {
-      pause();
-    } else if (isPaused) {
-      resume();
-    } else {
-      const text = extractCardText(card);
-      const language = detectCardLanguage(card);
-      play(text, language);
+    // 如果正在播放，停止播放
+    if (synthRef.current && (isPlayingSequence || currentIndexRef.current > 0)) {
+      synthRef.current.cancel();
+      setIsPlayingSequence(false);
+      setPlayingCardId(null);
+      setHighlightedWords(new Set());
+      currentIndexRef.current = 0;
+      return;
     }
+
+    // 构建播放文本序列
+    const playSequenceItems: Array<{ text: string; highlightWords?: boolean }> = [];
+    
+    // 1. 播放标题（移除emoji）
+    if (card.title) {
+      playSequenceItems.push({ text: removeEmojis(card.title) });
+    }
+    
+    // 2. 播放单词部分（需要高亮，移除emoji）
+    if (content.words && content.words.length > 0) {
+      const wordsText = '核心单词：' + content.words.map(w => removeEmojis(w)).join(', ');
+      playSequenceItems.push({ text: wordsText, highlightWords: true });
+    }
+    
+    // 3. 播放表达式部分（移除emoji）
+    if (content.expressions && content.expressions.length > 0) {
+      const expressionsText = '口语表达：' + content.expressions.map(e => removeEmojis(e)).join('. ');
+      playSequenceItems.push({ text: expressionsText });
+    }
+    
+    // 4. 播放发音部分（移除emoji）
+    if (content.pronunciation) {
+      playSequenceItems.push({ text: '发音：' + removeEmojis(content.pronunciation) });
+    }
+    
+    // 开始顺序播放
+    const language = detectCardLanguage(card);
+    playSequence(playSequenceItems, language);
   };
 
   const handleStop = () => {
-    stop();
+    // 停止自定义播放序列
+    if (synthRef.current) {
+      synthRef.current.cancel();
+    }
+    setIsPlayingSequence(false);
+    currentIndexRef.current = 0;
     setPlayingCardId(null);
+    setHighlightedWords(new Set());
+    // 也停止 useTextToSpeech hook 的播放（如果正在使用）
+    stop();
   };
 
   // 检查卡片是否已收藏
@@ -138,13 +276,13 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
               onClick={handleListen}
               disabled={!isSupported}
               className={`size-10 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 ${
-                isPlaying && !isPaused
+                isCurrentlyPlaying && isPlayingSequence
                   ? 'bg-sky-blue text-white'
                   : 'bg-sky-blue/20 hover:bg-sky-blue hover:text-white text-sky-blue'
               }`}
             >
               <span className="material-symbols-outlined text-xl">
-                {isPlaying && !isPaused ? 'pause' : 'volume_up'}
+                {isCurrentlyPlaying && isPlayingSequence ? 'pause' : 'volume_up'}
               </span>
             </button>
           </div>
@@ -165,20 +303,27 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
                   Magic Words
                 </h4>
                 <div className="flex gap-2 flex-wrap">
-                  {content.words.map((word, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1.5 bg-sky-blue/10 rounded-xl font-bold border border-sky-blue/20 hover:bg-sky-blue hover:text-white cursor-pointer transition-colors"
-                      style={{ 
-                        fontSize: cardStyles.fonts.sizes.small,
-                        lineHeight: cardStyles.fonts.lineHeight.small,
-                        fontFamily: cardStyles.fonts.childFriendly.english,
-                        color: '#0284C7' // 使用更深的蓝色，确保对比度≥4.5:1
-                      }}
-                    >
-                      {word}
-                    </span>
-                  ))}
+                  {content.words.map((word, index) => {
+                    const isHighlighted = highlightedWords.has(word);
+                    return (
+                      <span
+                        key={index}
+                        className={`px-3 py-1.5 rounded-xl font-bold border transition-all duration-300 ${
+                          isHighlighted
+                            ? 'bg-sky-blue text-white border-sky-blue scale-110 shadow-lg'
+                            : 'bg-sky-blue/10 border-sky-blue/20 hover:bg-sky-blue hover:text-white cursor-pointer'
+                        }`}
+                        style={{ 
+                          fontSize: cardStyles.fonts.sizes.small,
+                          lineHeight: cardStyles.fonts.lineHeight.small,
+                          fontFamily: cardStyles.fonts.childFriendly.english,
+                          color: isHighlighted ? '#FFFFFF' : '#0284C7' // 高亮时使用白色，否则使用蓝色
+                        }}
+                      >
+                        {word}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -236,11 +381,11 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
               className="flex items-center gap-2 text-sm font-bold text-sky-blue bg-sky-blue/20 hover:bg-sky-blue hover:text-white px-5 py-3 rounded-full transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
             >
               <span className="material-symbols-outlined text-xl">
-                {isPlaying && !isPaused ? 'pause' : 'play_circle'}
+                {isCurrentlyPlaying && isPlayingSequence ? 'pause' : 'play_circle'}
               </span>
-              {isPlaying && !isPaused ? '暂停' : isPaused ? '继续' : '听'}
+              {isCurrentlyPlaying && isPlayingSequence ? '暂停' : '听'}
             </button>
-            {isPlaying && (
+            {isCurrentlyPlaying && isPlayingSequence && (
               <button
                 onClick={handleStop}
                 className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-700 px-3 py-2 rounded-full transition-all duration-200 active:scale-95"
