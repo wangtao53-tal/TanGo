@@ -69,7 +69,7 @@ export function useCardExport({
   }, [cardId, onSuccess, onError]);
 
   // 移动端长按处理
-  const onTouchStart = useCallback((e: React.TouchEvent) => {
+  const onTouchStart = useCallback((_e: React.TouchEvent) => {
     clearLongPressTimer();
     
     longPressTimerRef.current = setTimeout(() => {

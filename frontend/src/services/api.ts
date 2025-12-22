@@ -9,6 +9,7 @@ import type {
   IdentifyResponse,
   GenerateCardsRequest,
   GenerateCardsResponse,
+  CardContentResponse,
   CreateShareRequest,
   CreateShareResponse,
   GetShareResponse,

@@ -15,7 +15,7 @@ export function VoiceInput({ onResult, disabled = false }: VoiceInputProps) {
   const { t } = useTranslation();
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onResultRef = useRef(onResult);
 
   // 保持 onResult 引用最新

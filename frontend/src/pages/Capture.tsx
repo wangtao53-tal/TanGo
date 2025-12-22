@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { identifyImage, uploadImage } from '../services/api';
-import { userProfileStorage } from '../services/storage';
 import { fileToBase64, extractBase64Data, compressImage } from '../utils/image';
 import { getUserAgeFromStorage } from '../utils/age';
 import type { IdentifyResponse } from '../types/api';

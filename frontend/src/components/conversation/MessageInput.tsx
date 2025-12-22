@@ -3,7 +3,7 @@
  * 支持文本输入
  */
 
-import { useState, KeyboardEvent } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export interface MessageInputProps {

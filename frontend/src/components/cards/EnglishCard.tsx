@@ -8,7 +8,7 @@ import { cardStorage } from '../../services/storage';
 import type { KnowledgeCard } from '../../types/exploration';
 import type { EnglishCardContent } from '../../types/exploration';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
-import { extractCardText, detectCardLanguage } from '../../utils/cardTextExtractor';
+import { detectCardLanguage } from '../../utils/cardTextExtractor';
 
 /**
  * 移除文本中的所有emoji表情符号
@@ -54,7 +54,7 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
   const [isPlayingSequence, setIsPlayingSequence] = useState(false);
 
   // 文本转语音Hook - 英语卡片使用更慢的语速（0.7）以便学习
-  const { isPlaying, isPaused, play, pause, resume, stop, isSupported } = useTextToSpeech({
+  const { isPlaying, stop, isSupported } = useTextToSpeech({
     rate: 0.7,
     pitch: 1.0,
     onStart: () => {
@@ -148,7 +148,9 @@ export const EnglishCard: React.FC<EnglishCardProps> = ({
         setTimeout(playNext, 200);
       };
 
-      synthRef.current.speak(utterance);
+      if (synthRef.current) {
+        synthRef.current.speak(utterance);
+      }
     };
 
     playNext();
