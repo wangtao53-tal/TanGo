@@ -666,7 +666,7 @@ func (l *StreamLogic) StreamConversationUnified(
 
 // streamTextMock Mock流式文本响应
 func (l *StreamLogic) streamTextMock(w http.ResponseWriter, sessionId string, message string) error {
-	text := fmt.Sprintf("这是一个Mock流式响应。您的问题是：%s。待接入真实AI模型后，将实现真实的流式文本生成。", message)
+	text := fmt.Sprintf("这是一个Mock流式响应 🌟。您的问题是：%s。待接入真实AI模型后，将实现真实的流式文本生成 ✨。", message)
 	words := []rune(text)
 
 	for i, word := range words {

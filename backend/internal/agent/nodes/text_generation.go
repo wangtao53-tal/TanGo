@@ -119,23 +119,26 @@ func (n *TextGenerationNode) getAgePrompt(age int, cardType string) string {
 			agePrompt = `要求：
 1. 用最简单、最生动的语言解释{objectName}的科学知识，避免专业术语
 2. 使用比喻和拟人手法，让内容像故事一样有趣
-3. 提供2-3个简单有趣的事实，每个事实不超过一句话
-4. 添加一个趣味知识，用"你知道吗？"开头
+3. 提供2-3个简单有趣的事实，每个事实不超过一句话，可以适当使用emoji（如 🌟 ✨ 💡 🔍 等）
+4. 添加一个趣味知识，用"你知道吗？"开头，可以适当使用emoji（如 🎉 🌈 ⭐ 等）
 5. 内容要符合3-6岁孩子的认知水平，使用日常词汇
-6. 可以加入互动元素，如"你见过吗？"、"你觉得呢？"等`
+6. 可以加入互动元素，如"你见过吗？"、"你觉得呢？"等
+7. 适当使用emoji让内容更生动，但不要过多，保持可读性`
 		case "poetry":
 			agePrompt = `要求：
 1. 找到与{objectName}相关的古诗词，优先选择简短、朗朗上口的诗句
 2. 标注诗词来源（作者和诗名）
-3. 用最简单、最形象的语言解释诗词含义，多用比喻
-4. 提供简单的文化背景说明，不超过两句话
-5. 解释要符合3-6岁孩子的理解能力，避免复杂概念`
+3. 用最简单、最形象的语言解释诗词含义，多用比喻，可以适当使用emoji（如 📜 ✨ 🌸 🌙 等）
+4. 提供简单的文化背景说明，不超过两句话，可以适当使用emoji（如 🏛️ 📚 等）
+5. 解释要符合3-6岁孩子的理解能力，避免复杂概念
+6. 适当使用emoji让内容更生动，但不要过多，保持可读性`
 		case "english":
 			agePrompt = `要求：
 1. 提供{objectName}的英语关键词（3-4个），选择最简单、最常用的单词
-2. 提供2-3个适合3-6岁孩子的英语表达句子，句子要简短（3-5个单词）
-3. 提供简单的发音指导，用中文拼音或音标标注
-4. 可以加入简单的英语儿歌或韵律，帮助记忆`
+2. 提供2-3个适合3-6岁孩子的英语表达句子，句子要简短（3-5个单词），可以适当使用emoji（如 🌟 💬 🎯 等）
+3. 提供简单的发音指导，用中文拼音或音标标注，可以适当使用emoji（如 🔊 📝 等）
+4. 可以加入简单的英语儿歌或韵律，帮助记忆
+5. 适当使用emoji让内容更生动，但不要过多，保持可读性`
 		}
 	} else if age <= 12 {
 		// 小学阶段（7-12岁）
@@ -144,23 +147,26 @@ func (n *TextGenerationNode) getAgePrompt(age int, cardType string) string {
 			agePrompt = `要求：
 1. 用简单易懂的语言解释{objectName}的科学知识，可以适当使用基础科学术语
 2. 结合生活实际，让孩子能够联系到日常经验
-3. 提供2-3个有趣的事实，每个事实可以包含简单的科学原理
-4. 添加一个趣味知识，可以涉及科学小实验或观察方法
+3. 提供2-3个有趣的事实，每个事实可以包含简单的科学原理，可以适当使用emoji（如 🌟 ✨ 💡 🔍 等）
+4. 添加一个趣味知识，可以涉及科学小实验或观察方法，可以适当使用emoji（如 🎉 🌈 ⭐ 🔬 等）
 5. 内容要符合7-12岁孩子的认知水平，激发探索兴趣
-6. 可以加入"为什么"、"怎么样"等引导性问题`
+6. 可以加入"为什么"、"怎么样"等引导性问题
+7. 适当使用emoji让内容更生动，但不要过多，保持可读性`
 		case "poetry":
 			agePrompt = `要求：
 1. 找到与{objectName}相关的古诗词（优先选择经典名句）
 2. 标注诗词来源（作者和诗名）
-3. 用7-12岁孩子能理解的语言解释诗词含义，可以适当讲解修辞手法
-4. 提供文化背景说明，包括历史背景和诗人创作意图
-5. 可以引导孩子思考诗词中的情感和意境`
+3. 用7-12岁孩子能理解的语言解释诗词含义，可以适当讲解修辞手法，可以适当使用emoji（如 📜 ✨ 🌸 🌙 等）
+4. 提供文化背景说明，包括历史背景和诗人创作意图，可以适当使用emoji（如 🏛️ 📚 🎨 等）
+5. 可以引导孩子思考诗词中的情感和意境
+6. 适当使用emoji让内容更生动，但不要过多，保持可读性`
 		case "english":
 			agePrompt = `要求：
 1. 提供{objectName}的英语关键词（3-5个），包括基础词汇和相关表达
-2. 提供2-3个适合7-12岁孩子的英语表达句子，句子可以稍长（5-8个单词）
-3. 提供发音指导，包括音标和发音技巧
-4. 可以加入简单的语法点或常用搭配，帮助扩展词汇`
+2. 提供2-3个适合7-12岁孩子的英语表达句子，句子可以稍长（5-8个单词），可以适当使用emoji（如 🌟 💬 🎯 等）
+3. 提供发音指导，包括音标和发音技巧，可以适当使用emoji（如 🔊 📝 等）
+4. 可以加入简单的语法点或常用搭配，帮助扩展词汇
+5. 适当使用emoji让内容更生动，但不要过多，保持可读性`
 		}
 	} else {
 		// 中学阶段（13-18岁）
@@ -169,24 +175,27 @@ func (n *TextGenerationNode) getAgePrompt(age int, cardType string) string {
 			agePrompt = `要求：
 1. 用准确、专业的语言解释{objectName}的科学知识，可以使用科学术语
 2. 深入讲解科学原理，可以涉及物理、化学、生物等学科知识
-3. 提供2-3个有深度的事实，每个事实可以包含科学原理和实际应用
-4. 添加一个趣味知识，可以涉及前沿科学或跨学科知识
+3. 提供2-3个有深度的事实，每个事实可以包含科学原理和实际应用，可以适当使用emoji（如 🌟 ✨ 💡 🔍 等）
+4. 添加一个趣味知识，可以涉及前沿科学或跨学科知识，可以适当使用emoji（如 🎉 🌈 ⭐ 🔬 等）
 5. 内容要符合13-18岁学生的认知水平，培养科学思维
-6. 可以引导思考科学问题，培养批判性思维`
+6. 可以引导思考科学问题，培养批判性思维
+7. 适当使用emoji让内容更生动，但不要过多，保持可读性`
 		case "poetry":
 			agePrompt = `要求：
 1. 找到与{objectName}相关的古诗词（优先选择经典名句，可以包含较长的诗句）
 2. 标注诗词来源（作者和诗名），可以介绍诗人的生平和创作背景
-3. 深入解释诗词含义，分析修辞手法、意象和艺术特色
-4. 提供详细的文化背景说明，包括历史背景、文学流派和艺术价值
-5. 可以引导分析诗词的深层含义和思想情感，培养文学鉴赏能力`
+3. 深入解释诗词含义，分析修辞手法、意象和艺术特色，可以适当使用emoji（如 📜 ✨ 🌸 🌙 等）
+4. 提供详细的文化背景说明，包括历史背景、文学流派和艺术价值，可以适当使用emoji（如 🏛️ 📚 🎨 等）
+5. 可以引导分析诗词的深层含义和思想情感，培养文学鉴赏能力
+6. 适当使用emoji让内容更生动，但不要过多，保持可读性`
 		case "english":
 			agePrompt = `要求：
 1. 提供{objectName}的英语关键词（4-6个），包括高级词汇和相关表达
-2. 提供2-3个适合13-18岁学生的英语表达句子，句子可以更复杂（8-12个单词）
-3. 提供详细的发音指导，包括音标、重音和语调
+2. 提供2-3个适合13-18岁学生的英语表达句子，句子可以更复杂（8-12个单词），可以适当使用emoji（如 🌟 💬 🎯 等）
+3. 提供详细的发音指导，包括音标、重音和语调，可以适当使用emoji（如 🔊 📝 等）
 4. 可以加入语法点、固定搭配和高级表达，帮助提升英语水平
-5. 可以介绍相关的英语文化背景或使用场景`
+5. 可以介绍相关的英语文化背景或使用场景
+6. 适当使用emoji让内容更生动，但不要过多，保持可读性`
 		}
 	}
 	
@@ -203,9 +212,11 @@ func (n *TextGenerationNode) initTemplates() {
 
 请返回JSON格式，包含以下字段：
 - name: 对象名称（字符串）
-- explanation: 科学解释（字符串）
-- facts: 有趣的事实列表（字符串数组，2-3个）
-- funFact: 趣味知识（字符串）`),
+- explanation: 科学解释（字符串，适当使用emoji如 🌟 ✨ 💡 🔍 等让内容更生动）
+- facts: 有趣的事实列表（字符串数组，2-3个，每个事实可以适当使用emoji）
+- funFact: 趣味知识（字符串，可以适当使用emoji如 🎉 🌈 ⭐ 等）
+
+注意：emoji要适量使用，不要过多，保持内容的可读性。`),
 		schema.UserMessage("请为{objectName}生成科学认知卡内容，适合{age}岁孩子。"),
 	)
 
@@ -218,8 +229,10 @@ func (n *TextGenerationNode) initTemplates() {
 请返回JSON格式，包含以下字段：
 - poem: 古诗词内容（字符串）
 - poemSource: 作者和诗名（字符串，格式：作者 - 诗名）
-- explanation: 诗词解释（字符串）
-- context: 文化背景（字符串）`),
+- explanation: 诗词解释（字符串，适当使用emoji如 📜 ✨ 🌸 🌙 等让内容更生动）
+- context: 文化背景（字符串，可以适当使用emoji如 🏛️ 📚 🎨 等）
+
+注意：emoji要适量使用，不要过多，保持内容的可读性。`),
 		schema.UserMessage("请为{objectName}生成古诗词卡片内容，适合{age}岁孩子。"),
 	)
 
@@ -231,14 +244,16 @@ func (n *TextGenerationNode) initTemplates() {
 
 请返回JSON格式，包含以下字段：
 - keywords: 英语关键词列表（字符串数组，3-5个）
-- expressions: 英语表达句子列表（字符串数组，2-3个）
-- pronunciation: 发音指导（字符串）`),
+- expressions: 英语表达句子列表（字符串数组，2-3个，可以适当使用emoji如 🌟 💬 🎯 等）
+- pronunciation: 发音指导（字符串，可以适当使用emoji如 🔊 📝 等）
+
+注意：emoji要适量使用，不要过多，保持内容的可读性。`),
 		schema.UserMessage("请为{objectName}生成英语表达卡片内容，适合{age}岁孩子。"),
 	)
 
 	// 文本回答模板
 	n.textTemplate = prompt.FromMessages(schema.FString,
-		schema.SystemMessage("你是一个友好的K12教育助手，用简单易懂的语言回答孩子的问题。"),
+		schema.SystemMessage("你是一个友好的K12教育助手，用简单易懂的语言回答孩子的问题。适当使用emoji表情符号（如 🌟 ✨ 💡 🔍 📚 🎨 🌈 🦋 🌸 ⭐ 等）让回答更生动有趣，适合小朋友阅读。注意：emoji要适量，不要过多，避免影响阅读体验。"),
 		schema.MessagesPlaceholder("chat_history", true),
 		schema.UserMessage("{message}"),
 	)
@@ -322,7 +337,7 @@ func (n *TextGenerationNode) GenerateEnglishCard(ctx context.Context, data *Grap
 // generateTextMock Mock实现（待替换为真实eino调用）
 func (n *TextGenerationNode) generateTextMock(data *GraphData, context []interface{}) (string, error) {
 	// Mock文本响应
-	text := "这是一个Mock文本响应。待接入真实AI模型后，将根据您的问题生成相应的回答。"
+	text := "这是一个Mock文本响应 🌟。待接入真实AI模型后，将根据您的问题生成相应的回答 ✨。"
 	n.logger.Info("文本生成完成（Mock）")
 	return text, nil
 }
@@ -342,7 +357,7 @@ func (n *TextGenerationNode) generateScienceCardMock(data *GraphData) (map[strin
 
 	explanation := explanations[data.ObjectName]
 	if explanation == "" {
-		explanation = data.ObjectName + "是一个有趣的对象，值得我们探索和学习。"
+		explanation = data.ObjectName + "是一个有趣的对象 🌟，值得我们探索和学习 ✨。"
 	}
 
 	card := map[string]interface{}{
@@ -352,10 +367,10 @@ func (n *TextGenerationNode) generateScienceCardMock(data *GraphData) (map[strin
 			"name":        data.ObjectName,
 			"explanation": explanation,
 			"facts": []string{
-				"关于" + data.ObjectName + "的有趣事实1",
-				"关于" + data.ObjectName + "的有趣事实2",
+				"关于" + data.ObjectName + "的有趣事实1 💡",
+				"关于" + data.ObjectName + "的有趣事实2 🔍",
 			},
-			"funFact": "关于" + data.ObjectName + "的趣味知识！",
+			"funFact": "关于" + data.ObjectName + "的趣味知识 🎉！",
 		},
 	}
 
@@ -375,7 +390,7 @@ func (n *TextGenerationNode) generatePoetryCardMock(data *GraphData) (map[string
 
 	poem := poems[data.ObjectName]
 	if poem == "" {
-		poem = "关于" + data.ObjectName + "的古诗词，等待我们去发现。"
+		poem = "关于" + data.ObjectName + "的古诗词 📜，等待我们去发现 ✨。"
 	}
 
 	card := map[string]interface{}{
@@ -384,8 +399,8 @@ func (n *TextGenerationNode) generatePoetryCardMock(data *GraphData) (map[string
 		"content": map[string]interface{}{
 			"poem":        poem,
 			"poemSource":  "古诗词",
-			"explanation": "这句诗描写了" + data.ObjectName + "的美丽景象，让我们感受到古人的智慧和情感。",
-			"context":     "看到" + data.ObjectName + "，我们可以联想到相关的文化和历史，丰富我们的认知。",
+			"explanation": "这句诗描写了" + data.ObjectName + "的美丽景象 🌸，让我们感受到古人的智慧和情感 ✨。",
+			"context":     "看到" + data.ObjectName + "，我们可以联想到相关的文化和历史 🏛️，丰富我们的认知 📚。",
 		},
 	}
 
