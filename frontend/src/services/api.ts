@@ -107,6 +107,7 @@ export async function generateCards(
 export function generateCardsStream(
   request: GenerateCardsRequest,
   callbacks: {
+    onMessage?: (text: string, fullText: string) => void; // 流式文本消息回调（字符，完整文本）
     onCard?: (card: CardContentResponse, index: number) => void;
     onError?: (error: Error) => void;
     onComplete?: () => void;
@@ -139,13 +140,14 @@ export function generateCardsStream(
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let fullText = ''; // 累积完整文本，用于流式消息
 
       while (true) {
         const { done, value } = await reader.read();
 
         if (done) {
           if (buffer.trim()) {
-            processCardSSEBuffer(buffer, callbacks);
+            processCardSSEBuffer(buffer, callbacks, fullText);
           }
           callbacks.onComplete?.();
           break;
@@ -153,7 +155,9 @@ export function generateCardsStream(
 
         const chunk = decoder.decode(value, { stream: true });
         buffer += chunk;
-        buffer = processCardSSEBuffer(buffer, callbacks);
+        const result = processCardSSEBuffer(buffer, callbacks, fullText);
+        buffer = result.remainingBuffer;
+        fullText = result.fullText;
       }
     })
     .catch((error) => {
@@ -173,11 +177,13 @@ export function generateCardsStream(
 function processCardSSEBuffer(
   buffer: string,
   callbacks: {
+    onMessage?: (text: string, fullText: string) => void;
     onCard?: (card: CardContentResponse, index: number) => void;
     onError?: (error: Error) => void;
     onComplete?: () => void;
-  }
-): string {
+  },
+  fullText: string
+): { remainingBuffer: string; fullText: string } {
   const lines = buffer.split('\n');
   const remainingLines: string[] = [];
   let currentEvent = '';
@@ -188,7 +194,8 @@ function processCardSSEBuffer(
 
     if (line.startsWith('event:')) {
       if (currentEvent && currentData) {
-        processCardSSEEvent(currentEvent, currentData, callbacks);
+        const result = processCardSSEEvent(currentEvent, currentData, callbacks, fullText);
+        fullText = result.fullText;
         currentEvent = '';
         currentData = '';
       }
@@ -202,7 +209,8 @@ function processCardSSEBuffer(
       }
     } else if (line === '') {
       if (currentEvent && currentData) {
-        processCardSSEEvent(currentEvent, currentData, callbacks);
+        const result = processCardSSEEvent(currentEvent, currentData, callbacks, fullText);
+        fullText = result.fullText;
         currentEvent = '';
         currentData = '';
       }
@@ -213,6 +221,15 @@ function processCardSSEBuffer(
     }
   }
 
+  // 如果循环结束后还有完整的事件，处理它
+  if (currentEvent && currentData) {
+    const result = processCardSSEEvent(currentEvent, currentData, callbacks, fullText);
+    fullText = result.fullText;
+    currentEvent = '';
+    currentData = '';
+  }
+
+  // 如果还有不完整的事件，保留到下次处理
   if (currentEvent || currentData) {
     if (currentEvent) {
       remainingLines.push(`event: ${currentEvent}`);
@@ -222,7 +239,10 @@ function processCardSSEBuffer(
     }
   }
 
-  return remainingLines.length > 0 ? remainingLines.join('\n') : '';
+  return {
+    remainingBuffer: remainingLines.length > 0 ? remainingLines.join('\n') : '',
+    fullText,
+  };
 }
 
 /**
@@ -232,15 +252,22 @@ function processCardSSEEvent(
   eventType: string,
   dataStr: string,
   callbacks: {
+    onMessage?: (text: string, fullText: string) => void;
     onCard?: (card: CardContentResponse, index: number) => void;
     onError?: (error: Error) => void;
     onComplete?: () => void;
-  }
-): void {
+  },
+  fullText: string
+): { fullText: string } {
   try {
     const data = JSON.parse(dataStr);
 
-    if (eventType === 'card' && data.content) {
+    if (eventType === 'message' && data.content) {
+      // 处理流式文本消息（逐字符返回）
+      const char = typeof data.content === 'string' ? data.content : String(data.content);
+      fullText += char;
+      callbacks.onMessage?.(char, fullText);
+    } else if (eventType === 'card' && data.content) {
       const card: CardContentResponse = {
         type: data.content.type,
         title: data.content.title,
@@ -257,6 +284,7 @@ function processCardSSEEvent(
   } catch (err) {
     console.error('解析卡片SSE消息失败:', err);
   }
+  return { fullText };
 }
 
 /**

@@ -118,15 +118,9 @@ install_frontend_deps() {
         fi
         echo -e "${GREEN}✓ 前端依赖安装完成${NC}"
     else
-        # 即使 node_modules 存在，也执行 npm install 以确保依赖是最新的
-        # 使用 --prefer-offline 加速安装（优先使用缓存）
-        echo -e "${BLUE}确保前端依赖已初始化...${NC}"
-        npm install --prefer-offline
-        if [ $? -ne 0 ]; then
-            echo -e "${YELLOW}⚠ 依赖检查失败，但继续启动...${NC}"
-        else
-            echo -e "${GREEN}✓ 前端依赖检查完成${NC}"
-        fi
+        # node_modules 已存在，跳过安装以加快启动速度
+        # 如果需要更新依赖，请手动运行: cd frontend && npm install
+        echo -e "${GREEN}✓ 前端依赖已存在，跳过安装${NC}"
     fi
     
     cd "$ROOT_DIR"

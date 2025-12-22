@@ -196,7 +196,54 @@ export default function Result() {
         }
       }, 2000);
 
+      // 用于存储流式文本消息的ID和累积文本
+      let streamMessageId: string | null = null;
+      let streamFullText = '';
+
       const abortController = generateCardsStream(request, {
+        onMessage: (char: string, fullText: string) => {
+          // 处理流式文本消息（逐字符返回）
+          streamFullText = fullText;
+          
+          // 如果是第一次收到流式消息，将加载消息转换为流式消息
+          if (!streamMessageId) {
+            streamMessageId = loadingMessageId;
+            flushSync(() => {
+              setMessages((prev) => {
+                const index = prev.findIndex((m) => m.id === loadingMessageId);
+                if (index >= 0) {
+                  const updated = [...prev];
+                  updated[index] = {
+                    ...updated[index],
+                    isStreaming: true,
+                    streamingText: fullText,
+                    content: fullText,
+                  };
+                  return updated;
+                }
+                return prev;
+              });
+            });
+          } else {
+            // 实时更新流式文本
+            flushSync(() => {
+              setMessages((prev) => {
+                const index = prev.findIndex((m) => m.id === streamMessageId);
+                if (index >= 0) {
+                  const updated = [...prev];
+                  updated[index] = {
+                    ...updated[index],
+                    streamingText: fullText,
+                    content: fullText,
+                    isStreaming: true,
+                  };
+                  return updated;
+                }
+                return prev;
+              });
+            });
+          }
+        },
         onCard: (card, index) => {
           // 验证卡片数据格式
           if (!card || !card.type || !card.title || !card.content) {
@@ -241,7 +288,30 @@ export default function Result() {
         onError: (error) => {
           clearTimeout(progressTimeout);
           console.error('流式生成卡片失败:', error);
-          setMessages((prev) => prev.filter(msg => msg.id !== loadingMessageId));
+          
+          // 完成流式输出，将流式消息标记为完成或移除
+          flushSync(() => {
+            setMessages((prev) => {
+              const index = prev.findIndex((m) => m.id === loadingMessageId || m.id === streamMessageId);
+              if (index >= 0) {
+                const updated = [...prev];
+                // 如果有流式文本，保留消息并标记为完成；否则移除
+                if (streamFullText) {
+                  updated[index] = {
+                    ...updated[index],
+                    isStreaming: false,
+                    streamingText: undefined,
+                    content: streamFullText,
+                  };
+                  return updated;
+                } else {
+                  // 移除加载消息
+                  return updated.filter(msg => msg.id !== loadingMessageId && msg.id !== streamMessageId);
+                }
+              }
+              return prev;
+            });
+          });
           
           const errorMessage: ConversationMessage = {
             id: `msg-error-${Date.now()}`,
@@ -255,8 +325,29 @@ export default function Result() {
         },
         onComplete: async () => {
           clearTimeout(progressTimeout);
-          // 移除加载消息
-          setMessages((prev) => prev.filter(msg => msg.id !== loadingMessageId));
+          // 完成流式输出，将流式消息标记为完成
+          flushSync(() => {
+            setMessages((prev) => {
+              const index = prev.findIndex((m) => m.id === loadingMessageId || m.id === streamMessageId);
+              if (index >= 0) {
+                const updated = [...prev];
+                // 如果有流式文本，保留消息并标记为完成；否则移除
+                if (streamFullText) {
+                  updated[index] = {
+                    ...updated[index],
+                    isStreaming: false,
+                    streamingText: undefined,
+                    content: streamFullText,
+                  };
+                  return updated;
+                } else {
+                  // 移除加载消息
+                  return updated.filter(msg => msg.id !== loadingMessageId && msg.id !== streamMessageId);
+                }
+              }
+              return prev;
+            });
+          });
           
           // 确保所有卡片都已添加
           if (receivedCards.length < 3) {
