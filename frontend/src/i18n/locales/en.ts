@@ -134,6 +134,15 @@ export default {
     sendVoiceError: 'Sorry, failed to send voice message: {{error}}. Please try again.',
     sendImageError: 'Sorry, failed to send image: {{error}}. Please check the image format and size, then try again.',
     unknownError: 'Unknown error',
+    voiceError: 'Voice recognition failed',
+    voiceNetworkError: 'Network connection failed, please check your network and try again',
+    voiceNoSpeech: 'No speech detected, please try again',
+    voiceAudioError: 'Cannot access microphone, please check permission settings',
+    voiceNotAllowed: 'Microphone permission denied, please allow access in browser settings',
+    voiceStartError: 'Failed to start voice recognition, please try again',
+    voiceNotSupported: 'Your browser does not support voice recognition',
+    voiceTimeout: 'Voice recognition timeout, please try again',
+    voiceStop: 'Click to stop voice recognition',
   },
 
   // Card types

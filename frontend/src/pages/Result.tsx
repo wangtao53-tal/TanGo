@@ -812,7 +812,7 @@ export default function Result() {
                   ...updated[index],
                   isStreaming: false,
                   streamingText: undefined,
-                };
+                } as ConversationMessage;
                 updated[index] = completedMessage;
                 return updated;
               }
@@ -917,19 +917,32 @@ export default function Result() {
       const abortController = createStreamConnectionUnified(streamRequest, {
         onMessage: (message: ConversationMessage) => {
           // 更新助手消息
-          flushSync(() => {
+          // 使用 requestAnimationFrame 而不是 flushSync，避免在渲染期间触发副作用导致无限循环
+          requestAnimationFrame(() => {
             setMessages((prev) => {
               const index = prev.findIndex((m) => m.id === assistantMessageId);
               if (index >= 0) {
-                const updated = [...prev];
-                updated[index] = {
-                  ...updated[index],
-                  content: message.content || '',
-                  streamingText: message.streamingText || '',
-                  markdown: message.markdown,
-                  isStreaming: message.isStreaming,
-                };
-                return updated;
+                const currentMessage = prev[index];
+                const newContent = message.content || '';
+                const newStreamingText = message.streamingText || '';
+                
+                // 只有在内容真正变化时才更新，避免不必要的重新渲染
+                if (
+                  currentMessage.content !== newContent ||
+                  currentMessage.streamingText !== newStreamingText ||
+                  currentMessage.markdown !== message.markdown ||
+                  currentMessage.isStreaming !== message.isStreaming
+                ) {
+                  const updated = [...prev];
+                  updated[index] = {
+                    ...currentMessage,
+                    content: newContent,
+                    streamingText: newStreamingText,
+                    markdown: message.markdown,
+                    isStreaming: message.isStreaming,
+                  };
+                  return updated;
+                }
               }
               return prev;
             });
@@ -937,56 +950,73 @@ export default function Result() {
         },
         onError: (error: Error) => {
           console.error('流式返回错误:', error);
-          flushSync(() => {
+          // 使用 setTimeout 延迟状态更新，避免在错误处理中触发副作用
+          setTimeout(() => {
             setMessages((prev) => {
               const index = prev.findIndex((m) => m.id === assistantMessageId);
               if (index >= 0) {
-                const updated = [...prev];
-                updated[index] = {
-                  ...updated[index],
-                  isStreaming: false,
-                  content: accumulatedTextRef.current || t('conversation.generateAnswerError', { error: error.message }),
-                  streamingText: undefined,
-                };
-                return updated;
+                const currentMessage = prev[index];
+                const errorContent = accumulatedTextRef.current || t('conversation.generateAnswerError', { error: error.message });
+                
+                // 只有在内容真正变化时才更新
+                if (
+                  currentMessage.content !== errorContent ||
+                  currentMessage.isStreaming !== false ||
+                  currentMessage.streamingText !== undefined
+                ) {
+                  const updated = [...prev];
+                  updated[index] = {
+                    ...currentMessage,
+                    isStreaming: false,
+                    content: errorContent,
+                    streamingText: undefined,
+                  };
+                  return updated;
+                }
               }
               return prev;
             });
-          });
-          setIsSending(false);
+            setIsSending(false);
+          }, 0);
         },
         onClose: async () => {
           // 流式输出完成
-          let completedMessage: ConversationMessage | null = null;
-          flushSync(() => {
+          // 使用 setTimeout 延迟状态更新，避免在关闭回调中触发副作用
+          setTimeout(async () => {
+            let completedMessage: ConversationMessage | null = null;
             setMessages((prev) => {
               const index = prev.findIndex((m) => m.id === assistantMessageId);
               if (index >= 0) {
-                const updated = [...prev];
+                const currentMessage = prev[index];
                 // 创建完成的消息对象，清除isStreaming和streamingText字段
                 completedMessage = {
-                  ...updated[index],
+                  ...currentMessage,
                   isStreaming: false,
                   streamingText: undefined,
-                };
-                updated[index] = completedMessage;
-                return updated;
+                } as ConversationMessage;
+                
+                // 只有在状态真正变化时才更新
+                if (
+                  currentMessage.isStreaming !== false ||
+                  currentMessage.streamingText !== undefined
+                ) {
+                  const updated = [...prev];
+                  updated[index] = completedMessage;
+                  return updated;
+                }
               }
               return prev;
             });
-          });
-          
-          // 保存完成的消息到IndexedDB（清除isStreaming和streamingText字段）
-          if (completedMessage && completedMessage.content) {
-            try {
-              await conversationStorage.saveMessage(completedMessage);
-            } catch (err) {
-              console.error('保存流式语音消息失败:', err);
-              // 不中断用户操作，仅记录错误
+            
+            // 在状态更新后保存消息
+            if (completedMessage && completedMessage.content) {
+              conversationStorage.saveMessage(completedMessage).catch(err => {
+                console.error('保存流式语音消息失败:', err);
+              });
             }
-          }
-          
-          setIsSending(false);
+            
+            setIsSending(false);
+          }, 0);
         },
       });
 
@@ -1171,7 +1201,7 @@ export default function Result() {
                   ...updated[index],
                   isStreaming: false,
                   streamingText: undefined,
-                };
+                } as ConversationMessage;
                 updated[index] = completedMessage;
                 return updated;
               }
