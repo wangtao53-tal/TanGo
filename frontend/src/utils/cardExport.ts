@@ -91,7 +91,11 @@ export async function exportCardAsImage(
                         const nestedRule = nestedArray[j];
                         try {
                           if (nestedRule.cssText && nestedRule.cssText.includes('oklch')) {
-                            (rule as CSSMediaRule | CSSKeyframesRule).deleteRule(j);
+                            if (rule instanceof CSSMediaRule) {
+                              rule.deleteRule(j);
+                            } else if (rule instanceof CSSKeyframesRule) {
+                              rule.deleteRule(j);
+                            }
                           }
                         } catch (e) {
                           // 忽略无法删除的嵌套规则
@@ -453,9 +457,9 @@ export async function exportCardAsImage(
         bottomBorder.style.setProperty('display', 'block', 'important');
         
         // 添加到内容区域的底部（在最后一个子元素之后）
-        if (targetParent) {
+        if (targetParent && targetParent instanceof HTMLElement) {
           targetParent.appendChild(bottomBorder);
-        } else {
+        } else if (clonedElement instanceof HTMLElement) {
           clonedElement.appendChild(bottomBorder);
         }
 
