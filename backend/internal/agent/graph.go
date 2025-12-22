@@ -114,7 +114,21 @@ func (g *Graph) ExecuteCardGeneration(ctx context.Context, objectName, category 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		g.logger.Infow("开始生成科学认知卡（goroutine）",
+			logx.Field("objectName", data.ObjectName),
+		)
 		card, err := g.textGenerationNode.GenerateScienceCard(ctx, data)
+		if err != nil {
+			g.logger.Errorw("科学认知卡生成失败（goroutine）",
+				logx.Field("objectName", data.ObjectName),
+				logx.Field("error", err),
+				logx.Field("errorDetail", err.Error()),
+			)
+		} else {
+			g.logger.Infow("科学认知卡生成成功（goroutine）",
+				logx.Field("objectName", data.ObjectName),
+			)
+		}
 		results <- cardResult{card: card, err: err, idx: 0}
 	}()
 
@@ -122,7 +136,21 @@ func (g *Graph) ExecuteCardGeneration(ctx context.Context, objectName, category 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		g.logger.Infow("开始生成古诗词卡（goroutine）",
+			logx.Field("objectName", data.ObjectName),
+		)
 		card, err := g.textGenerationNode.GeneratePoetryCard(ctx, data)
+		if err != nil {
+			g.logger.Errorw("古诗词卡生成失败（goroutine）",
+				logx.Field("objectName", data.ObjectName),
+				logx.Field("error", err),
+				logx.Field("errorDetail", err.Error()),
+			)
+		} else {
+			g.logger.Infow("古诗词卡生成成功（goroutine）",
+				logx.Field("objectName", data.ObjectName),
+			)
+		}
 		results <- cardResult{card: card, err: err, idx: 1}
 	}()
 
@@ -130,7 +158,21 @@ func (g *Graph) ExecuteCardGeneration(ctx context.Context, objectName, category 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		g.logger.Infow("开始生成英语表达卡（goroutine）",
+			logx.Field("objectName", data.ObjectName),
+		)
 		card, err := g.textGenerationNode.GenerateEnglishCard(ctx, data)
+		if err != nil {
+			g.logger.Errorw("英语表达卡生成失败（goroutine）",
+				logx.Field("objectName", data.ObjectName),
+				logx.Field("error", err),
+				logx.Field("errorDetail", err.Error()),
+			)
+		} else {
+			g.logger.Infow("英语表达卡生成成功（goroutine）",
+				logx.Field("objectName", data.ObjectName),
+			)
+		}
 		results <- cardResult{card: card, err: err, idx: 2}
 	}()
 
@@ -142,20 +184,30 @@ func (g *Graph) ExecuteCardGeneration(ctx context.Context, objectName, category 
 	cards := make([]interface{}, 3)
 	var firstErr error
 	successCount := 0
+	cardTypes := []string{"科学认知卡", "古诗词卡", "英语表达卡"}
 	for result := range results {
+		cardType := cardTypes[result.idx]
 		if result.err != nil {
 			if firstErr == nil {
 				firstErr = result.err
 			}
 			g.logger.Errorw("卡片生成失败",
+				logx.Field("objectName", data.ObjectName),
 				logx.Field("cardIndex", result.idx),
+				logx.Field("cardType", cardType),
 				logx.Field("error", result.err),
+				logx.Field("errorDetail", result.err.Error()),
 			)
 			// 如果模型调用失败，返回错误，不使用Mock数据
 			// 让调用方决定如何处理错误
 		} else {
 			cards[result.idx] = result.card
 			successCount++
+			g.logger.Infow("卡片生成成功",
+				logx.Field("objectName", data.ObjectName),
+				logx.Field("cardIndex", result.idx),
+				logx.Field("cardType", cardType),
+			)
 		}
 	}
 
@@ -167,9 +219,16 @@ func (g *Graph) ExecuteCardGeneration(ctx context.Context, objectName, category 
 	// 如果有部分失败，返回错误（不再使用Mock降级）
 	if successCount < 3 {
 		g.logger.Errorw("部分卡片生成失败，返回错误",
+			logx.Field("objectName", data.ObjectName),
 			logx.Field("successCount", successCount),
 			logx.Field("totalCount", 3),
 			logx.Field("firstError", firstErr),
+			logx.Field("firstErrorDetail", func() string {
+				if firstErr != nil {
+					return firstErr.Error()
+				}
+				return ""
+			}()),
 		)
 		return nil, fmt.Errorf("部分卡片生成失败（成功%d/3）: %w", successCount, firstErr)
 	}
@@ -188,6 +247,7 @@ func (g *Graph) ExecuteCardGeneration(ctx context.Context, objectName, category 
 	data.Cards = cards
 
 	g.logger.Infow("卡片生成完成（并行）",
+		logx.Field("objectName", data.ObjectName),
 		logx.Field("cardCount", len(cards)),
 		logx.Field("successCount", successCount),
 		logx.Field("useRealModel", successCount > 0),

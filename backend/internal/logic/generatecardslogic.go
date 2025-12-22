@@ -42,17 +42,40 @@ func (l *GenerateCardsLogic) GenerateCards(req *types.GenerateCardsRequest) (res
 
 	l.Infow("生成知识卡片", logx.Field("objectName", req.ObjectName), logx.Field("category", req.ObjectCategory), logx.Field("age", req.Age))
 
+	// 检查配置：如果UseAIModel为true，必须使用AI模型，不允许Mock降级
+	useAIModel := l.svcCtx.Config.AI.UseAIModel
+	
 	// 使用Agent系统生成卡片
 	if l.svcCtx.Agent != nil {
 		graph := l.svcCtx.Agent.GetGraph()
+		if graph == nil {
+			l.Errorw("Graph未初始化",
+				logx.Field("agentNil", l.svcCtx.Agent == nil),
+				logx.Field("useAIModel", useAIModel),
+			)
+			if useAIModel {
+				return nil, fmt.Errorf("Graph未初始化，无法生成卡片")
+			}
+			// 如果UseAIModel为false，允许使用Mock数据
+			return l.generateCardsMock(req)
+		}
+		
 		data, err := graph.ExecuteCardGeneration(l.ctx, req.ObjectName, req.ObjectCategory, req.Age, req.Keywords)
 		if err != nil {
-			l.Errorw("Agent卡片生成失败，返回错误",
+			l.Errorw("Agent卡片生成失败",
 				logx.Field("error", err),
 				logx.Field("errorDetail", err.Error()),
+				logx.Field("useAIModel", useAIModel),
 			)
-			// 不再回退到Mock，直接返回错误
-			return nil, fmt.Errorf("卡片生成失败: %w", err)
+			// 如果UseAIModel为true，不允许降级到Mock，直接返回错误
+			if useAIModel {
+				return nil, fmt.Errorf("卡片生成失败: %w", err)
+			}
+			// 如果UseAIModel为false，允许降级到Mock数据
+			l.Infow("USE_AI_MODEL=false，降级到Mock数据",
+				logx.Field("error", err),
+			)
+			return l.generateCardsMock(req)
 		}
 
 		// 转换Agent返回的卡片数据为types.CardContent
@@ -76,7 +99,21 @@ func (l *GenerateCardsLogic) GenerateCards(req *types.GenerateCardsRequest) (res
 		return resp, nil
 	}
 
-	// 如果Agent未初始化，使用Mock数据
+	// 如果Agent未初始化
+	l.Errorw("Agent未初始化",
+		logx.Field("agentNil", l.svcCtx.Agent == nil),
+		logx.Field("useAIModel", useAIModel),
+	)
+	
+	// 如果UseAIModel为true，不允许使用Mock数据，返回错误
+	if useAIModel {
+		return nil, fmt.Errorf("Agent未初始化，无法生成卡片。请检查配置：EINO_BASE_URL、TAL_MLOPS_APP_ID、TAL_MLOPS_APP_KEY")
+	}
+	
+	// 如果UseAIModel为false，允许使用Mock数据
+	l.Infow("USE_AI_MODEL=false，使用Mock数据",
+		logx.Field("agentNil", l.svcCtx.Agent == nil),
+	)
 	return l.generateCardsMock(req)
 }
 
@@ -99,6 +136,9 @@ func (l *GenerateCardsLogic) GenerateCardsStream(w http.ResponseWriter, req *typ
 		logx.Field("age", req.Age),
 	)
 
+	// 检查配置：如果UseAIModel为true，必须使用AI模型，不允许Mock降级
+	useAIModel := l.svcCtx.Config.AI.UseAIModel
+	
 	// 使用Agent系统生成卡片
 	if l.svcCtx.Agent != nil {
 		graph := l.svcCtx.Agent.GetGraph()
@@ -108,15 +148,52 @@ func (l *GenerateCardsLogic) GenerateCardsStream(w http.ResponseWriter, req *typ
 			logx.Field("category", req.ObjectCategory),
 			logx.Field("age", req.Age),
 			logx.Field("graphNil", graph == nil),
+			logx.Field("useAIModel", useAIModel),
 		)
+		
+		if graph == nil {
+			l.Errorw("Graph未初始化",
+				logx.Field("agentNil", l.svcCtx.Agent == nil),
+				logx.Field("useAIModel", useAIModel),
+			)
+			if useAIModel {
+				// 发送错误事件
+				errorEvent := map[string]interface{}{
+					"type":    "error",
+					"content": map[string]interface{}{"message": "Graph未初始化，无法生成卡片"},
+				}
+				errorJSON, _ := json.Marshal(errorEvent)
+				fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+				w.(http.Flusher).Flush()
+				return fmt.Errorf("Graph未初始化，无法生成卡片")
+			}
+			// 如果UseAIModel为false，允许使用Mock数据
+			return l.generateCardsStreamMock(w, req)
+		}
 
 		// 调用ExecuteCardGeneration（并行生成，等待模型返回，不设置超时）
 		// 超时控制由HTTP请求层面的Timeout配置控制（在explore.yaml中配置为180秒）
 		data, err := graph.ExecuteCardGeneration(l.ctx, req.ObjectName, req.ObjectCategory, req.Age, req.Keywords)
 		if err != nil {
-			l.Errorw("卡片生成失败，使用Mock",
+			l.Errorw("卡片生成失败",
 				logx.Field("error", err),
 				logx.Field("errorDetail", err.Error()),
+				logx.Field("useAIModel", useAIModel),
+			)
+			// 如果UseAIModel为true，不允许降级到Mock，返回错误
+			if useAIModel {
+				errorEvent := map[string]interface{}{
+					"type":    "error",
+					"content": map[string]interface{}{"message": "卡片生成失败: " + err.Error()},
+				}
+				errorJSON, _ := json.Marshal(errorEvent)
+				fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+				w.(http.Flusher).Flush()
+				return fmt.Errorf("卡片生成失败: %w", err)
+			}
+			// 如果UseAIModel为false，允许降级到Mock数据
+			l.Infow("USE_AI_MODEL=false，降级到Mock数据",
+				logx.Field("error", err),
 			)
 			return l.generateCardsStreamMock(w, req)
 		}
@@ -163,8 +240,26 @@ func (l *GenerateCardsLogic) GenerateCardsStream(w http.ResponseWriter, req *typ
 		return nil
 	}
 
-	// 如果Agent未初始化，使用Mock数据流式返回
-	l.Errorw("Agent未初始化，使用Mock数据流式返回",
+	// 如果Agent未初始化
+	l.Errorw("Agent未初始化",
+		logx.Field("agentNil", l.svcCtx.Agent == nil),
+		logx.Field("useAIModel", useAIModel),
+	)
+	
+	// 如果UseAIModel为true，不允许使用Mock数据，返回错误
+	if useAIModel {
+		errorEvent := map[string]interface{}{
+			"type":    "error",
+			"content": map[string]interface{}{"message": "Agent未初始化，无法生成卡片。请检查配置：EINO_BASE_URL、TAL_MLOPS_APP_ID、TAL_MLOPS_APP_KEY"},
+		}
+		errorJSON, _ := json.Marshal(errorEvent)
+		fmt.Fprintf(w, "event: error\ndata: %s\n\n", string(errorJSON))
+		w.(http.Flusher).Flush()
+		return fmt.Errorf("Agent未初始化，无法生成卡片。请检查配置：EINO_BASE_URL、TAL_MLOPS_APP_ID、TAL_MLOPS_APP_KEY")
+	}
+	
+	// 如果UseAIModel为false，允许使用Mock数据
+	l.Infow("USE_AI_MODEL=false，使用Mock数据流式返回",
 		logx.Field("agentNil", l.svcCtx.Agent == nil),
 	)
 	return l.generateCardsStreamMock(w, req)

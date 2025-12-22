@@ -53,6 +53,7 @@ func NewTextGenerationNode(ctx context.Context, cfg config.AIConfig, logger logx
 				logx.Field("error", err),
 				logx.Field("errorDetail", err.Error()),
 			)
+			// 即使初始化失败，也继续创建节点，但会使用Mock模式
 		} else {
 			node.initialized = true
 			logger.Info("✅ 文本生成节点已初始化ChatModel，将使用真实模型")
@@ -64,6 +65,16 @@ func NewTextGenerationNode(ctx context.Context, cfg config.AIConfig, logger logx
 			logx.Field("hasAppKey", hasAppKey),
 		)
 		logger.Info("提示：需要同时配置 EINO_BASE_URL、TAL_MLOPS_APP_ID、TAL_MLOPS_APP_KEY 才能使用真实模型")
+	}
+
+	// 检查配置中的UseAIModel设置
+	// 如果UseAIModel为true但ChatModel未初始化，记录警告
+	if cfg.UseAIModel && !node.initialized {
+		logger.Errorw("配置要求使用AI模型，但ChatModel未初始化，将使用Mock模式",
+			logx.Field("useAIModel", cfg.UseAIModel),
+			logx.Field("initialized", node.initialized),
+			logx.Field("chatModelNil", node.chatModel == nil),
+		)
 	}
 
 	// 创建所有模板
@@ -95,22 +106,32 @@ func (n *TextGenerationNode) initChatModel(ctx context.Context) error {
 	} else if n.config.AppID != "" {
 		cfg.APIKey = n.config.AppID
 	} else {
-		return nil // 返回 nil，使用 Mock 模式
+		// 如果缺少认证信息，返回错误而不是nil，让调用方知道初始化失败
+		return fmt.Errorf("缺少认证信息：需要配置 AppID 或 AppKey")
 	}
 
 	chatModel, err := ark.NewChatModel(ctx, cfg)
 	if err != nil {
-		return err
+		n.logger.Errorw("创建ChatModel失败",
+			logx.Field("error", err),
+			logx.Field("modelName", modelName),
+			logx.Field("baseURL", cfg.BaseURL),
+		)
+		return fmt.Errorf("创建ChatModel失败: %w", err)
 	}
 
 	n.chatModel = chatModel
+	n.logger.Infow("ChatModel初始化成功",
+		logx.Field("modelName", modelName),
+		logx.Field("baseURL", cfg.BaseURL),
+	)
 	return nil
 }
 
 // getAgePrompt 根据年龄生成对应的prompt要求
 func (n *TextGenerationNode) getAgePrompt(age int, cardType string) string {
 	var agePrompt string
-	
+
 	// 根据年龄段划分：3-6岁（幼儿）、7-12岁（小学）、13-18岁（中学）
 	if age <= 6 {
 		// 幼儿阶段（3-6岁）
@@ -198,7 +219,7 @@ func (n *TextGenerationNode) getAgePrompt(age int, cardType string) string {
 6. 适当使用emoji让内容更生动，但不要过多，保持可读性`
 		}
 	}
-	
+
 	return agePrompt
 }
 
@@ -284,10 +305,26 @@ func (n *TextGenerationNode) GenerateScienceCard(ctx context.Context, data *Grap
 	)
 
 	if n.initialized && n.chatModel != nil {
-		return n.generateScienceCardReal(ctx, data)
+		n.logger.Infow("尝试使用真实模型生成科学认知卡",
+			logx.Field("objectName", data.ObjectName),
+		)
+		card, err := n.generateScienceCardReal(ctx, data)
+		if err != nil {
+			n.logger.Errorw("真实模型生成科学认知卡失败，返回错误",
+				logx.Field("objectName", data.ObjectName),
+				logx.Field("error", err),
+				logx.Field("errorDetail", err.Error()),
+			)
+			return nil, err
+		}
+		n.logger.Infow("真实模型生成科学认知卡成功",
+			logx.Field("objectName", data.ObjectName),
+		)
+		return card, nil
 	}
 
-	n.logger.Errorw("使用Mock模式生成科学认知卡",
+	n.logger.Errorw("使用Mock模式生成科学认知卡（ChatModel未初始化）",
+		logx.Field("objectName", data.ObjectName),
 		logx.Field("initialized", n.initialized),
 		logx.Field("chatModelNil", n.chatModel == nil),
 	)
@@ -304,10 +341,26 @@ func (n *TextGenerationNode) GeneratePoetryCard(ctx context.Context, data *Graph
 	)
 
 	if n.initialized && n.chatModel != nil {
-		return n.generatePoetryCardReal(ctx, data)
+		n.logger.Infow("尝试使用真实模型生成古诗词卡",
+			logx.Field("objectName", data.ObjectName),
+		)
+		card, err := n.generatePoetryCardReal(ctx, data)
+		if err != nil {
+			n.logger.Errorw("真实模型生成古诗词卡失败，返回错误",
+				logx.Field("objectName", data.ObjectName),
+				logx.Field("error", err),
+				logx.Field("errorDetail", err.Error()),
+			)
+			return nil, err
+		}
+		n.logger.Infow("真实模型生成古诗词卡成功",
+			logx.Field("objectName", data.ObjectName),
+		)
+		return card, nil
 	}
 
-	n.logger.Errorw("使用Mock模式生成古诗词卡",
+	n.logger.Errorw("使用Mock模式生成古诗词卡（ChatModel未初始化）",
+		logx.Field("objectName", data.ObjectName),
 		logx.Field("initialized", n.initialized),
 		logx.Field("chatModelNil", n.chatModel == nil),
 	)
@@ -324,10 +377,26 @@ func (n *TextGenerationNode) GenerateEnglishCard(ctx context.Context, data *Grap
 	)
 
 	if n.initialized && n.chatModel != nil {
-		return n.generateEnglishCardReal(ctx, data)
+		n.logger.Infow("尝试使用真实模型生成英语表达卡",
+			logx.Field("objectName", data.ObjectName),
+		)
+		card, err := n.generateEnglishCardReal(ctx, data)
+		if err != nil {
+			n.logger.Errorw("真实模型生成英语表达卡失败，返回错误",
+				logx.Field("objectName", data.ObjectName),
+				logx.Field("error", err),
+				logx.Field("errorDetail", err.Error()),
+			)
+			return nil, err
+		}
+		n.logger.Infow("真实模型生成英语表达卡成功",
+			logx.Field("objectName", data.ObjectName),
+		)
+		return card, nil
 	}
 
-	n.logger.Errorw("使用Mock模式生成英语表达卡",
+	n.logger.Errorw("使用Mock模式生成英语表达卡（ChatModel未初始化）",
+		logx.Field("objectName", data.ObjectName),
 		logx.Field("initialized", n.initialized),
 		logx.Field("chatModelNil", n.chatModel == nil),
 	)
@@ -389,8 +458,18 @@ func (n *TextGenerationNode) generatePoetryCardMock(data *GraphData) (map[string
 	}
 
 	poem := poems[data.ObjectName]
-	if poem == "" {
+	hasPresetPoem := poem != ""
+	if !hasPresetPoem {
 		poem = "关于" + data.ObjectName + "的古诗词 📜，等待我们去发现 ✨。"
+		n.logger.Infow("古诗词卡Mock：对象名不在预设列表中，使用默认值",
+			logx.Field("objectName", data.ObjectName),
+			logx.Field("defaultPoem", poem),
+		)
+	} else {
+		n.logger.Infow("古诗词卡Mock：使用预设诗句",
+			logx.Field("objectName", data.ObjectName),
+			logx.Field("poem", poem),
+		)
 	}
 
 	card := map[string]interface{}{
@@ -404,7 +483,11 @@ func (n *TextGenerationNode) generatePoetryCardMock(data *GraphData) (map[string
 		},
 	}
 
-	n.logger.Info("古诗词卡生成完成（Mock）")
+	n.logger.Infow("古诗词卡生成完成（Mock）",
+		logx.Field("objectName", data.ObjectName),
+		logx.Field("hasPresetPoem", hasPresetPoem),
+		logx.Field("title", card["title"]),
+	)
 	return card, nil
 }
 
@@ -482,7 +565,7 @@ func (n *TextGenerationNode) generateScienceCardReal(ctx context.Context, data *
 
 	// 根据年龄生成对应的prompt
 	agePrompt := n.getAgePrompt(data.Age, "science")
-	
+
 	messages, err := n.scienceTemplate.Format(ctx, map[string]any{
 		"objectName": data.ObjectName,
 		"age":        strconv.Itoa(data.Age),
@@ -558,34 +641,41 @@ func (n *TextGenerationNode) generatePoetryCardReal(ctx context.Context, data *G
 
 	// 根据年龄生成对应的prompt
 	agePrompt := n.getAgePrompt(data.Age, "poetry")
-	
+
 	messages, err := n.poetryTemplate.Format(ctx, map[string]any{
 		"objectName": data.ObjectName,
 		"age":        strconv.Itoa(data.Age),
 		"agePrompt":  agePrompt,
 	})
 	if err != nil {
-		n.logger.Errorw("模板格式化失败", logx.Field("error", err))
+		n.logger.Errorw("古诗词卡模板格式化失败",
+			logx.Field("objectName", data.ObjectName),
+			logx.Field("error", err),
+			logx.Field("errorDetail", err.Error()),
+		)
 		return nil, fmt.Errorf("模板格式化失败: %w", err)
 	}
 
-	n.logger.Infow("调用ChatModel生成内容",
+	n.logger.Infow("调用ChatModel生成古诗词卡内容",
+		logx.Field("objectName", data.ObjectName),
 		logx.Field("messageCount", len(messages)),
 	)
 	result, err := n.chatModel.Generate(ctx, messages)
 	if err != nil {
-		n.logger.Errorw("ChatModel调用失败",
+		n.logger.Errorw("ChatModel调用失败（古诗词卡）",
+			logx.Field("objectName", data.ObjectName),
 			logx.Field("error", err),
 			logx.Field("errorDetail", err.Error()),
 		)
 		return nil, fmt.Errorf("ChatModel调用失败: %w", err)
 	}
 
-	n.logger.Infow("收到模型响应",
+	n.logger.Infow("收到模型响应（古诗词卡）",
+		logx.Field("objectName", data.ObjectName),
 		logx.Field("contentLength", len(result.Content)),
 		logx.Field("contentPreview", func() string {
-			if len(result.Content) > 100 {
-				return result.Content[:100] + "..."
+			if len(result.Content) > 200 {
+				return result.Content[:200] + "..."
 			}
 			return result.Content
 		}()),
@@ -599,15 +689,20 @@ func (n *TextGenerationNode) generatePoetryCardReal(ctx context.Context, data *G
 	if jsonStart >= 0 && jsonEnd > jsonStart {
 		jsonStr := text[jsonStart : jsonEnd+1]
 		if err := json.Unmarshal([]byte(jsonStr), &cardContent); err != nil {
-			n.logger.Errorw("解析JSON失败",
+			n.logger.Errorw("解析JSON失败（古诗词卡）",
+				logx.Field("objectName", data.ObjectName),
 				logx.Field("error", err),
 				logx.Field("jsonStr", jsonStr),
+				logx.Field("fullContent", text),
 			)
 			return nil, fmt.Errorf("解析JSON失败: %w, 原始内容: %s", err, jsonStr)
 		}
 	} else {
-		n.logger.Errorw("未找到JSON内容",
+		n.logger.Errorw("未找到JSON内容（古诗词卡）",
+			logx.Field("objectName", data.ObjectName),
 			logx.Field("text", text),
+			logx.Field("jsonStart", jsonStart),
+			logx.Field("jsonEnd", jsonEnd),
 		)
 		return nil, fmt.Errorf("模型返回内容中未找到有效的JSON: %s", text)
 	}
@@ -618,7 +713,10 @@ func (n *TextGenerationNode) generatePoetryCardReal(ctx context.Context, data *G
 		"content": cardContent,
 	}
 
-	n.logger.Info("✅ 古诗词卡生成完成（真实模型）")
+	n.logger.Infow("✅ 古诗词卡生成完成（真实模型）",
+		logx.Field("objectName", data.ObjectName),
+		logx.Field("title", card["title"]),
+	)
 	return card, nil
 }
 
@@ -631,7 +729,7 @@ func (n *TextGenerationNode) generateEnglishCardReal(ctx context.Context, data *
 
 	// 根据年龄生成对应的prompt
 	agePrompt := n.getAgePrompt(data.Age, "english")
-	
+
 	messages, err := n.englishTemplate.Format(ctx, map[string]any{
 		"objectName": data.ObjectName,
 		"age":        strconv.Itoa(data.Age),
