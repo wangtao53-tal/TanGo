@@ -136,6 +136,15 @@ export default {
     sendVoiceError: '抱歉，发送语音消息失败：{{error}}。请重试。',
     sendImageError: '抱歉，发送图片失败：{{error}}。请检查图片格式和大小后重试。',
     unknownError: '未知错误',
+    voiceError: '语音识别失败',
+    voiceNetworkError: '网络连接失败，请检查网络后重试',
+    voiceNoSpeech: '未检测到语音，请重试',
+    voiceAudioError: '无法访问麦克风，请检查权限设置',
+    voiceNotAllowed: '麦克风权限被拒绝，请在浏览器设置中允许访问',
+    voiceStartError: '启动语音识别失败，请重试',
+    voiceNotSupported: '您的浏览器不支持语音识别功能',
+    voiceTimeout: '语音识别超时，请重试',
+    voiceStop: '点击停止语音识别',
   },
 
   // 卡片类型
