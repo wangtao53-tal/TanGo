@@ -38,6 +38,14 @@ func NewGitHubStorage(cfg config.UploadConfig, logger logx.Logger) *GitHubStorag
 		cfg.MaxImageSize = 10 * 1024 * 1024 // 10MB
 	}
 
+	// 检查token是否是占位符
+	if strings.Contains(cfg.GitHubToken, "xxxxx") || strings.HasPrefix(cfg.GitHubToken, "ghp_xxxxxxxx") {
+		logger.Errorw("GitHub token 是占位符，GitHub 存储将无法正常工作",
+			logx.Field("hint", "请将 .env 文件中的 GITHUB_TOKEN 替换为真实的 token"),
+		)
+		// 仍然创建实例，但在Upload时会返回错误
+	}
+
 	// 构建 URL
 	baseURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/contents", cfg.GitHubOwner, cfg.GitHubRepo)
 	rawURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s", cfg.GitHubOwner, cfg.GitHubRepo, cfg.GitHubBranch)
