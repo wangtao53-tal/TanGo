@@ -4,7 +4,7 @@
  */
 
 import { useNavigate } from 'react-router-dom';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { identifyImage, uploadImage } from '../services/api';
 import { fileToBase64, extractBase64Data, compressImage } from '../utils/image';
@@ -16,10 +16,196 @@ export default function Capture() {
   const { t } = useTranslation();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
-  const handleCaptureClick = () => {
-    fileInputRef.current?.click();
+  // 检测是否为移动设备
+  const isMobileDevice = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           (window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+  };
+
+  // 启动摄像头
+  const startCamera = async () => {
+    try {
+      setCameraError(null);
+      setIsCameraActive(false);
+      
+      // 检测设备类型，移动设备使用后置摄像头，PC使用前置摄像头
+      const isMobile = isMobileDevice();
+      const videoConstraints: MediaTrackConstraints = {
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      };
+      
+      // 移动设备优先使用后置摄像头，PC使用前置摄像头
+      if (isMobile) {
+        videoConstraints.facingMode = { ideal: 'environment' }; // 后置摄像头
+      } else {
+        videoConstraints.facingMode = { ideal: 'user' }; // 前置摄像头
+      }
+      
+      // 请求摄像头权限
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: videoConstraints,
+        audio: false,
+      });
+
+      streamRef.current = stream;
+      
+      // 将视频流显示在video元素上
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        
+        // 等待视频元数据加载完成
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play()
+            .then(() => {
+              setIsCameraActive(true);
+              console.log('摄像头启动成功，视频流已显示');
+            })
+            .catch((err) => {
+              console.error('播放视频失败:', err);
+              setCameraError(t('capture.videoPlayError', '视频播放失败'));
+            });
+        };
+      }
+    } catch (error: any) {
+      console.error('启动摄像头失败:', error);
+      setIsCameraActive(false);
+      let errorMessage = t('capture.cameraError', '无法访问摄像头');
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage = t('capture.cameraPermissionDenied', '摄像头权限被拒绝，请在浏览器设置中允许访问');
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        errorMessage = t('capture.cameraNotFound', '未找到摄像头设备');
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        errorMessage = t('capture.cameraInUse', '摄像头被其他应用占用');
+      } else if (error.name === 'OverconstrainedError') {
+        // 如果指定的摄像头不可用，尝试使用默认摄像头
+        console.warn('指定的摄像头不可用，尝试使用默认摄像头');
+        try {
+          const fallbackStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
+          streamRef.current = fallbackStream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = fallbackStream;
+            videoRef.current.onloadedmetadata = () => {
+              videoRef.current?.play()
+                .then(() => {
+                  setIsCameraActive(true);
+                  console.log('使用默认摄像头启动成功');
+                })
+                .catch((err) => {
+                  console.error('播放视频失败:', err);
+                  setCameraError(t('capture.videoPlayError', '视频播放失败'));
+                });
+            };
+          }
+          return; // 成功启动，退出错误处理
+        } catch (fallbackError) {
+          errorMessage = t('capture.cameraError', '无法访问摄像头');
+        }
+      }
+      
+      setCameraError(errorMessage);
+    }
+  };
+
+  // 停止摄像头
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => {
+        track.stop();
+      });
+      streamRef.current = null;
+    }
+    
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    
+    setIsCameraActive(false);
+  };
+
+  // 从视频流中捕获图片
+  const captureFromVideo = (): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      if (!videoRef.current) {
+        reject(new Error('视频元素不存在'));
+        return;
+      }
+
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('无法创建画布上下文'));
+        return;
+      }
+
+      // 如果视频是镜像翻转的（预览时），拍照时需要翻转回来
+      // 先水平翻转画布
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      
+      // 绘制当前视频帧到画布
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // 将画布转换为Blob，然后转换为File
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error('无法生成图片'));
+          return;
+        }
+        
+        const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        resolve(file);
+      }, 'image/jpeg', 0.95);
+    });
+  };
+
+  // 组件挂载时启动摄像头
+  useEffect(() => {
+    startCamera();
+    
+    // 组件卸载时停止摄像头
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
+  const handleCaptureClick = async () => {
+    // 如果摄像头正在运行，从视频流中捕获
+    if (streamRef.current && videoRef.current) {
+      try {
+        const file = await captureFromVideo();
+        // 创建一个模拟的文件选择事件
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        const fakeEvent = {
+          target: {
+            files: dataTransfer.files,
+          },
+        } as React.ChangeEvent<HTMLInputElement>;
+        
+        await handleImageSelect(fakeEvent);
+      } catch (error: any) {
+        console.error('从摄像头捕获图片失败:', error);
+        alert(t('capture.captureError', '拍照失败，请重试'));
+      }
+    } else {
+      // 如果没有摄像头，使用文件选择
+      fileInputRef.current?.click();
+    }
   };
 
   const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,10 +358,36 @@ export default function Capture() {
         {/* 相机取景框 */}
         <div className="relative w-full max-w-3xl aspect-[4/3] flex items-center justify-center">
           <div className="relative w-full h-full border-[8px] border-warm-yellow rounded-[2.5rem] shadow-glow-yellow overflow-hidden bg-slate-100 z-20 group">
-            {/* 相机预览占位符 */}
-            <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-              <span className="text-6xl text-gray-400">📷</span>
-            </div>
+            {/* 视频预览 */}
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`w-full h-full object-cover ${isCameraActive ? 'block' : 'hidden'}`}
+              style={{ transform: 'scaleX(-1)' }} // 镜像翻转，让预览更自然
+            />
+            
+            {/* 摄像头未启动时的占位符 */}
+            {!isCameraActive && !cameraError && (
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center z-10">
+                <span className="text-6xl text-gray-400">📷</span>
+              </div>
+            )}
+            
+            {/* 摄像头错误提示 */}
+            {cameraError && (
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex flex-col items-center justify-center gap-4 p-4 z-10">
+                <span className="text-6xl text-gray-400">📷</span>
+                <p className="text-sm text-red-600 text-center max-w-xs">{cameraError}</p>
+                <button
+                  onClick={startCamera}
+                  className="px-4 py-2 bg-warm-yellow text-white rounded-lg hover:bg-yellow-500 transition-colors"
+                >
+                  {t('capture.retryCamera', '重试')}
+                </button>
+              </div>
+            )}
             
             {/* 取景框装饰 */}
             <div className="absolute top-6 left-6 w-10 h-10 border-t-[6px] border-l-[6px] border-white/90 rounded-tl-2xl shadow-sm"></div>
