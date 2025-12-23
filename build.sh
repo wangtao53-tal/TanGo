@@ -37,6 +37,15 @@ if [ ! -d "node_modules" ]; then
     npm install
 fi
 
+# 检查是否设置了 API 地址环境变量
+# 如果使用 Nginx 代理，不需要设置（使用相对路径）
+# 如果直接访问后端，需要设置 VITE_API_BASE_URL
+if [ -z "$VITE_API_BASE_URL" ]; then
+    echo -e "${YELLOW}提示: 未设置 VITE_API_BASE_URL，生产环境将使用相对路径${NC}"
+    echo -e "${YELLOW}   - 使用 Nginx 代理: 无需设置（推荐）${NC}"
+    echo -e "${YELLOW}   - 直接访问后端: 设置 VITE_API_BASE_URL=http://your-server:8877${NC}"
+fi
+
 # 构建前端
 npm run build
 
