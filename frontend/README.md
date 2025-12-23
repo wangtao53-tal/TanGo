@@ -107,7 +107,7 @@ frontend/
 │   │   │   ├── Card.tsx              # 卡片容器
 │   │   │   ├── Header.tsx           # 页面头部
 │   │   │   ├── LanguageSwitcher.tsx  # 语言切换
-│   │   │   ├── LittleStar.tsx        # 小星星装饰
+│   │   │   ├── LittleStar.tsx        # 小探星装饰
 │   │   │   └── QuickCaptureButton.tsx # 快速拍照按钮
 │   │   └── conversation/ # 对话相关组件
 │   │       ├── ConversationList.tsx   # 对话列表

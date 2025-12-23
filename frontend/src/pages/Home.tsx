@@ -84,10 +84,10 @@ export default function Home() {
     <div className="relative flex min-h-screen w-full flex-col">
       <Header />
       
-      <main className="flex flex-1 w-full max-w-[800px] flex-col items-center justify-center px-4 pb-24 gap-8 mx-auto">
-        <div className="flex flex-col items-center justify-center gap-8 w-full py-8">
+      <main className="flex flex-1 w-full max-w-[800px] flex-col items-center justify-center px-4 pb-40 sm:pb-24 gap-8 mx-auto">
+        <div className="flex flex-col items-center justify-center gap-6 sm:gap-8 w-full py-4 sm:py-8">
           {/* 大圆形拍照按钮 */}
-          <div className="relative group cursor-pointer">
+          <div className="relative group cursor-pointer z-10 mt-16 sm:mt-0">
             <div className="absolute -inset-1 rounded-full bg-[var(--color-primary)] opacity-30 blur-xl group-hover:opacity-50 transition-opacity duration-500 animate-pulse"></div>
             <button
               onClick={handlePhotoClick}

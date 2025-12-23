@@ -74,7 +74,7 @@ export default {
     exportAllTitle: '导出所有卡片',
     parentMode: '家长模式',
     clearAllHint: '仅在家长模式下可用',
-    littleStarSays: '小星星说：',
+    littleStarSays: '小探星说：',
     littleStarMessage: '去探索有趣的知识，收藏更多喜欢的卡片吧！我在等待你的发现！✨',
     exportError: '导出失败，请重试',
     exportCardTitle: '导出卡片',
@@ -167,7 +167,7 @@ export default {
 
   // Little Star
   littleStar: {
-    name: '小星星',
+    name: '小探星',
   },
 
   // 报告页面

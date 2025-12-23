@@ -131,7 +131,7 @@ frontend/
 | 家长模式标签 | `'Parent Mode'` | `collection.parentMode` | 家长模式 | Parent Mode |
 | 清空所有按钮 | `'Clear All'` | `collection.clearAll` | 清空所有 | Clear All |
 | 清空所有提示 | `'Only available in Parent Mode'` | `collection.clearAllHint` | 仅在家长模式下可用 | Only available in Parent Mode |
-| Little Star Says标签 | `'Little Star Says:'` | `collection.littleStarSays` | 小星星说： | Little Star Says: |
+| Little Star Says标签 | `'Little Star Says:'` | `collection.littleStarSays` | 小探星说： | Little Star Says: |
 | Little Star消息 | `'Go explore interesting knowledge and collect more favorite cards! I'm waiting for your discoveries! ✨'` | `collection.littleStarMessage` | 去探索有趣的知识，收藏更多喜欢的卡片吧！我在等待你的发现！✨ | Go explore interesting knowledge and collect more favorite cards! I'm waiting for your discoveries! ✨ |
 | 导出失败提示 | `'导出失败，请重试'` | `collection.exportError` | 导出失败，请重试 | Export failed, please try again |
 | 加载中 | `'加载中...'` | `common.loading` | 加载中... | Loading... |
@@ -174,7 +174,7 @@ frontend/
 
 | 位置 | 当前文本 | 翻译Key | 中文 | 英文 |
 |------|---------|---------|------|------|
-| 名称标签 | `'Little Star'` | `littleStar.name` | 小星星 | Little Star |
+| 名称标签 | `'Little Star'` | `littleStar.name` | 小探星 | Little Star |
 
 ### 9. CollectionGrid组件 (`frontend/src/components/collection/CollectionGrid.tsx`)
 
