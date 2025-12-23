@@ -25,11 +25,13 @@ import type {
   UploadResponse,
 } from '../types/api';
 
-// 从环境变量读取API基础地址，如果没有配置则使用默认值
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-  (import.meta.env.DEV 
+// 从环境变量读取API基础地址
+// 生产环境默认使用相对路径（通过 Nginx 代理），开发环境使用完整 URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL !== undefined
+  ? import.meta.env.VITE_API_BASE_URL
+  : (import.meta.env.DEV 
     ? `http://${import.meta.env.VITE_BACKEND_HOST || 'localhost'}:${import.meta.env.VITE_BACKEND_PORT || '8877'}`
-    : 'http://localhost:8877');
+    : ''); // 生产环境默认使用相对路径，由 Nginx 代理
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -116,10 +118,11 @@ export function generateCardsStream(
 ): AbortController {
   const abortController = new AbortController();
   const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL ||
-    (import.meta.env.DEV
-      ? `http://${import.meta.env.VITE_BACKEND_HOST || 'localhost'}:${import.meta.env.VITE_BACKEND_PORT || '8877'}`
-      : 'http://localhost:8877');
+    import.meta.env.VITE_API_BASE_URL !== undefined
+      ? import.meta.env.VITE_API_BASE_URL
+      : (import.meta.env.DEV
+        ? `http://${import.meta.env.VITE_BACKEND_HOST || 'localhost'}:${import.meta.env.VITE_BACKEND_PORT || '8877'}`
+        : ''); // 生产环境默认使用相对路径
 
   fetch(`${API_BASE_URL}/api/explore/generate-cards?stream=true`, {
     method: 'POST',
