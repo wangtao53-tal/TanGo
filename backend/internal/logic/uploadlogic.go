@@ -32,6 +32,27 @@ func (l *UploadLogic) Upload(req *types.UploadRequest) (resp *types.UploadRespon
 		return nil, utils.ErrImageDataRequired
 	}
 
+	// 清理 base64 字符串（在验证前清理，确保一致性）
+	originalLength := len(req.ImageData)
+	req.ImageData = utils.CleanBase64String(req.ImageData)
+	
+	// 清理后检查是否为空
+	if req.ImageData == "" {
+		l.Errorw("Base64 数据清理后为空",
+			logx.Field("originalLength", originalLength),
+		)
+		return nil, utils.ErrImageDataRequired
+	}
+	
+	// 记录清理信息（如果长度发生变化，说明有空白字符被移除）
+	if len(req.ImageData) != originalLength {
+		l.Infow("Base64 字符串已清理空白字符",
+			logx.Field("originalLength", originalLength),
+			logx.Field("cleanedLength", len(req.ImageData)),
+			logx.Field("removedChars", originalLength-len(req.ImageData)),
+		)
+	}
+
 	// 验证文件名（如果提供）
 	if req.Filename != "" {
 		if err := utils.ValidateFilename(req.Filename); err != nil {
@@ -45,16 +66,23 @@ func (l *UploadLogic) Upload(req *types.UploadRequest) (resp *types.UploadRespon
 		maxSize = l.svcCtx.Config.Upload.MaxImageSize
 	}
 
-	// 验证 base64 图片数据
+	// 验证 base64 图片数据（内部会再次清理，但我们已经清理过了，所以这里是安全的）
 	if err := utils.ValidateBase64Image(req.ImageData, maxSize); err != nil {
+		l.Errorw("Base64 图片验证失败",
+			logx.Field("error", err),
+			logx.Field("dataLength", len(req.ImageData)),
+			logx.Field("dataPreview", getDataPreview(req.ImageData)),
+		)
 		return nil, err
 	}
 
-	// 解码 base64 数据
+	// 解码 base64 数据（使用已清理的字符串）
 	imageData, err := base64.StdEncoding.DecodeString(req.ImageData)
 	if err != nil {
 		l.Errorw("Base64 解码失败",
 			logx.Field("error", err),
+			logx.Field("dataLength", len(req.ImageData)),
+			logx.Field("dataPreview", getDataPreview(req.ImageData)),
 		)
 		return nil, utils.ErrImageDataInvalid
 	}
@@ -128,4 +156,16 @@ func (l *UploadLogic) Upload(req *types.UploadRequest) (resp *types.UploadRespon
 	)
 
 	return resp, nil
+}
+
+// getDataPreview 获取数据预览（用于日志，避免记录过长的base64字符串）
+func getDataPreview(data string) string {
+	if len(data) == 0 {
+		return ""
+	}
+	previewLen := 50
+	if len(data) < previewLen {
+		previewLen = len(data)
+	}
+	return data[:previewLen] + "..."
 }

@@ -75,10 +75,22 @@ export async function compressImage(
 }
 
 /**
+ * 清理base64字符串，移除所有空白字符
+ * 这可以解决传输过程中可能引入的空格、换行符等问题
+ */
+export function cleanBase64String(s: string): string {
+  // 移除所有空白字符（空格、换行符、制表符等）
+  return s.replace(/\s/g, '');
+}
+
+/**
  * 从base64字符串中提取数据部分（去除data:image/...;base64,前缀）
+ * 并清理可能的空白字符（防御性编程）
  */
 export function extractBase64Data(base64: string): string {
   const commaIndex = base64.indexOf(',');
-  return commaIndex > 0 ? base64.substring(commaIndex + 1) : base64;
+  const data = commaIndex > 0 ? base64.substring(commaIndex + 1) : base64;
+  // 清理可能的空白字符，确保base64字符串干净
+  return cleanBase64String(data);
 }
 

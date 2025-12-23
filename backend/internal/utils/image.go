@@ -9,9 +9,29 @@ import (
 	"time"
 )
 
+// CleanBase64String 清理 base64 字符串，移除所有空白字符
+// 这可以解决传输过程中可能引入的空格、换行符等问题
+func CleanBase64String(s string) string {
+	// 移除所有空白字符（空格、换行符、制表符等）
+	// 使用 strings.ReplaceAll 比 strings.Replace 更高效
+	s = strings.ReplaceAll(s, " ", "")
+	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, "\t", "")
+	return s
+}
+
 // ValidateBase64Image 验证 base64 图片数据
 func ValidateBase64Image(imageData string, maxSize int64) error {
 	// 检查是否为空
+	if imageData == "" {
+		return ErrImageDataRequired
+	}
+
+	// 清理 base64 字符串，移除可能存在的空白字符
+	imageData = CleanBase64String(imageData)
+	
+	// 清理后再次检查是否为空（可能清理后变成空字符串）
 	if imageData == "" {
 		return ErrImageDataRequired
 	}

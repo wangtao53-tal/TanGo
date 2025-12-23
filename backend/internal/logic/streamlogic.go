@@ -369,8 +369,18 @@ func (l *StreamLogic) StreamConversationUnified(
 				parts := strings.SplitN(imageData, ",", 2)
 				if len(parts) == 2 {
 					imageData = parts[1]
+				} else {
+					// 如果没有找到逗号，可能是格式错误，尝试直接使用
+					// 但这种情况应该很少见
+					logger.Warnw("Base64 data URL 格式异常，未找到逗号分隔符",
+						logx.Field("imagePreview", getImagePreview(imageData)),
+					)
 				}
 			}
+			
+			// 清理 base64 字符串（防御性编程）
+			imageData = utils.CleanBase64String(imageData)
+			
 			uploadLogic := NewUploadLogic(l.ctx, l.svcCtx)
 			uploadReq := &types.UploadRequest{
 				ImageData: imageData,
@@ -380,6 +390,8 @@ func (l *StreamLogic) StreamConversationUnified(
 				logger.Errorw("图片上传失败",
 					logx.Field("error", err),
 					logx.Field("sessionId", sessionId),
+					logx.Field("imageDataLength", len(imageData)),
+					logx.Field("imageDataPreview", getImagePreview(imageData)),
 				)
 				errorEvent := types.StreamEvent{
 					Type:      "error",
@@ -692,4 +704,16 @@ func (l *StreamLogic) streamTextMock(w http.ResponseWriter, sessionId string, me
 	w.(http.Flusher).Flush()
 
 	return nil
+}
+
+// getImagePreview 获取图片数据预览（用于日志，避免记录过长的base64字符串）
+func getImagePreview(data string) string {
+	if len(data) == 0 {
+		return ""
+	}
+	previewLen := 50
+	if len(data) < previewLen {
+		previewLen = len(data)
+	}
+	return data[:previewLen] + "..."
 }

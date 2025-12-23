@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tango/explore/internal/svc"
 	"github.com/tango/explore/internal/types"
+	"github.com/tango/explore/internal/utils"
 )
 
 type VoiceLogic struct {
@@ -23,8 +24,11 @@ func NewVoiceLogic(ctx context.Context, svcCtx *svc.ServiceContext) *VoiceLogic 
 
 // RecognizeVoice 识别语音
 func (l *VoiceLogic) RecognizeVoice(req *types.VoiceRequest) (*types.VoiceResponse, error) {
+	// 清理 base64 字符串（移除可能的空白字符）
+	audioData := utils.CleanBase64String(req.Audio)
+	
 	// 解码音频数据
-	_, err := base64.StdEncoding.DecodeString(req.Audio)
+	_, err := base64.StdEncoding.DecodeString(audioData)
 	if err != nil {
 		return nil, err
 	}
