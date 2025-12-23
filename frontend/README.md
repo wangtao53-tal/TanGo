@@ -1,73 +1,519 @@
-# React + TypeScript + Vite
+# TanGo 前端应用
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+TanGo（小探号）多模态探索前端应用，基于 React + TypeScript + Vite 构建，为 4-18 岁孩子提供友好的探索学习体验。
 
-Currently, two official plugins are available:
+## 📋 目录
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- [技术栈](#技术栈)
+- [快速开始](#快速开始)
+- [项目结构](#项目结构)
+- [核心功能](#核心功能)
+- [开发指南](#开发指南)
+- [构建部署](#构建部署)
 
-## React Compiler
+## 🛠 技术栈
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **框架**: React 19.2.0 + TypeScript 5.9.3
+- **构建工具**: Vite 7.2.4
+- **路由**: React Router DOM 7.11.0
+- **样式**: Tailwind CSS 4.1.18
+- **国际化**: react-i18next 15.7.4
+- **HTTP 客户端**: Axios 1.13.2
+- **Markdown 渲染**: react-markdown 9.0.1
+- **其他**:
+  - html2canvas: 卡片导出功能
+  - react-swipeable: 卡片滑动交互
 
-## Expanding the ESLint configuration
+## 🚀 快速开始
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 环境要求
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Node.js 18+ (推荐 LTS 版本)
+- npm 或 yarn
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### 安装依赖
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cd frontend
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 配置
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+#### 环境变量
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+创建 `.env` 文件（在项目根目录，与 `frontend` 同级）：
+
+```bash
+# 前端开发服务器端口
+FRONTEND_PORT=3000
+
+# 后端服务地址（开发环境）
+VITE_BACKEND_HOST=localhost
+VITE_BACKEND_PORT=8877
+
+# 或直接指定后端 API 基础地址
+VITE_API_BASE_URL=http://localhost:8877
 ```
+
+**注意**: Vite 环境变量必须以 `VITE_` 开头才能在客户端代码中访问。
+
+### 启动开发服务器
+
+#### 方法一：使用启动脚本（推荐）
+
+```bash
+cd frontend
+./start.sh
+```
+
+#### 方法二：手动运行
+
+```bash
+cd frontend
+npm run dev
+```
+
+开发服务器将在 `http://localhost:3000` 启动（或配置的端口）。
+
+### 访问应用
+
+启动成功后，在浏览器中打开：
+- **本地访问**: http://localhost:3000
+- **网络访问**: 终端会显示实际地址（如 http://192.168.x.x:3000）
+
+## 📁 项目结构
+
+```
+frontend/
+├── public/                 # 静态资源
+│   ├── icon.png          # 应用图标
+│   └── vite.svg
+├── src/
+│   ├── assets/           # 资源文件
+│   ├── components/       # React 组件
+│   │   ├── cards/       # 知识卡片组件
+│   │   │   ├── CardCarousel.tsx      # 卡片轮播
+│   │   │   ├── CardDetail.tsx        # 卡片详情
+│   │   │   ├── ScienceCard.tsx       # 科学认知卡
+│   │   │   ├── PoetryCard.tsx        # 人文认知卡
+│   │   │   └── EnglishCard.tsx        # 语言认知卡
+│   │   ├── collection/  # 收藏相关组件
+│   │   │   ├── CategoryFilter.tsx    # 类别筛选
+│   │   │   ├── CollectionCard.tsx     # 收藏卡片
+│   │   │   └── CollectionGrid.tsx     # 收藏网格
+│   │   ├── common/       # 通用组件
+│   │   │   ├── Button.tsx            # 按钮
+│   │   │   ├── Card.tsx              # 卡片容器
+│   │   │   ├── Header.tsx           # 页面头部
+│   │   │   ├── LanguageSwitcher.tsx  # 语言切换
+│   │   │   ├── LittleStar.tsx        # 小星星装饰
+│   │   │   └── QuickCaptureButton.tsx # 快速拍照按钮
+│   │   └── conversation/ # 对话相关组件
+│   │       ├── ConversationList.tsx   # 对话列表
+│   │       ├── ConversationMessage.tsx # 消息组件
+│   │       ├── ImageInput.tsx        # 图片输入
+│   │       ├── MessageInput.tsx      # 消息输入
+│   │       └── VoiceInput.tsx        # 语音输入
+│   ├── hooks/            # React Hooks
+│   │   ├── useCardExport.ts          # 卡片导出
+│   │   ├── useCardSwipe.ts           # 卡片滑动
+│   │   ├── useLanguage.ts            # 语言切换
+│   │   ├── useStreamConversation.ts  # 流式对话
+│   │   ├── useTextToSpeech.ts        # 文本转语音
+│   │   └── useTypingEffect.ts        # 打字机效果
+│   ├── i18n/             # 国际化
+│   │   ├── index.ts      # i18n 配置
+│   │   └── locales/      # 语言文件
+│   │       ├── zh.ts     # 中文
+│   │       └── en.ts     # 英文
+│   ├── pages/            # 页面组件
+│   │   ├── Home.tsx                  # 首页
+│   │   ├── Capture.tsx              # 拍照页面
+│   │   ├── Result.tsx                # 识别结果页面
+│   │   ├── Collection.tsx            # 收藏页面
+│   │   ├── Share.tsx                 # 分享页面
+│   │   ├── LearningReport.tsx        # 学习报告页面
+│   │   └── Settings.tsx              # 设置页面
+│   ├── services/         # 服务层
+│   │   ├── api.ts        # API 调用封装
+│   │   ├── conversation.ts           # 对话服务
+│   │   ├── sse.ts        # SSE 连接（旧版）
+│   │   ├── sse-post.ts   # SSE 连接（POST 方式）
+│   │   └── storage.ts    # 本地存储服务
+│   ├── styles/           # 样式文件
+│   │   ├── index.css     # 全局样式
+│   │   └── tailwind.css  # Tailwind 配置
+│   ├── types/            # TypeScript 类型定义
+│   │   ├── api.ts        # API 类型
+│   │   ├── card.ts       # 卡片类型
+│   │   ├── conversation.ts # 对话类型
+│   │   ├── storage.ts    # 存储类型
+│   │   └── user.ts       # 用户类型
+│   ├── utils/            # 工具函数
+│   │   ├── cardExport.ts # 卡片导出工具
+│   │   ├── constants.ts  # 常量定义
+│   │   ├── date.ts       # 日期工具
+│   │   └── validation.ts # 验证工具
+│   ├── App.tsx           # 根组件
+│   ├── App.css           # 应用样式
+│   ├── main.tsx          # 入口文件
+│   └── index.css         # 全局样式入口
+├── index.html            # HTML 模板
+├── package.json          # 依赖配置
+├── tsconfig.json         # TypeScript 配置
+├── tsconfig.app.json     # 应用 TypeScript 配置
+├── tsconfig.node.json    # Node TypeScript 配置
+├── vite.config.ts        # Vite 配置
+├── postcss.config.js     # PostCSS 配置
+├── eslint.config.js      # ESLint 配置
+└── tailwind.config.js    # Tailwind 配置
+```
+
+## 🎯 核心功能
+
+### 1. 首页
+
+- 拍照入口：点击拍照按钮进入拍照页面
+- 语音输入：支持语音识别（浏览器原生 API）
+- 快速探索：快速开始探索之旅
+
+### 2. 拍照识别
+
+- 相机拍照：调用设备相机拍照
+- 图片上传：支持从相册选择图片
+- 图像识别：上传图片进行识别
+- 年龄设置：设置孩子年龄以优化内容
+
+### 3. 识别结果
+
+- 三张知识卡片展示：
+  - **科学认知卡**: 科学知识、原理
+  - **人文认知卡**: 古诗词、文化知识
+  - **语言认知卡**: 英语表达、词汇
+- 卡片轮播：支持左右滑动切换卡片
+- 卡片详情：点击卡片查看详细信息
+- 收藏功能：收藏喜欢的卡片
+- 分享功能：分享探索结果
+- 导出功能：导出卡片为图片
+
+### 4. 收藏页面
+
+- 卡片展示：网格布局展示收藏的卡片
+- 类别筛选：按类别（自然类/生活类/人文类）筛选
+- 卡片类型筛选：按类型（科学/人文/语言）筛选
+- 卡片详情：点击查看卡片详情
+- 取消收藏：移除收藏的卡片
+
+### 5. 智能对话
+
+- 多模态输入：
+  - **文本输入**: 输入文字消息
+  - **语音输入**: 语音识别转文字
+  - **图片输入**: 上传图片进行对话
+- 流式响应：使用 SSE 实现打字机效果
+- 上下文理解：支持多轮对话
+- 消息类型：
+  - 文本消息（支持 Markdown）
+  - 图片消息
+  - 卡片消息（知识卡片）
+- 会话管理：自动创建和管理会话
+
+### 6. 分享功能
+
+- 创建分享：将探索记录和收藏的卡片生成分享链接
+- 查看分享：通过分享链接查看分享内容
+- 学习报告：生成学习统计报告
+
+### 7. 设置页面
+
+- 语言切换：中文/英文切换
+- 用户信息：查看和编辑用户信息
+- 其他设置：应用相关设置
+
+## 🔧 开发指南
+
+### 可用命令
+
+```bash
+# 启动开发服务器（热重载）
+npm run dev
+
+# 构建生产版本
+npm run build
+
+# 预览生产构建
+npm run preview
+
+# 运行代码检查
+npm run lint
+```
+
+### 开发规范
+
+#### 1. 组件开发
+
+- 使用函数式组件和 Hooks
+- 组件文件使用 PascalCase 命名
+- 每个组件应该有清晰的类型定义
+- 遵循单一职责原则
+
+#### 2. 样式开发
+
+- 优先使用 Tailwind CSS 工具类
+- 自定义样式放在组件文件同名的 CSS 文件中
+- 遵循 K12 教育游戏化设计规范（见 `stitch_ui/` 目录）
+
+#### 3. API 调用
+
+使用 `src/services/api.ts` 中封装的 API 函数：
+
+```typescript
+import { identifyImage, generateCards } from '@/services/api';
+
+// 图像识别
+const result = await identifyImage({
+  image: base64Image,
+  age: 8
+});
+
+// 生成知识卡片
+const cards = await generateCards({
+  objectName: '银杏',
+  objectCategory: '自然类',
+  age: 8
+});
+```
+
+#### 4. 流式对话
+
+使用 `useStreamConversation` Hook：
+
+```typescript
+import { useStreamConversation } from '@/hooks/useStreamConversation';
+
+const { sendMessage, isStreaming } = useStreamConversation();
+
+// 发送文本消息
+await sendMessage('这是什么？', 'text', sessionId);
+
+// 发送图片消息
+await sendMessage(imageData, 'image', sessionId);
+```
+
+#### 5. 本地存储
+
+使用 `src/services/storage.ts` 中封装的存储服务：
+
+```typescript
+import { cardStorage, explorationStorage } from '@/services/storage';
+
+// 保存卡片
+cardStorage.save(card);
+
+// 获取所有卡片
+const cards = cardStorage.getAll();
+```
+
+#### 6. 国际化
+
+使用 `react-i18next`：
+
+```typescript
+import { useTranslation } from 'react-i18next';
+
+function MyComponent() {
+  const { t } = useTranslation();
+  
+  return <div>{t('common.welcome')}</div>;
+}
+```
+
+在 `src/i18n/locales/zh.ts` 和 `src/i18n/locales/en.ts` 中添加翻译。
+
+### 添加新页面
+
+1. 在 `src/pages/` 中创建页面组件
+2. 在 `src/App.tsx` 中添加路由：
+
+```typescript
+<Route path="/new-page" element={<NewPage />} />
+```
+
+3. 如需导航，使用 `useNavigate`：
+
+```typescript
+import { useNavigate } from 'react-router-dom';
+
+const navigate = useNavigate();
+navigate('/new-page');
+```
+
+### 添加新组件
+
+1. 在 `src/components/` 相应目录中创建组件
+2. 导出组件：
+
+```typescript
+export function MyComponent() {
+  return <div>...</div>;
+}
+```
+
+3. 在其他组件中导入使用：
+
+```typescript
+import { MyComponent } from '@/components/common/MyComponent';
+```
+
+### 环境变量
+
+Vite 环境变量必须以 `VITE_` 开头：
+
+```bash
+# .env
+VITE_API_BASE_URL=http://localhost:8877
+```
+
+在代码中使用：
+
+```typescript
+const apiUrl = import.meta.env.VITE_API_BASE_URL;
+```
+
+## 🚢 构建部署
+
+### 构建生产版本
+
+```bash
+npm run build
+```
+
+构建产物在 `dist/` 目录。
+
+### 预览构建结果
+
+```bash
+npm run preview
+```
+
+### 部署到服务器
+
+#### 方式一：使用 Nginx
+
+1. 构建项目：`npm run build`
+2. 将 `dist/` 目录内容复制到 Nginx 静态文件目录
+3. 配置 Nginx：
+
+```nginx
+server {
+    listen 80;
+    server_name tango.example.com;
+    root /path/to/dist;
+    index index.html;
+
+    # SPA 路由支持
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # API 代理
+    location /api {
+        proxy_pass http://localhost:8877;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+#### 方式二：使用 Docker
+
+参考项目根目录的 `Dockerfile` 和 `docker-compose.yml`。
+
+### 环境变量配置
+
+生产环境需要配置后端 API 地址：
+
+```bash
+# .env.production
+VITE_API_BASE_URL=https://api.tango.example.com
+```
+
+## 🐛 常见问题
+
+### 1. 端口被占用
+
+如果 3000 端口被占用，Vite 会自动尝试其他端口（如 3001、3002 等）。终端会显示实际使用的端口。
+
+### 2. 依赖安装失败
+
+```bash
+# 清除缓存
+npm cache clean --force
+
+# 删除 node_modules 和 package-lock.json
+rm -rf node_modules package-lock.json
+
+# 重新安装
+npm install
+```
+
+### 3. API 请求失败
+
+- 检查后端服务是否启动
+- 检查 `VITE_BACKEND_HOST` 和 `VITE_BACKEND_PORT` 配置
+- 检查浏览器控制台的错误信息
+- 检查 CORS 配置（后端需要允许前端域名）
+
+### 4. 热重载不工作
+
+- 检查文件是否保存
+- 重启开发服务器
+- 清除浏览器缓存
+
+### 5. 样式不生效
+
+- 检查 Tailwind CSS 配置
+- 检查 PostCSS 配置
+- 确认样式文件已正确导入
+
+## 📝 开发状态
+
+### 已完成 ✅
+
+- [x] 项目框架搭建（React + TypeScript + Vite）
+- [x] 路由配置和页面结构
+- [x] 首页、拍照、结果、收藏等核心页面
+- [x] 知识卡片展示和交互
+- [x] 智能对话功能（支持流式响应）
+- [x] 收藏功能
+- [x] 分享功能
+- [x] 国际化支持（中文/英文）
+- [x] 本地存储管理
+- [x] 卡片导出功能
+
+### 待完善 ⏳
+
+- [ ] 完整的单元测试
+- [ ] E2E 测试
+- [ ] 性能优化
+- [ ] 无障碍访问（a11y）支持
+- [ ] PWA 支持
+
+## 📚 相关文档
+
+- [React 官方文档](https://react.dev/)
+- [TypeScript 官方文档](https://www.typescriptlang.org/)
+- [Vite 官方文档](https://vite.dev/)
+- [Tailwind CSS 官方文档](https://tailwindcss.com/)
+- [React Router 官方文档](https://reactrouter.com/)
+- [后端 README](../backend/README.md)
+- [项目根目录 README](../README.md)
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 📄 许可证
+
+详见项目根目录 LICENSE 文件。
