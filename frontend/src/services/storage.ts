@@ -353,15 +353,38 @@ export const userSettingsStorage = {
 export const conversationStorage = {
   /**
    * 保存对话消息
+   * 注意：IndexedDB使用id作为主键，put操作会根据id更新记录，不会重复
    */
   async saveMessage(message: ConversationMessage): Promise<void> {
     try {
+      // 验证消息ID
+      if (!message.id) {
+        console.warn('尝试保存没有ID的消息:', message);
+        return;
+      }
+
       const db = await initDB();
       const transaction = db.transaction('conversations', 'readwrite');
       const store = transaction.objectStore('conversations');
+      
+      // 先检查是否已存在（用于日志记录）
+      const existingMessage = await new Promise<ConversationMessage | undefined>((resolve) => {
+        const getRequest = store.get(message.id);
+        getRequest.onsuccess = () => resolve(getRequest.result);
+        getRequest.onerror = () => resolve(undefined);
+      });
+
       await new Promise<void>((resolve, reject) => {
         const request = store.put(message);
-        request.onsuccess = () => resolve();
+        request.onsuccess = () => {
+          // 如果消息已存在，记录日志（可能是更新）
+          if (existingMessage) {
+            console.debug(`更新消息 ${message.id} (${message.sender})`);
+          } else {
+            console.debug(`保存新消息 ${message.id} (${message.sender})`);
+          }
+          resolve();
+        };
         request.onerror = () => {
           const error = request.error;
           // 处理存储配额错误

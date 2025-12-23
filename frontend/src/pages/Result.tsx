@@ -169,13 +169,31 @@ export default function Result() {
           console.warn(`恢复的消息中有 ${cleanedMessages.length - validMessages.length} 条格式不正确，已过滤`);
         }
         
-        setMessages(validMessages);
-        console.log(`已恢复 ${validMessages.length} 条对话记录`);
+        // 去重：根据消息ID去重，保留最新的消息（如果ID相同，保留时间戳最新的）
+        const messageMap = new Map<string, ConversationMessage>();
+        validMessages.forEach(msg => {
+          const existing = messageMap.get(msg.id);
+          if (!existing || new Date(msg.timestamp).getTime() > new Date(existing.timestamp).getTime()) {
+            messageMap.set(msg.id, msg);
+          }
+        });
+        
+        // 转换为数组并按时间排序
+        const uniqueMessages = Array.from(messageMap.values()).sort((a, b) => 
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+        
+        if (uniqueMessages.length !== validMessages.length) {
+          console.warn(`检测到 ${validMessages.length - uniqueMessages.length} 条重复消息，已去重`);
+        }
+        
+        setMessages(uniqueMessages);
+        console.log(`已恢复 ${uniqueMessages.length} 条对话记录（去重后）`);
         
         // 检查是否已有卡片消息（用于日志记录）
         // 重要：判断逻辑是"是否需要生成卡片"（即是否已经有卡片了），而不是"是否有需要识别就重新生成卡片"
-        const hasCards = validMessages.some(msg => msg.type === 'card' && msg.sender === 'assistant');
-        const cardMessages = validMessages.filter(msg => msg.type === 'card' && msg.sender === 'assistant');
+        const hasCards = uniqueMessages.some(msg => msg.type === 'card' && msg.sender === 'assistant');
+        const cardMessages = uniqueMessages.filter(msg => msg.type === 'card' && msg.sender === 'assistant');
         console.log(`检测到 ${cardMessages.length} 条卡片消息`);
         
         if (hasCards) {

@@ -112,19 +112,8 @@ export function createStreamConnectionUnified(
       }
 
       if (event.type === 'done') {
-        // 保存完整的助手消息
-        if (assistantMessageId && fullText) {
-          const assistantMessage: ConversationMessage = {
-            id: assistantMessageId,
-            type: 'text',
-            content: fullText,
-            timestamp: new Date().toISOString(),
-            sender: 'assistant',
-            sessionId: request.sessionId || '',
-            markdown: isMarkdown,
-          };
-          await conversationStorage.saveMessage(assistantMessage);
-        }
+        // 不在这里保存消息，由调用方的 onClose 回调保存最终完成的消息
+        // 这样可以确保只保存一次，而且是清除了流式状态的最终消息
         callbacks.onClose?.();
         return;
       }
