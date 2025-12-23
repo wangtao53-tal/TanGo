@@ -1071,7 +1071,16 @@ export default function Result() {
       try {
         const uploadResult = await uploadImage(compressedFile, file.name);
         imageUrl = uploadResult.url;
-        console.log('图片上传成功:', uploadResult.url, '方式:', uploadResult.uploadMethod);
+        console.log('图片上传成功:', {
+          url: uploadResult.url,
+          uploadMethod: uploadResult.uploadMethod,
+          filename: uploadResult.filename,
+        });
+        
+        // 如果返回的是base64，给出提示
+        if (uploadResult.uploadMethod === 'base64') {
+          console.warn('⚠️ 注意：图片使用base64方式，未上传到GitHub。请检查后端GitHub配置。');
+        }
       } catch (uploadError: any) {
         console.warn('图片上传失败，降级到 base64:', uploadError);
         // 上传失败时转换为base64，继续流程

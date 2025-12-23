@@ -2,6 +2,7 @@ package svc
 
 import (
 	"context"
+	"strings"
 
 	"github.com/tango/explore/internal/agent"
 	"github.com/tango/explore/internal/config"
@@ -55,13 +56,26 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	// 初始化 GitHub 存储
 	var githubStorage *storage.GitHubStorage
 	if c.Upload.GitHubToken != "" && c.Upload.GitHubOwner != "" && c.Upload.GitHubRepo != "" {
+		// 检查token是否是占位符
+		isPlaceholder := strings.Contains(c.Upload.GitHubToken, "xxxxx") || strings.HasPrefix(c.Upload.GitHubToken, "ghp_xxxxxxxx")
+		if isPlaceholder {
+			logger.Errorw("GitHub token 是占位符，GitHub 存储将无法正常工作",
+				logx.Field("hint", "请将 .env 文件中的 GITHUB_TOKEN 替换为真实的 token"),
+				logx.Field("owner", c.Upload.GitHubOwner),
+				logx.Field("repo", c.Upload.GitHubRepo),
+			)
+			logger.Info("⚠️  警告：由于 GitHub token 是占位符，图片上传将降级到 base64 方案")
+			// 仍然创建实例，但在Upload时会返回错误并降级到base64
+		}
 		githubStorage = storage.NewGitHubStorage(c.Upload, logger)
-		logger.Info("GitHub 存储初始化成功",
-			logx.Field("owner", c.Upload.GitHubOwner),
-			logx.Field("repo", c.Upload.GitHubRepo),
-			logx.Field("branch", c.Upload.GitHubBranch),
-			logx.Field("path", c.Upload.GitHubPath),
-		)
+		if !isPlaceholder {
+			logger.Info("GitHub 存储初始化成功",
+				logx.Field("owner", c.Upload.GitHubOwner),
+				logx.Field("repo", c.Upload.GitHubRepo),
+				logx.Field("branch", c.Upload.GitHubBranch),
+				logx.Field("path", c.Upload.GitHubPath),
+			)
+		}
 	} else {
 		logger.Infow("未配置 GitHub 上传参数，图片上传将使用 base64 降级方案",
 			logx.Field("hasToken", c.Upload.GitHubToken != ""),

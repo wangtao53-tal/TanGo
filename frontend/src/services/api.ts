@@ -455,7 +455,23 @@ export async function uploadImage(
         }
       );
 
-      console.log('图片上传成功（FormData方式）:', response.data);
+      console.log('图片上传成功（FormData方式）:', {
+        url: response.data.url,
+        uploadMethod: response.data.uploadMethod,
+        filename: response.data.filename,
+        size: response.data.size,
+      });
+      
+      // 检查返回的上传方式
+      if (response.data.uploadMethod === 'base64') {
+        console.warn('⚠️ 后端返回base64方式，可能原因：GitHub配置未正确设置或上传失败');
+        if (response.data.url && response.data.url.startsWith('data:')) {
+          console.warn('返回的URL是base64 data URL，不是GitHub URL');
+        }
+      } else if (response.data.uploadMethod === 'github') {
+        console.log('✅ 图片已成功上传到GitHub:', response.data.url);
+      }
+      
       return response.data;
     } else {
       // 方式2: 使用JSON base64上传（向后兼容）
