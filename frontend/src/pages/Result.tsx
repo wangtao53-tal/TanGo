@@ -1062,23 +1062,22 @@ export default function Result() {
       // 2. 压缩图片
       const compressedBlob = await compressImage(file, 1920, 1920, 0.8);
       
-      // 3. 转换为 base64
+      // 3. 创建压缩后的文件对象
       const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' });
-      const base64 = await fileToBase64(compressedFile);
-      const imageData = extractBase64Data(base64);
-
-      // 4. 上传图片到 GitHub（如果失败会自动降级到 base64）
-      let imageUrl = imageData; // 默认使用 base64
+      
+      // 4. 上传图片到 GitHub（使用FormData方式，更高效）
+      // 如果上传失败，降级到base64
+      let imageUrl: string = '';
       try {
-        const uploadResult = await uploadImage({
-          imageData: imageData,
-          filename: file.name,
-        });
+        const uploadResult = await uploadImage(compressedFile, file.name);
         imageUrl = uploadResult.url;
         console.log('图片上传成功:', uploadResult.url, '方式:', uploadResult.uploadMethod);
       } catch (uploadError: any) {
-        console.warn('图片上传失败，使用 base64:', uploadError);
-        // 上传失败时使用 base64，继续流程
+        console.warn('图片上传失败，降级到 base64:', uploadError);
+        // 上传失败时转换为base64，继续流程
+        const base64 = await fileToBase64(compressedFile);
+        const imageData = extractBase64Data(base64);
+        imageUrl = imageData; // 使用base64作为降级方案
       }
       
       // 5. 更新用户消息内容为最终URL

@@ -416,20 +416,60 @@ export async function recognizeVoice(
 /**
  * 图片上传API
  */
+/**
+ * 上传图片
+ * 支持两种方式：
+ * 1. FormData上传（推荐）：传入File对象，使用multipart/form-data
+ * 2. Base64上传（兼容）：传入UploadRequest对象，使用application/json
+ */
 export async function uploadImage(
-  request: UploadRequest
+  request: UploadRequest | File,
+  filename?: string
 ): Promise<UploadResponse> {
   try {
-    console.log('开始上传图片，请求数据:', {
-      imageDataLength: request.imageData?.length || 0,
-      filename: request.filename,
-      baseURL: API_BASE_URL,
-    });
-    
-    const response = await apiClient.post<UploadResponse>('/api/upload/image', request);
-    
-    console.log('图片上传成功:', response);
-    return response as unknown as UploadResponse;
+    // 判断是File对象还是UploadRequest
+    if (request instanceof File) {
+      // 方式1: 使用FormData上传（推荐，更高效）
+      const formData = new FormData();
+      formData.append('image', request);
+      if (filename) {
+        formData.append('filename', filename);
+      }
+
+      console.log('开始上传图片（FormData方式）:', {
+        filename: request.name || filename,
+        size: request.size,
+        type: request.type,
+        baseURL: API_BASE_URL,
+      });
+
+      // 使用FormData时，不设置Content-Type，让浏览器自动设置（包含boundary）
+      const response = await axios.post<UploadResponse>(
+        `${API_BASE_URL}/api/upload/image`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: 600000,
+        }
+      );
+
+      console.log('图片上传成功（FormData方式）:', response.data);
+      return response.data;
+    } else {
+      // 方式2: 使用JSON base64上传（向后兼容）
+      console.log('开始上传图片（Base64方式）:', {
+        imageDataLength: request.imageData?.length || 0,
+        filename: request.filename,
+        baseURL: API_BASE_URL,
+      });
+
+      const response = await apiClient.post<UploadResponse>('/api/upload/image', request);
+
+      console.log('图片上传成功（Base64方式）:', response);
+      return response as unknown as UploadResponse;
+    }
   } catch (error: any) {
     console.error('图片上传失败:', {
       error,
@@ -437,10 +477,12 @@ export async function uploadImage(
       message: error?.message,
       detail: error?.detail,
       response: error?.response,
-      request: {
-        imageDataLength: request.imageData?.length || 0,
-        filename: request.filename,
-      },
+      request: request instanceof File
+        ? { filename: request.name, size: request.size, type: request.type }
+        : {
+            imageDataLength: request.imageData?.length || 0,
+            filename: request.filename,
+          },
     });
     throw error;
   }

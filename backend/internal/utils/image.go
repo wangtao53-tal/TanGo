@@ -53,15 +53,15 @@ func ValidateBase64Image(imageData string, maxSize int64) error {
 	}
 
 	// 验证图片格式（通过文件头 Magic Number）
-	if !isValidImageFormat(decoded) {
+	if !IsValidImageFormat(decoded) {
 		return ErrImageFormatInvalid
 	}
 
 	return nil
 }
 
-// isValidImageFormat 通过文件头验证图片格式
-func isValidImageFormat(data []byte) bool {
+// IsValidImageFormat 通过文件头验证图片格式（导出函数，供其他包使用）
+func IsValidImageFormat(data []byte) bool {
 	if len(data) < 4 {
 		return false
 	}

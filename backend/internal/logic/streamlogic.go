@@ -372,7 +372,7 @@ func (l *StreamLogic) StreamConversationUnified(
 				} else {
 					// 如果没有找到逗号，可能是格式错误，尝试直接使用
 					// 但这种情况应该很少见
-					logger.Warnw("Base64 data URL 格式异常，未找到逗号分隔符",
+					logger.Infow("Base64 data URL 格式异常，未找到逗号分隔符",
 						logx.Field("imagePreview", getImagePreview(imageData)),
 					)
 				}

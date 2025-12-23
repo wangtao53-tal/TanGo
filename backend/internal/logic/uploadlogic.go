@@ -112,29 +112,42 @@ func (l *UploadLogic) Upload(req *types.UploadRequest) (resp *types.UploadRespon
 		logx.Field("hasGitHubStorage", l.svcCtx.GitHubStorage != nil),
 	)
 
-	// 尝试上传到 GitHub
+	// 优先上传到 GitHub（默认方式）
 	var imageURL string
 	var uploadMethod string
 
 	if l.svcCtx.GitHubStorage != nil {
+		// GitHub 存储已初始化，优先使用 GitHub 上传
 		url, err := l.svcCtx.GitHubStorage.Upload(imageData, filename)
 		if err != nil {
-			// GitHub 上传失败，记录日志但继续降级处理
-			l.Errorw("GitHub 上传失败，降级到 base64",
+			// GitHub 上传失败，记录详细错误信息
+			l.Errorw("GitHub 上传失败",
 				logx.Field("error", err),
 				logx.Field("errorDetail", err.Error()),
+				logx.Field("filename", filename),
+				logx.Field("size", len(imageData)),
 			)
-			// 降级到 base64 data URL
+			// 如果GitHub配置了但上传失败，仍然降级到base64（保证功能可用）
+			// 但记录警告，提示检查GitHub配置
+			l.Infow("GitHub 上传失败，降级到 base64（请检查GitHub配置）",
+				logx.Field("filename", filename),
+			)
 			uploadMethod = "base64"
 			imageURL = fmt.Sprintf("data:image/jpeg;base64,%s", req.ImageData)
 		} else {
+			// GitHub 上传成功
 			uploadMethod = "github"
 			imageURL = url
+			l.Infow("图片已上传到 GitHub",
+				logx.Field("url", url),
+				logx.Field("filename", filename),
+			)
 		}
 	} else {
-		// GitHub 存储未初始化，直接使用 base64
-		l.Infow("GitHub 存储未初始化，使用 base64",
+		// GitHub 存储未初始化，使用 base64（降级方案）
+		l.Infow("GitHub 存储未配置，使用 base64 降级方案",
 			logx.Field("filename", filename),
+			logx.Field("hint", "如需使用GitHub存储，请配置GITHUB_TOKEN、GITHUB_OWNER、GITHUB_REPO"),
 		)
 		uploadMethod = "base64"
 		imageURL = fmt.Sprintf("data:image/jpeg;base64,%s", req.ImageData)

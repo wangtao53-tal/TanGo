@@ -215,6 +215,18 @@ func (g *GitHubStorage) Upload(imageData []byte, filename string) (string, error
 	}
 
 	// 设置请求头
+	// 检查token是否是占位符
+	tokenPreviewLen := 20
+	if len(g.config.GitHubToken) < tokenPreviewLen {
+		tokenPreviewLen = len(g.config.GitHubToken)
+	}
+	if strings.Contains(g.config.GitHubToken, "xxxxx") || strings.HasPrefix(g.config.GitHubToken, "ghp_xxxxxxxx") {
+		g.logger.Errorw("GitHub token 是占位符，请配置真实的 token",
+			logx.Field("tokenPreview", g.config.GitHubToken[:tokenPreviewLen]+"..."),
+		)
+		return "", utils.NewAPIError(500, "GitHub token 未正确配置", "请将 .env 文件中的 GITHUB_TOKEN 替换为真实的 token")
+	}
+	
 	req.Header.Set("Authorization", fmt.Sprintf("token %s", g.config.GitHubToken))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
