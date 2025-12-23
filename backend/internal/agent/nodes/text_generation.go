@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cloudwego/eino-ext/components/model/ark"
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/components/prompt"
 	"github.com/cloudwego/eino/schema"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/tango/explore/internal/config"
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -556,6 +556,148 @@ func (n *TextGenerationNode) generateTextReal(data *GraphData, context []interfa
 	return result.Content, nil
 }
 
+// parseJSONFromResponse 从模型响应中解析JSON，如果失败则返回错误
+func (n *TextGenerationNode) parseJSONFromResponse(text string) (map[string]interface{}, error) {
+	jsonStart := strings.Index(text, "{")
+	jsonEnd := strings.LastIndex(text, "}")
+	if jsonStart >= 0 && jsonEnd > jsonStart {
+		jsonStr := text[jsonStart : jsonEnd+1]
+		var cardContent map[string]interface{}
+		if err := json.Unmarshal([]byte(jsonStr), &cardContent); err != nil {
+			return nil, fmt.Errorf("解析JSON失败: %w, JSON字符串: %s", err, jsonStr)
+		}
+		return cardContent, nil
+	}
+	return nil, fmt.Errorf("未找到有效的JSON内容")
+}
+
+// generateCardWithRetry 生成卡片并支持JSON解析失败时的快速重试
+// maxRetries: 最大重试次数（不包括首次调用）
+func (n *TextGenerationNode) generateCardWithRetry(
+	ctx context.Context,
+	cardType string, // "science", "poetry", "english"
+	data *GraphData,
+	template prompt.ChatTemplate,
+	maxRetries int,
+) (map[string]interface{}, error) {
+	var lastErr error
+	var lastContent string
+
+	// 根据卡片类型获取年龄prompt
+	var agePrompt string
+	switch cardType {
+	case "science":
+		agePrompt = n.getAgePrompt(data.Age, "science")
+	case "poetry":
+		agePrompt = n.getAgePrompt(data.Age, "poetry")
+	case "english":
+		agePrompt = n.getAgePrompt(data.Age, "english")
+	default:
+		return nil, fmt.Errorf("未知的卡片类型: %s", cardType)
+	}
+
+	// 重试逻辑：首次调用 + 最多maxRetries次重试
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		// 每次重试都重新构建消息，避免消息累积
+		messages, err := template.Format(ctx, map[string]any{
+			"objectName": data.ObjectName,
+			"age":        strconv.Itoa(data.Age),
+			"agePrompt":  agePrompt,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("模板格式化失败: %w", err)
+		}
+
+		if attempt > 0 {
+			// 重试时，在用户消息中添加强调JSON格式的提示
+			// 在最后一条用户消息后添加强调
+			if len(messages) > 0 {
+				lastMsg := messages[len(messages)-1]
+				if lastMsg.Role == schema.User {
+					// 创建新的强调消息
+					emphasisMsg := &schema.Message{
+						Role:    schema.User,
+						Content: "重要：请严格按照JSON格式返回，不要包含任何其他文本说明。",
+					}
+					messages = append(messages, emphasisMsg)
+				}
+			}
+			n.logger.Infow("JSON解析失败，快速重试模型调用",
+				logx.Field("cardType", cardType),
+				logx.Field("objectName", data.ObjectName),
+				logx.Field("attempt", attempt),
+				logx.Field("maxRetries", maxRetries),
+				logx.Field("lastError", lastErr),
+			)
+			// 短暂延迟，避免立即重试
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		// 调用模型
+		result, err := n.chatModel.Generate(ctx, messages)
+		if err != nil {
+			n.logger.Errorw("ChatModel调用失败",
+				logx.Field("cardType", cardType),
+				logx.Field("objectName", data.ObjectName),
+				logx.Field("attempt", attempt),
+				logx.Field("error", err),
+			)
+			// 如果是模型调用错误（非JSON解析错误），直接返回
+			if attempt == 0 {
+				return nil, fmt.Errorf("ChatModel调用失败: %w", err)
+			}
+			// 重试时的模型调用错误，继续重试
+			lastErr = fmt.Errorf("ChatModel调用失败: %w", err)
+			continue
+		}
+
+		// 尝试解析JSON
+		cardContent, parseErr := n.parseJSONFromResponse(result.Content)
+		if parseErr == nil {
+			// 解析成功
+			if attempt > 0 {
+				n.logger.Infow("重试成功，JSON解析通过",
+					logx.Field("cardType", cardType),
+					logx.Field("objectName", data.ObjectName),
+					logx.Field("attempt", attempt),
+				)
+			}
+			return cardContent, nil
+		}
+
+		// JSON解析失败，记录错误并准备重试
+		lastErr = parseErr
+		lastContent = result.Content
+		n.logger.Infow("JSON解析失败，准备重试",
+			logx.Field("cardType", cardType),
+			logx.Field("objectName", data.ObjectName),
+			logx.Field("attempt", attempt),
+			logx.Field("error", parseErr),
+			logx.Field("contentPreview", func() string {
+				if len(result.Content) > 200 {
+					return result.Content[:200] + "..."
+				}
+				return result.Content
+			}()),
+		)
+	}
+
+	// 所有重试都失败
+	n.logger.Errorw("所有重试均失败，JSON解析失败",
+		logx.Field("cardType", cardType),
+		logx.Field("objectName", data.ObjectName),
+		logx.Field("maxRetries", maxRetries),
+		logx.Field("lastError", lastErr),
+		logx.Field("lastContentPreview", func() string {
+			if len(lastContent) > 200 {
+				return lastContent[:200] + "..."
+			}
+			return lastContent
+		}()),
+	)
+	return nil, fmt.Errorf("JSON解析失败（已重试%d次）: %w, 最后返回内容: %s", maxRetries, lastErr, lastContent)
+}
+
 // generateScienceCardReal 真实eino实现科学认知卡
 func (n *TextGenerationNode) generateScienceCardReal(ctx context.Context, data *GraphData) (map[string]interface{}, error) {
 	n.logger.Infow("开始使用真实模型生成科学认知卡",
@@ -563,63 +705,10 @@ func (n *TextGenerationNode) generateScienceCardReal(ctx context.Context, data *
 		logx.Field("age", data.Age),
 	)
 
-	// 根据年龄生成对应的prompt
-	agePrompt := n.getAgePrompt(data.Age, "science")
-
-	messages, err := n.scienceTemplate.Format(ctx, map[string]any{
-		"objectName": data.ObjectName,
-		"age":        strconv.Itoa(data.Age),
-		"agePrompt":  agePrompt,
-	})
-
+	// 使用带重试的生成方法（最多重试1次）
+	cardContent, err := n.generateCardWithRetry(ctx, "science", data, n.scienceTemplate, 1)
 	if err != nil {
-		spew.Dump("1111111", messages, err)
-		n.logger.Errorw("模板格式化失败", logx.Field("error", err))
-		return nil, fmt.Errorf("模板格式化失败: %w", err)
-	}
-
-	n.logger.Infow("调用ChatModel生成内容",
-		logx.Field("messageCount", len(messages)),
-	)
-	result, err := n.chatModel.Generate(ctx, messages)
-	spew.Dump("====", result, err)
-	if err != nil {
-		n.logger.Errorw("ChatModel调用失败",
-			logx.Field("error", err),
-			logx.Field("errorDetail", err.Error()),
-		)
-		return nil, fmt.Errorf("ChatModel调用失败: %w", err)
-	}
-
-	n.logger.Infow("收到模型响应",
-		logx.Field("contentLength", len(result.Content)),
-		logx.Field("contentPreview", func() string {
-			if len(result.Content) > 100 {
-				return result.Content[:100] + "..."
-			}
-			return result.Content
-		}()),
-	)
-
-	// 解析 JSON 结果
-	var cardContent map[string]interface{}
-	text := result.Content
-	jsonStart := strings.Index(text, "{")
-	jsonEnd := strings.LastIndex(text, "}")
-	if jsonStart >= 0 && jsonEnd > jsonStart {
-		jsonStr := text[jsonStart : jsonEnd+1]
-		if err := json.Unmarshal([]byte(jsonStr), &cardContent); err != nil {
-			n.logger.Errorw("解析JSON失败",
-				logx.Field("error", err),
-				logx.Field("jsonStr", jsonStr),
-			)
-			return nil, fmt.Errorf("解析JSON失败: %w, 原始内容: %s", err, jsonStr)
-		}
-	} else {
-		n.logger.Errorw("未找到JSON内容",
-			logx.Field("text", text),
-		)
-		return nil, fmt.Errorf("模型返回内容中未找到有效的JSON: %s", text)
+		return nil, err
 	}
 
 	card := map[string]interface{}{
@@ -639,72 +728,10 @@ func (n *TextGenerationNode) generatePoetryCardReal(ctx context.Context, data *G
 		logx.Field("age", data.Age),
 	)
 
-	// 根据年龄生成对应的prompt
-	agePrompt := n.getAgePrompt(data.Age, "poetry")
-
-	messages, err := n.poetryTemplate.Format(ctx, map[string]any{
-		"objectName": data.ObjectName,
-		"age":        strconv.Itoa(data.Age),
-		"agePrompt":  agePrompt,
-	})
+	// 使用带重试的生成方法（最多重试1次）
+	cardContent, err := n.generateCardWithRetry(ctx, "poetry", data, n.poetryTemplate, 1)
 	if err != nil {
-		n.logger.Errorw("古诗词卡模板格式化失败",
-			logx.Field("objectName", data.ObjectName),
-			logx.Field("error", err),
-			logx.Field("errorDetail", err.Error()),
-		)
-		return nil, fmt.Errorf("模板格式化失败: %w", err)
-	}
-
-	n.logger.Infow("调用ChatModel生成古诗词卡内容",
-		logx.Field("objectName", data.ObjectName),
-		logx.Field("messageCount", len(messages)),
-	)
-	result, err := n.chatModel.Generate(ctx, messages)
-	if err != nil {
-		n.logger.Errorw("ChatModel调用失败（古诗词卡）",
-			logx.Field("objectName", data.ObjectName),
-			logx.Field("error", err),
-			logx.Field("errorDetail", err.Error()),
-		)
-		return nil, fmt.Errorf("ChatModel调用失败: %w", err)
-	}
-
-	n.logger.Infow("收到模型响应（古诗词卡）",
-		logx.Field("objectName", data.ObjectName),
-		logx.Field("contentLength", len(result.Content)),
-		logx.Field("contentPreview", func() string {
-			if len(result.Content) > 200 {
-				return result.Content[:200] + "..."
-			}
-			return result.Content
-		}()),
-	)
-
-	// 解析 JSON 结果
-	var cardContent map[string]interface{}
-	text := result.Content
-	jsonStart := strings.Index(text, "{")
-	jsonEnd := strings.LastIndex(text, "}")
-	if jsonStart >= 0 && jsonEnd > jsonStart {
-		jsonStr := text[jsonStart : jsonEnd+1]
-		if err := json.Unmarshal([]byte(jsonStr), &cardContent); err != nil {
-			n.logger.Errorw("解析JSON失败（古诗词卡）",
-				logx.Field("objectName", data.ObjectName),
-				logx.Field("error", err),
-				logx.Field("jsonStr", jsonStr),
-				logx.Field("fullContent", text),
-			)
-			return nil, fmt.Errorf("解析JSON失败: %w, 原始内容: %s", err, jsonStr)
-		}
-	} else {
-		n.logger.Errorw("未找到JSON内容（古诗词卡）",
-			logx.Field("objectName", data.ObjectName),
-			logx.Field("text", text),
-			logx.Field("jsonStart", jsonStart),
-			logx.Field("jsonEnd", jsonEnd),
-		)
-		return nil, fmt.Errorf("模型返回内容中未找到有效的JSON: %s", text)
+		return nil, err
 	}
 
 	card := map[string]interface{}{
@@ -727,60 +754,10 @@ func (n *TextGenerationNode) generateEnglishCardReal(ctx context.Context, data *
 		logx.Field("age", data.Age),
 	)
 
-	// 根据年龄生成对应的prompt
-	agePrompt := n.getAgePrompt(data.Age, "english")
-
-	messages, err := n.englishTemplate.Format(ctx, map[string]any{
-		"objectName": data.ObjectName,
-		"age":        strconv.Itoa(data.Age),
-		"agePrompt":  agePrompt,
-	})
+	// 使用带重试的生成方法（最多重试1次）
+	cardContent, err := n.generateCardWithRetry(ctx, "english", data, n.englishTemplate, 1)
 	if err != nil {
-		n.logger.Errorw("模板格式化失败", logx.Field("error", err))
-		return nil, fmt.Errorf("模板格式化失败: %w", err)
-	}
-
-	n.logger.Infow("调用ChatModel生成内容",
-		logx.Field("messageCount", len(messages)),
-	)
-	result, err := n.chatModel.Generate(ctx, messages)
-	if err != nil {
-		n.logger.Errorw("ChatModel调用失败",
-			logx.Field("error", err),
-			logx.Field("errorDetail", err.Error()),
-		)
-		return nil, fmt.Errorf("ChatModel调用失败: %w", err)
-	}
-
-	n.logger.Infow("收到模型响应",
-		logx.Field("contentLength", len(result.Content)),
-		logx.Field("contentPreview", func() string {
-			if len(result.Content) > 100 {
-				return result.Content[:100] + "..."
-			}
-			return result.Content
-		}()),
-	)
-
-	// 解析 JSON 结果
-	var cardContent map[string]interface{}
-	text := result.Content
-	jsonStart := strings.Index(text, "{")
-	jsonEnd := strings.LastIndex(text, "}")
-	if jsonStart >= 0 && jsonEnd > jsonStart {
-		jsonStr := text[jsonStart : jsonEnd+1]
-		if err := json.Unmarshal([]byte(jsonStr), &cardContent); err != nil {
-			n.logger.Errorw("解析JSON失败",
-				logx.Field("error", err),
-				logx.Field("jsonStr", jsonStr),
-			)
-			return nil, fmt.Errorf("解析JSON失败: %w, 原始内容: %s", err, jsonStr)
-		}
-	} else {
-		n.logger.Errorw("未找到JSON内容",
-			logx.Field("text", text),
-		)
-		return nil, fmt.Errorf("模型返回内容中未找到有效的JSON: %s", text)
+		return nil, err
 	}
 
 	card := map[string]interface{}{
