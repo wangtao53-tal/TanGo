@@ -106,8 +106,31 @@ export default function Capture() {
         console.log('语音识别结果:', transcript);
         setIsListening(false);
         
-        // TODO: 将语音识别结果发送到后端进行意图识别和处理
-        // 这里可以导航到对话页面或直接处理
+        if (!transcript || !transcript.trim()) {
+          console.warn('语音识别结果为空');
+          return;
+        }
+        
+        // 获取用户年龄（从存储中获取）
+        const age = getUserAgeFromStorage();
+        
+        // 标记从拍照页面的语音输入跳转
+        sessionStorage.setItem('fromCapturePageVoice', 'true');
+        // 保存语音识别结果，供对话页面使用
+        sessionStorage.setItem('voiceInputText', transcript.trim());
+        
+        // 跳转到对话页面，创建新会话
+        // 不传递识别结果上下文（因为没有图片识别），只传递语音输入文本
+        navigate('/result', {
+          state: {
+            objectName: '语音输入',
+            objectCategory: '自然类' as const,
+            confidence: 1.0,
+            keywords: [],
+            age,
+            voiceInput: transcript.trim(), // 传递语音识别结果
+          },
+        });
       };
 
       recognition.onerror = (event: any) => {

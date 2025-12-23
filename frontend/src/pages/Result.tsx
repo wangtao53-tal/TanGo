@@ -33,6 +33,7 @@ interface LocationState {
   keywords?: string[];
   age?: number;
   imageData?: string;
+  voiceInput?: string; // 语音输入文本（从拍照页面跳转时传递）
 }
 
 export default function Result() {
@@ -53,6 +54,7 @@ export default function Result() {
   const accumulatedTextRef = useRef('');
   const markdownRef = useRef<boolean>(false);
   const isInitializedRef = useRef(false); // 防止重复初始化
+  const pendingVoiceInputRef = useRef<string | null>(null); // 待处理的语音输入文本
 
   // 从localStorage获取当前会话ID
   const getCurrentSessionId = (): string | null => {
@@ -238,7 +240,56 @@ export default function Result() {
     // 检测是否从Capture页面跳转过来
     // 使用sessionStorage标记，因为刷新页面时sessionStorage会清空，可以可靠地区分跳转和刷新
     const fromCapturePage = sessionStorage.getItem('fromCapturePage') === 'true';
+    const fromCapturePageVoice = sessionStorage.getItem('fromCapturePageVoice') === 'true';
     const hasState = state && state.objectName && typeof state.objectName === 'string' && state.objectName.trim() !== '';
+    const hasVoiceInput = fromCapturePageVoice && state?.voiceInput && typeof state.voiceInput === 'string' && state.voiceInput.trim() !== '';
+    
+    // 场景1a：从Capture页面语音输入跳转 → 创建新会话 → 不生成卡片 → 自动开始流式问答
+    if (fromCapturePageVoice && hasVoiceInput) {
+      console.log('从Capture页面语音输入进入，创建新会话，语音文本:', state.voiceInput);
+      
+      // 清除标记
+      sessionStorage.removeItem('fromCapturePageVoice');
+      sessionStorage.removeItem('voiceInputText');
+      
+      // 清空当前消息列表
+      setMessages([]);
+      
+      setObjectName(state.objectName || '语音输入');
+      setObjectCategory(state.objectCategory || '自然类');
+      
+      // 生成新会话ID（语音输入不生成卡片）
+      const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      setSessionId(newSessionId);
+      saveCurrentSessionId(newSessionId);
+      console.log('新生成会话ID（语音输入）:', newSessionId, '→ 不生成卡片，直接开始流式问答');
+      
+      // 语音输入不生成卡片
+      hasGeneratedCardsRef.current = true;
+      
+      // 保存识别结果上下文（如果有）
+      if (state.age) {
+        const context: IdentificationContext = {
+          objectName: state.objectName || '语音输入',
+          objectCategory: state.objectCategory || '自然类',
+          confidence: state.confidence || 1.0,
+          keywords: state.keywords || [],
+          age: state.age,
+        };
+        setIdentificationContext(context);
+        saveIdentificationContext(context);
+      }
+      
+      // 保存语音输入文本到 ref，等待 sessionId 设置完成后再处理
+      const voiceInputText = state.voiceInput?.trim();
+      if (voiceInputText) {
+        // 使用 ref 保存语音输入文本，在 sessionId 设置完成后处理
+        pendingVoiceInputRef.current = voiceInputText;
+        console.log('保存待处理的语音输入文本:', voiceInputText);
+      }
+      
+      return;
+    }
     
     // 关键判断：只有同时满足"从Capture页面跳转"和"state有值"时，才创建新会话
     // 刷新页面时，即使state有值（浏览器可能保留），但sessionStorage会清空，所以不会创建新会话
@@ -406,6 +457,21 @@ export default function Result() {
       // isInitializedRef.current = false;
     };
   }, [location, navigate, t]); // 依赖 location, navigate, t，确保location变化时触发恢复
+
+  // 处理从拍照页面跳转过来的语音输入
+  useEffect(() => {
+    // 检查是否有待处理的语音输入
+    const pendingVoiceInput = pendingVoiceInputRef.current;
+    if (pendingVoiceInput && sessionId && !isSending) {
+      console.log('检测到待处理的语音输入，开始流式问答:', pendingVoiceInput);
+      // 清除待处理的语音输入标记
+      pendingVoiceInputRef.current = null;
+      // 延迟一点执行，确保所有状态都已设置完成
+      setTimeout(() => {
+        handleVoiceResult(pendingVoiceInput);
+      }, 200);
+    }
+  }, [sessionId, isSending]); // 依赖 sessionId 和 isSending
 
   // 自动生成卡片函数
   // 规则：只有新生成会话ID时才会调用此函数

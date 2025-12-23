@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Header } from '../components/common/Header';
 import { LittleStar } from '../components/common/LittleStar';
+import { getUserAgeFromStorage } from '../utils/age';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -31,11 +32,36 @@ export default function Home() {
         setIsListening(true);
       };
 
-      recognition.onresult = (event: any) => {
+      recognition.onresult = async (event: any) => {
         const transcript = event.results[0][0].transcript;
         console.log('语音识别结果:', transcript);
-        // TODO: 处理语音识别结果，可以导航到对话页面或触发搜索
         setIsListening(false);
+        
+        if (!transcript || !transcript.trim()) {
+          console.warn('语音识别结果为空');
+          return;
+        }
+        
+        // 获取用户年龄（从存储中获取）
+        const age = getUserAgeFromStorage();
+        
+        // 标记从首页的语音输入跳转
+        sessionStorage.setItem('fromCapturePageVoice', 'true');
+        // 保存语音识别结果，供对话页面使用
+        sessionStorage.setItem('voiceInputText', transcript.trim());
+        
+        // 跳转到对话页面，创建新会话
+        // 不传递识别结果上下文（因为没有图片识别），只传递语音输入文本
+        navigate('/result', {
+          state: {
+            objectName: '语音输入',
+            objectCategory: '自然类' as const,
+            confidence: 1.0,
+            keywords: [],
+            age,
+            voiceInput: transcript.trim(), // 传递语音识别结果
+          },
+        });
       };
 
       recognition.onerror = (event: any) => {
