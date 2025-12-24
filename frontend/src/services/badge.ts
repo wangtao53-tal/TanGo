@@ -7,7 +7,13 @@ import { explorationStorage } from './storage';
 import { cardStorage } from './storage';
 import { conversationStorage } from './storage';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8888';
+// 从环境变量读取API基础地址
+// 生产环境默认使用相对路径（通过 Nginx 代理），开发环境使用完整 URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL !== undefined
+  ? import.meta.env.VITE_API_BASE_URL
+  : (import.meta.env.DEV 
+    ? `http://${import.meta.env.VITE_BACKEND_HOST || 'localhost'}:${import.meta.env.VITE_BACKEND_PORT || '8877'}`
+    : ''); // 生产环境默认使用相对路径，由 Nginx 代理
 
 /**
  * 获取用户统计数据
