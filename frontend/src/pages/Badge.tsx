@@ -3,15 +3,11 @@
  */
 
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { Header } from '../components/common/Header';
-import { getBadgeDetail, getUserStats } from '../services/badge';
+import { getBadgeDetail } from '../services/badge';
 import type { BadgeDetailResponse, BadgeLevel, UserStats } from '../types/badge';
 
 export default function Badge() {
-  const navigate = useNavigate();
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [allLevels, setAllLevels] = useState<BadgeLevel[]>([]);

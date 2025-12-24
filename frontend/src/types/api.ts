@@ -24,6 +24,7 @@ export interface IdentificationContext {
   confidence: number; // 识别置信度
   keywords?: string[]; // 相关关键词
   age?: number; // 用户年龄
+  imageData?: string; // 图片数据（base64或URL），可选
 }
 
 // 知识卡片生成请求

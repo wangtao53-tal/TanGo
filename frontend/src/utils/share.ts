@@ -45,7 +45,7 @@ function convertRecordToShareFormat(record: ExplorationRecord) {
       
       if (typeof card.content === 'object' && card.content !== null && !Array.isArray(card.content)) {
         // 已经是对象，直接使用
-        content = card.content as Record<string, unknown>;
+        content = card.content as unknown as Record<string, unknown>;
       } else {
         // 如果不是对象，尝试通过 JSON 转换
         try {
@@ -82,7 +82,7 @@ function convertCardToShareFormat(card: KnowledgeCard) {
   
   if (typeof card.content === 'object' && card.content !== null && !Array.isArray(card.content)) {
     // 已经是对象，直接使用
-    content = card.content as Record<string, unknown>;
+    content = card.content as unknown as Record<string, unknown>;
   } else {
     // 如果不是对象，尝试通过 JSON 转换
     try {
