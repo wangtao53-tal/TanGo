@@ -121,18 +121,29 @@ export default function Capture() {
 
   // 停止摄像头
   const stopCamera = () => {
+    console.log('停止摄像头，streamRef.current:', streamRef.current);
+    
     if (streamRef.current) {
+      // 停止所有轨道
       streamRef.current.getTracks().forEach(track => {
+        console.log('停止轨道:', track.kind, track.label);
         track.stop();
+        // 确保轨道被释放
+        track.enabled = false;
       });
       streamRef.current = null;
     }
     
     if (videoRef.current) {
+      // 停止视频播放
+      videoRef.current.pause();
       videoRef.current.srcObject = null;
+      // 清空src，确保视频元素完全释放
+      videoRef.current.src = '';
     }
     
     setIsCameraActive(false);
+    console.log('摄像头已停止');
   };
 
   // 从视频流中捕获图片
@@ -183,17 +194,27 @@ export default function Capture() {
     
     // 组件卸载时停止摄像头
     return () => {
+      console.log('组件卸载，停止摄像头');
       stopCamera();
     };
   }, []); // 只在组件挂载时执行一次
 
+  // 监听 capturedImage 变化，如果有照片则关闭摄像头
+  useEffect(() => {
+    if (capturedImage) {
+      console.log('检测到已拍摄照片，关闭摄像头');
+      stopCamera();
+    }
+  }, [capturedImage]);
+
   const handleCaptureClick = async () => {
     // 如果摄像头正在运行，从视频流中捕获
-    if (streamRef.current && videoRef.current) {
+    if (isCameraActive && streamRef.current && videoRef.current) {
       try {
+        console.log('从视频流捕获图片');
         const file = await captureFromVideo();
         
-        // 停止摄像头
+        // 停止摄像头（捕获完成后）
         stopCamera();
         
         // 显示拍摄的照片
@@ -216,17 +237,38 @@ export default function Capture() {
         // 如果捕获失败，重新启动摄像头
         startCamera();
       }
+    } else if (cameraError) {
+      // 如果摄像头有错误，尝试重新启动
+      console.log('摄像头有错误，尝试重新启动');
+      await startCamera();
     } else {
-      // 如果没有摄像头，使用带capture的文件选择（移动端会打开摄像头）
-      cameraInputRef.current?.click();
+      // PC端：如果摄像头未启动，先启动摄像头
+      // 移动端：使用带capture的文件选择（会打开系统相机应用）
+      const isMobile = isMobileDevice();
+      if (isMobile) {
+        // 移动端：使用系统相机应用
+        console.log('移动端：打开系统相机应用');
+        stopCamera(); // 确保关闭网页摄像头
+        setTimeout(() => {
+          cameraInputRef.current?.click();
+        }, 100);
+      } else {
+        // PC端：启动摄像头
+        console.log('PC端：启动摄像头');
+        await startCamera();
+      }
     }
   };
 
   const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      // 即使没有选择文件，也要确保关闭摄像头
+      stopCamera();
+      return;
+    }
 
-    // 停止摄像头（如果正在运行）
+    // 确保停止摄像头（如果正在运行）- 在文件选择后立即关闭
     stopCamera();
 
     // 显示选择的图片
@@ -499,7 +541,14 @@ export default function Capture() {
           {/* 相册按钮 - 更明显 */}
           <div className="flex-1 flex justify-end">
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => {
+                // 点击选择相册时，立即关闭摄像头
+                stopCamera();
+                // 使用 setTimeout 确保摄像头完全关闭后再打开文件选择器
+                setTimeout(() => {
+                  fileInputRef.current?.click();
+                }, 100);
+              }}
               className="flex flex-col items-center gap-2 group"
             >
               <div className="size-16 sm:size-20 rounded-2xl overflow-hidden border-4 border-warm-yellow/30 shadow-lg group-hover:shadow-xl transition-all relative bg-gradient-to-br from-warm-yellow/20 to-orange-100 group-hover:scale-110 duration-200 group-hover:border-warm-yellow">
