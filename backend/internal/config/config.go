@@ -8,6 +8,8 @@ type Config struct {
 	AI AIConfig
 	// 图片上传配置
 	Upload UploadConfig
+	// MCP配置
+	MCP MCPConfig
 }
 
 // AIConfig AI模型配置

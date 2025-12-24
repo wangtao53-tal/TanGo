@@ -29,11 +29,16 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/api/conversation/message",
 				Handler: ConversationHandler(serverCtx),
 			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/api/conversation/stream",
-				Handler: StreamConversationHandler(serverCtx),
-			},
+		{
+			Method:  http.MethodPost,
+			Path:    "/api/conversation/stream",
+			Handler: StreamConversationHandler(serverCtx),
+		},
+		{
+			Method:  http.MethodPost,
+			Path:    "/api/conversation/agent",
+			Handler: AgentConversationHandler(serverCtx),
+		},
 			{
 				Method:  http.MethodPost,
 				Path:    "/api/explore/generate-cards",

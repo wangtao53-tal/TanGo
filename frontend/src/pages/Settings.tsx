@@ -10,6 +10,7 @@ import { Header } from '../components/common/Header';
 import { LanguageSwitcher } from '../components/common/LanguageSwitcher';
 import { userProfileStorage } from '../services/storage';
 import { gradeToAge } from '../utils/age';
+import { API_CONFIG } from '../config/api';
 import type { UserProfile } from '../types/exploration';
 
 export default function Settings() {
@@ -17,6 +18,7 @@ export default function Settings() {
   const { t } = useTranslation();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [grade, setGrade] = useState<string>('');
+  const [useMultiAgent, setUseMultiAgent] = useState<boolean>(API_CONFIG.useMultiAgent);
 
   useEffect(() => {
     loadProfile();
@@ -57,6 +59,11 @@ export default function Settings() {
       userProfileStorage.save(newProfile);
       setProfile(newProfile);
     }
+  };
+
+  const toggleMultiAgentMode = (enabled: boolean) => {
+    API_CONFIG.setUseMultiAgent(enabled);
+    setUseMultiAgent(enabled);
   };
 
   const grades = [
@@ -126,6 +133,43 @@ export default function Settings() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* AI模式设置 */}
+        <div className="w-full bg-white rounded-3xl border-2 border-gray-100 shadow-card p-6 mb-6">
+          <div className="mb-4">
+            <h2 className="text-xl font-bold text-slate-800 mb-1">
+              AI对话模式
+            </h2>
+            <p className="text-sm text-slate-500">
+              选择使用单Agent模式或多Agent模式进行对话
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => toggleMultiAgentMode(false)}
+              className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
+                !useMultiAgent
+                  ? 'bg-[var(--color-primary)] text-white shadow-md'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              单Agent模式
+            </button>
+            <button
+              onClick={() => toggleMultiAgentMode(true)}
+              className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
+                useMultiAgent
+                  ? 'bg-[var(--color-primary)] text-white shadow-md'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              多Agent模式
+            </button>
+          </div>
+          <p className="text-xs text-slate-400 mt-2">
+            当前使用: {useMultiAgent ? '多Agent模式（智能协作）' : '单Agent模式（快速响应）'}
+          </p>
         </div>
 
         {/* 关于 */}

@@ -3,6 +3,7 @@
  * 用于接收流式返回数据
  */
 
+import { API_CONFIG } from '../config/api';
 import type { ConversationStreamEvent, UnifiedStreamConversationRequest } from '../types/api';
 
 export interface SSECallbacks {
@@ -28,7 +29,10 @@ export function createSSEConnectionUnified(
 ): AbortController {
   const abortController = new AbortController();
   
-  fetch(`${API_BASE_URL}/api/conversation/stream`, {
+  // 根据配置选择接口路径
+  const endpoint = API_CONFIG.getConversationEndpoint();
+  
+  fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -91,6 +95,80 @@ export function createSSEConnectionUnified(
       if (error.name === 'AbortError') {
         return; // 用户主动取消，不触发错误回调
       }
+      
+      // 如果是多Agent模式失败，尝试降级到单Agent模式
+      if (API_CONFIG.useMultiAgent && endpoint === '/api/conversation/agent') {
+        console.warn('多Agent模式失败，降级到单Agent模式:', error);
+        
+        // 降级到单Agent模式
+        fetch(`${API_BASE_URL}/api/conversation/stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
+          signal: abortController.signal,
+        })
+          .then(async (response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            if (!response.body) {
+              throw new Error('Response body is null');
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+              const { done, value } = await reader.read();
+
+              if (done) {
+                callbacks.onClose?.();
+                break;
+              }
+
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
+
+              for (const line of lines) {
+                if (line.startsWith('event: ')) {
+                  continue;
+                }
+                if (line.startsWith('data: ')) {
+                  const dataStr = line.substring(6).trim();
+                  if (dataStr) {
+                    try {
+                      const data: ConversationStreamEvent = JSON.parse(dataStr);
+                      callbacks.onMessage?.(data);
+                      
+                      if (data.type === 'done') {
+                        callbacks.onClose?.();
+                        return;
+                      }
+                    } catch (parseError) {
+                      console.error('解析SSE消息失败:', parseError);
+                      callbacks.onError?.(parseError as Error);
+                    }
+                  }
+                }
+              }
+            }
+          })
+          .catch((fallbackError) => {
+            if (fallbackError.name === 'AbortError') {
+              return;
+            }
+            console.error('降级到单Agent模式也失败:', fallbackError);
+            callbacks.onError?.(fallbackError as Error);
+          });
+        
+        return; // 已处理降级，不触发原始错误回调
+      }
+      
       console.error('SSE连接错误:', error);
       callbacks.onError?.(error as Error);
     });
