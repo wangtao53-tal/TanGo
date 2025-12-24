@@ -59,6 +59,7 @@ export interface ExplorationRecordForShare {
   objectName: string;
   objectCategory: '自然类' | '生活类' | '人文类';
   age: number;
+  imageData?: string; // 原始图片数据（base64，可选）
   cards: CardContentResponse[];
 }
 

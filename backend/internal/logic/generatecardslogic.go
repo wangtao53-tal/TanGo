@@ -82,10 +82,23 @@ func (l *GenerateCardsLogic) GenerateCards(req *types.GenerateCardsRequest) (res
 		cards := make([]types.CardContent, 0, len(data.Cards))
 		for _, cardData := range data.Cards {
 			if cardMap, ok := cardData.(map[string]interface{}); ok {
+				// 转换 content 字段为 map[string]interface{}
+				var content map[string]interface{}
+				if contentVal, exists := cardMap["content"]; exists {
+					if contentMap, ok := contentVal.(map[string]interface{}); ok {
+						content = contentMap
+					} else {
+						// 如果不是 map，包装成 map
+						content = map[string]interface{}{"value": contentVal}
+					}
+				} else {
+					content = make(map[string]interface{})
+				}
+				
 				card := types.CardContent{
 					Type:    getString(cardMap, "type"),
 					Title:   getString(cardMap, "title"),
-					Content: cardMap["content"],
+					Content: content,
 				}
 				cards = append(cards, card)
 			}
@@ -208,10 +221,23 @@ func (l *GenerateCardsLogic) GenerateCardsStream(w http.ResponseWriter, req *typ
 		cardCount := 0
 		for i, cardData := range data.Cards {
 			if cardMap, ok := cardData.(map[string]interface{}); ok {
+				// 转换 content 字段为 map[string]interface{}
+				var content map[string]interface{}
+				if contentVal, exists := cardMap["content"]; exists {
+					if contentMap, ok := contentVal.(map[string]interface{}); ok {
+						content = contentMap
+					} else {
+						// 如果不是 map，包装成 map
+						content = map[string]interface{}{"value": contentVal}
+					}
+				} else {
+					content = make(map[string]interface{})
+				}
+				
 				card := types.CardContent{
 					Type:    getString(cardMap, "type"),
 					Title:   getString(cardMap, "title"),
-					Content: cardMap["content"],
+					Content: content,
 				}
 				// 立即发送卡片事件
 				cardEvent := map[string]interface{}{

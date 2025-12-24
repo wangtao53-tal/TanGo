@@ -161,6 +161,15 @@ export default {
     createdAt: 'Created at',
     expiresAt: 'Expires at',
     noRecords: 'No exploration records',
+    readyToShare: 'Ready to share?',
+    shareWithParents: 'Share your exploration results with parents!',
+    shareError: 'Share failed, please try again later',
+    noDataToShare: 'No content to share, go explore something first!',
+    linkCreated: 'Share link created',
+    copyManually: 'Please copy the link manually',
+    copied: 'Copied!',
+    creating: 'Creating...',
+    base64ImageError: 'All exploration records have base64 images, cannot create share. Please ensure images are uploaded to server.',
   },
 
   // Little Star

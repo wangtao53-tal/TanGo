@@ -8,6 +8,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/common/Header';
 import { explorationStorage, cardStorage } from '../services/storage';
+import { createShareLink, copyToClipboard } from '../utils/share';
+import { isInCurrentWeek } from '../utils/week';
 
 export default function LearningReport() {
   const { t } = useTranslation();
@@ -19,6 +21,8 @@ export default function LearningReport() {
     生活类: 0,
     人文类: 0,
   });
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   useEffect(() => {
     loadReportData();
@@ -70,6 +74,78 @@ export default function LearningReport() {
   const naturalPercent = totalCategories > 0 ? (categoryDistribution['自然类'] / totalCategories) * 100 : 0;
   const lifePercent = totalCategories > 0 ? (categoryDistribution['生活类'] / totalCategories) * 100 : 0;
   const humanitiesPercent = totalCategories > 0 ? (categoryDistribution['人文类'] / totalCategories) * 100 : 0;
+
+  const handleShare = async () => {
+    if (isSharing) return;
+    
+    setIsSharing(true);
+    setShareSuccess(false);
+
+    try {
+      // 获取所有探索记录和卡片
+      const allRecords = await explorationStorage.getAll();
+      const allCards = await cardStorage.getAll();
+
+      // 过滤出当前周（周一到周日）的记录和卡片
+      const currentWeekRecords = allRecords.filter((r) => isInCurrentWeek(r.timestamp));
+      const currentWeekCards = allCards.filter((c) => {
+        // 如果卡片有关联的探索记录，检查探索记录的时间
+        const relatedRecord = allRecords.find((r) => r.id === c.explorationId);
+        if (relatedRecord) {
+          return isInCurrentWeek(relatedRecord.timestamp);
+        }
+        // 如果卡片有收藏时间，检查收藏时间
+        if (c.collectedAt) {
+          return isInCurrentWeek(c.collectedAt);
+        }
+        // 如果没有时间信息，不包含
+        return false;
+      });
+
+      if (currentWeekRecords.length === 0 && currentWeekCards.length === 0) {
+        alert(t('share.noDataToShare', '本周还没有探索记录，先去探索一些内容吧！'));
+        return;
+      }
+
+      // 限制最多10条探索记录（按时间倒序，最新的10条）
+      const sortedRecords = currentWeekRecords.sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      const limitedRecords = sortedRecords.slice(0, 10);
+
+      // 只包含这10条记录相关的卡片
+      const recordIds = new Set(limitedRecords.map(r => r.id));
+      const limitedCards = currentWeekCards.filter(c => 
+        recordIds.has(c.explorationId)
+      );
+
+      // 创建分享链接（分享最多10条记录和相关的卡片）
+      const shareUrl = await createShareLink(limitedRecords, limitedCards);
+
+      // 复制到剪贴板
+      const success = await copyToClipboard(shareUrl);
+      
+      if (success) {
+        setShareSuccess(true);
+        setTimeout(() => setShareSuccess(false), 3000);
+      } else {
+        // 如果复制失败，显示链接让用户手动复制
+        const userConfirmed = confirm(
+          `${t('share.linkCreated', '分享链接已创建')}:\n${shareUrl}\n\n${t('share.copyManually', '请手动复制链接')}`
+        );
+        if (userConfirmed) {
+          setShareSuccess(true);
+          setTimeout(() => setShareSuccess(false), 3000);
+        }
+      }
+    } catch (error: any) {
+      console.error('分享失败:', error);
+      const errorMessage = error.message || t('share.shareError', '分享失败，请稍后重试');
+      alert(errorMessage);
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-cloud-white font-display">
@@ -250,6 +326,43 @@ export default function LearningReport() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* 分享区域 */}
+          <div className="flex flex-col items-center justify-center gap-6 rounded-3xl border-2 border-dashed border-primary/30 bg-primary/5 p-8 md:flex-row md:justify-between relative overflow-hidden">
+            <div className="absolute -left-10 -bottom-10 h-32 w-32 rounded-full bg-primary/10 blur-2xl"></div>
+            <div className="flex items-center gap-5 relative z-10">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-primary shadow-comic border-2 border-primary/20 rotate-3">
+                <span className="material-symbols-outlined text-3xl">auto_fix_high</span>
+              </div>
+              <div className="flex flex-col">
+                <h4 className="text-xl font-black text-text-main">{t('share.readyToShare', '准备好分享了吗？')}</h4>
+                <p className="text-sm font-bold text-text-muted">{t('share.shareWithParents', '与家长分享你的探索成果！')}</p>
+              </div>
+            </div>
+            <div className="flex w-full flex-col gap-4 sm:w-auto sm:flex-row relative z-10">
+              <button
+                onClick={handleShare}
+                disabled={isSharing}
+                className={`flex items-center justify-center gap-2 rounded-2xl border-2 ${
+                  shareSuccess
+                    ? 'border-green-300 bg-green-50 text-green-600'
+                    : 'border-gray-200 bg-surface hover:bg-gray-50 hover:text-text-main hover:border-gray-300'
+                } px-6 py-3.5 text-sm font-extrabold transition-all shadow-sm sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {shareSuccess ? (
+                  <>
+                    <span className="material-symbols-outlined">check_circle</span>
+                    {t('share.copied', '已复制！')}
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined">{isSharing ? 'hourglass_empty' : 'share'}</span>
+                    {isSharing ? t('share.creating', '创建中...') : t('share.shareWithParents', '分享给家长')}
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

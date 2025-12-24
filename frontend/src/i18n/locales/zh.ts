@@ -163,6 +163,15 @@ export default {
     createdAt: '创建时间',
     expiresAt: '过期时间',
     noRecords: '暂无探索记录',
+    readyToShare: '准备好分享了吗？',
+    shareWithParents: '与家长分享你的探索成果！',
+    shareError: '分享失败，请稍后重试',
+    noDataToShare: '没有可分享的内容，先去探索一些内容吧！',
+    linkCreated: '分享链接已创建',
+    copyManually: '请手动复制链接',
+    copied: '已复制！',
+    creating: '创建中...',
+    base64ImageError: '所有探索记录的图片都是 base64 格式，无法创建分享。请确保图片已上传到服务器。',
   },
 
   // Little Star

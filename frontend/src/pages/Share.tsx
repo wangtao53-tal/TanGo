@@ -41,6 +41,7 @@ export default function Share() {
         objectCategory: r.objectCategory,
         confidence: 0.95, // 分享数据中没有，使用默认值
         age: r.age,
+        imageData: r.imageData, // 包含原始图片数据
         cards: r.cards.map((c) => ({
           id: `card-${c.type}-${r.id}`,
           explorationId: r.id,

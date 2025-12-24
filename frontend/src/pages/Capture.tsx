@@ -226,18 +226,28 @@ export default function Capture() {
       // 3. 上传图片到 GitHub（使用FormData方式，更高效）
       // 如果上传失败，降级到base64
       let imageUrl: string = '';
+      let imageDataForStorage: string = ''; // 用于存储的图片数据（优先使用URL）
       // 提前准备base64，用于显示和降级方案
       const base64 = await fileToBase64(compressedFile);
       
       try {
         const uploadResult = await uploadImage(compressedFile, file.name);
         imageUrl = uploadResult.url;
-        console.log('图片上传成功:', uploadResult.url, '方式:', uploadResult.uploadMethod);
+        // 如果上传成功且返回的是URL（不是base64），使用URL存储
+        if (uploadResult.uploadMethod === 'github' && !imageUrl.startsWith('data:')) {
+          imageDataForStorage = imageUrl; // 使用GitHub URL
+          console.log('图片上传成功到GitHub:', imageUrl);
+        } else {
+          // 如果返回的是base64，使用base64存储
+          imageDataForStorage = extractBase64Data(base64);
+          console.log('图片使用base64方式（未上传到GitHub）');
+        }
       } catch (uploadError: any) {
         console.warn('图片上传失败，降级到 base64:', uploadError);
         // 上传失败时使用base64，继续流程
         const imageData = extractBase64Data(base64);
         imageUrl = imageData; // 使用base64作为降级方案
+        imageDataForStorage = imageData; // 存储时也使用base64
       }
 
       // 4. 调用识别API（使用 URL 或 base64）
@@ -257,7 +267,7 @@ export default function Capture() {
           confidence: identifyResult.confidence,
           keywords: identifyResult.keywords,
           age,
-          imageData: base64, // 保存原始base64用于显示
+          imageData: imageDataForStorage, // 优先使用URL，失败时使用base64
         },
       });
     } catch (error: any) {

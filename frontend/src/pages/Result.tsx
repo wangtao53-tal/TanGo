@@ -717,6 +717,11 @@ export default function Result() {
               console.warn('无效的分类值，使用默认值"自然类":', category);
             }
 
+            // 优先使用 identificationContext 中的 imageData（可能是上传后的URL）
+            // 如果没有，则使用 state.imageData
+            let finalImageData = identificationContext?.imageData || state.imageData;
+            
+            // 如果 finalImageData 是 URL，直接使用；如果是 base64，也使用（降级方案）
             const explorationRecord: ExplorationRecord = {
               id: `exp-${timestamp}`,
               timestamp: new Date().toISOString(),
@@ -724,7 +729,7 @@ export default function Result() {
               objectCategory: category as '自然类' | '生活类' | '人文类',
               confidence: state.confidence || 0.95,
               age: userAge,
-              imageData: state.imageData,
+              imageData: finalImageData, // 优先使用URL，失败时使用base64
               cards: receivedCards,
               collected: false,
             };
@@ -1152,17 +1157,18 @@ export default function Result() {
       // 4. 上传图片到 GitHub（使用FormData方式，更高效）
       // 如果上传失败，降级到base64
       let imageUrl: string = '';
+      let imageDataForStorage: string = ''; // 用于存储的图片数据（优先使用URL）
       try {
         const uploadResult = await uploadImage(compressedFile, file.name);
         imageUrl = uploadResult.url;
-        console.log('图片上传成功:', {
-          url: uploadResult.url,
-          uploadMethod: uploadResult.uploadMethod,
-          filename: uploadResult.filename,
-        });
-        
-        // 如果返回的是base64，给出提示
-        if (uploadResult.uploadMethod === 'base64') {
+        // 如果上传成功且返回的是URL（不是base64），使用URL存储
+        if (uploadResult.uploadMethod === 'github' && !imageUrl.startsWith('data:')) {
+          imageDataForStorage = imageUrl; // 使用GitHub URL
+          console.log('图片上传成功到GitHub:', imageUrl);
+        } else {
+          // 如果返回的是base64，使用base64存储
+          const base64 = await fileToBase64(compressedFile);
+          imageDataForStorage = extractBase64Data(base64);
           console.warn('⚠️ 注意：图片使用base64方式，未上传到GitHub。请检查后端GitHub配置。');
         }
       } catch (uploadError: any) {
@@ -1171,6 +1177,7 @@ export default function Result() {
         const base64 = await fileToBase64(compressedFile);
         const imageData = extractBase64Data(base64);
         imageUrl = imageData; // 使用base64作为降级方案
+        imageDataForStorage = imageData; // 存储时也使用base64
       }
       
       // 5. 更新用户消息内容为最终URL
@@ -1183,14 +1190,31 @@ export default function Result() {
         }
         return prev;
       });
-      // 保存更新后的图片消息到IndexedDB
+      // 保存更新后的图片消息到IndexedDB（使用URL或base64）
       const updatedImageMessage: ConversationMessage = {
         ...userMessage,
-        content: imageUrl,
+        content: imageDataForStorage, // 优先使用URL，失败时使用base64
       };
       await conversationStorage.saveMessage(updatedImageMessage).catch(err => 
         console.error('保存图片消息失败:', err)
       );
+      
+      // 更新 identificationContext 的 imageData，以便保存探索记录时使用URL
+      if (imageDataForStorage) {
+        // 无论存储的是URL还是base64，都更新 identificationContext
+        setIdentificationContext((prev) => {
+          if (prev) {
+            const updated = {
+              ...prev,
+              imageData: imageDataForStorage,
+            };
+            // 同时保存到 localStorage
+            saveIdentificationContext(updated);
+            return updated;
+          }
+          return prev;
+        });
+      }
       
       // 6. 创建助手消息占位符
       const assistantMessageId = `msg-assistant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;

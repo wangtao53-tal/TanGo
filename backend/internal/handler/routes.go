@@ -26,11 +26,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 			{
 				Method:  http.MethodPost,
-				Path:    "/api/conversation/voice",
-				Handler: VoiceHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
 				Path:    "/api/explore/generate-cards",
 				Handler: GenerateCardsHandler(serverCtx),
 			},
@@ -51,19 +46,18 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 			{
 				Method:  http.MethodPost,
-				Path:    "/api/share/report",
-				Handler: GenerateReportHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
 				Path:    "/api/upload/image",
 				Handler: UploadHandler(serverCtx),
 			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/api/conversation/stream",
-				Handler: StreamConversationHandler(serverCtx),
-			},
+		},
+	)
+
+	// 流式接口需要手动注册路由，goctl不支持stream类型
+	server.AddRoute(
+		rest.Route{
+			Method:  http.MethodPost,
+			Path:    "/api/conversation/stream",
+			Handler: StreamConversationHandler(serverCtx),
 		},
 	)
 }

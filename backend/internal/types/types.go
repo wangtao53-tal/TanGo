@@ -4,9 +4,9 @@
 package types
 
 type CardContent struct {
-	Type    string      `json:"type"`    // 卡片类型：science/poetry/english
-	Title   string      `json:"title"`   // 卡片标题
-	Content interface{} `json:"content"` // 卡片内容（根据类型不同结构不同）
+	Type    string                 `json:"type"`    // 卡片类型：science/poetry/english
+	Title   string                 `json:"title"`   // 卡片标题
+	Content map[string]interface{} `json:"content"` // 卡片内容（根据类型不同结构不同）
 }
 
 type ConversationMessage struct {
@@ -60,12 +60,13 @@ type ErrorResponse struct {
 }
 
 type ExplorationRecord struct {
-	Id             string        `json:"id"`             // 探索记录ID
-	Timestamp      string        `json:"timestamp"`      // 探索时间
-	ObjectName     string        `json:"objectName"`     // 对象名称
-	ObjectCategory string        `json:"objectCategory"` // 对象类别
-	Age            int           `json:"age"`            // 探索时的年龄
-	Cards          []CardContent `json:"cards"`          // 生成的知识卡片
+	Id             string        `json:"id"`                 // 探索记录ID
+	Timestamp      string        `json:"timestamp"`          // 探索时间
+	ObjectName     string        `json:"objectName"`         // 对象名称
+	ObjectCategory string        `json:"objectCategory"`     // 对象类别
+	Age            int           `json:"age"`                // 探索时的年龄
+	ImageData      string        `json:"imageData,optional"` // 原始图片数据（base64，可选）
+	Cards          []CardContent `json:"cards"`              // 生成的知识卡片
 }
 
 type GenerateCardsRequest struct {
@@ -131,12 +132,12 @@ type IntentResult struct {
 }
 
 type KnowledgeCard struct {
-	Id            string      `json:"id"`                   // 卡片ID
-	ExplorationId string      `json:"explorationId"`        // 关联的探索记录ID
-	Type          string      `json:"type"`                 // 卡片类型
-	Title         string      `json:"title"`                // 卡片标题
-	Content       interface{} `json:"content"`              // 卡片内容
-	CollectedAt   string      `json:"collectedAt,optional"` // 收藏时间
+	Id            string                 `json:"id"`                   // 卡片ID
+	ExplorationId string                 `json:"explorationId"`        // 关联的探索记录ID
+	Type          string                 `json:"type"`                 // 卡片类型
+	Title         string                 `json:"title"`                // 卡片标题
+	Content       map[string]interface{} `json:"content"`              // 卡片内容
+	CollectedAt   string                 `json:"collectedAt,optional"` // 收藏时间
 }
 
 type StreamConversationRequest struct {

@@ -9,6 +9,8 @@ import { Header } from '../components/common/Header';
 import { CollectionGrid } from '../components/collection/CollectionGrid';
 import { explorationStorage, cardStorage } from '../services/storage';
 import { exportCardAsImage } from '../utils/export';
+import { createShareLink, copyToClipboard } from '../utils/share';
+import { isInCurrentWeek } from '../utils/week';
 import type { ExplorationRecord } from '../types/exploration';
 import type { KnowledgeCard } from '../types/exploration';
 
@@ -17,6 +19,8 @@ export default function Collection() {
   const [records, setRecords] = useState<ExplorationRecord[]>([]);
   const [cards, setCards] = useState<KnowledgeCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   useEffect(() => {
     loadRecords();
@@ -79,6 +83,78 @@ export default function Collection() {
     }
   };
 
+  const handleShare = async () => {
+    if (isSharing) return;
+    
+    setIsSharing(true);
+    setShareSuccess(false);
+
+    try {
+      // 获取所有探索记录和卡片（不限制收藏状态）
+      const allRecords = await explorationStorage.getAll();
+      const allCards = await cardStorage.getAll();
+
+      // 过滤出当前周（周一到周日）的记录和卡片
+      const currentWeekRecords = allRecords.filter((r) => isInCurrentWeek(r.timestamp));
+      const currentWeekCards = allCards.filter((c) => {
+        // 如果卡片有关联的探索记录，检查探索记录的时间
+        const relatedRecord = allRecords.find((r) => r.id === c.explorationId);
+        if (relatedRecord) {
+          return isInCurrentWeek(relatedRecord.timestamp);
+        }
+        // 如果卡片有收藏时间，检查收藏时间
+        if (c.collectedAt) {
+          return isInCurrentWeek(c.collectedAt);
+        }
+        // 如果没有时间信息，不包含
+        return false;
+      });
+
+      if (currentWeekRecords.length === 0 && currentWeekCards.length === 0) {
+        alert(t('share.noDataToShare', '本周还没有探索记录，先去探索一些内容吧！'));
+        return;
+      }
+
+      // 限制最多10条探索记录（按时间倒序，最新的10条）
+      const sortedRecords = currentWeekRecords.sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      const limitedRecords = sortedRecords.slice(0, 10);
+
+      // 只包含这10条记录相关的卡片
+      const recordIds = new Set(limitedRecords.map(r => r.id));
+      const limitedCards = currentWeekCards.filter(c => 
+        recordIds.has(c.explorationId)
+      );
+
+      // 创建分享链接（分享最多10条记录和相关的卡片）
+      const shareUrl = await createShareLink(limitedRecords, limitedCards);
+
+      // 复制到剪贴板
+      const success = await copyToClipboard(shareUrl);
+      
+      if (success) {
+        setShareSuccess(true);
+        setTimeout(() => setShareSuccess(false), 3000);
+      } else {
+        // 如果复制失败，显示链接让用户手动复制
+        const userConfirmed = confirm(
+          `${t('share.linkCreated', '分享链接已创建')}:\n${shareUrl}\n\n${t('share.copyManually', '请手动复制链接')}`
+        );
+        if (userConfirmed) {
+          setShareSuccess(true);
+          setTimeout(() => setShareSuccess(false), 3000);
+        }
+      }
+    } catch (error: any) {
+      console.error('分享失败:', error);
+      const errorMessage = error.message || t('share.shareError', '分享失败，请稍后重试');
+      alert(errorMessage);
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-cloud-white flex items-center justify-center">
@@ -108,7 +184,27 @@ export default function Collection() {
                 {t('collection.subtitle')}
               </p>
             </div>
-
+            <button
+              onClick={handleShare}
+              disabled={isSharing || (records.length === 0 && cards.length === 0)}
+              className={`flex items-center justify-center gap-2 rounded-2xl border-2 ${
+                shareSuccess
+                  ? 'border-green-300 bg-green-50 text-green-600'
+                  : 'border-gray-200 bg-surface hover:bg-gray-50 hover:text-text-main hover:border-gray-300'
+              } px-6 py-3 text-sm font-extrabold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {shareSuccess ? (
+                <>
+                  <span className="material-symbols-outlined">check_circle</span>
+                  {t('share.copied', '已复制！')}
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined">{isSharing ? 'hourglass_empty' : 'share'}</span>
+                  {isSharing ? t('share.creating', '创建中...') : t('share.shareWithParents', '分享给家长')}
+                </>
+              )}
+            </button>
           </header>
 
           {/* 收藏卡片网格 */}

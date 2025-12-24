@@ -12,7 +12,7 @@ const (
 	DefaultImageRecognitionModel2 = "GLM-4.6v"
 
 	// 图片生成模型
-	DefaultImageGenerationModel = "Gemini 3 Pro Image"
+	DefaultImageGenerationModel = "gemini-3-pro-image"
 
 	// 文本生成模型（默认使用意图识别模型）
 	DefaultTextGenerationModel = "gpt-5-nano"
