@@ -36,19 +36,34 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
       ? records
       : records.filter((r) => r.objectCategory === category);
 
-  // 从records中提取所有卡片
+  // 从records中提取所有卡片（仅用于独立卡片显示）
+  // 注意：如果records中的卡片已经在CollectionCard中显示，这里不应该重复显示
+  // 只有当cards prop中有独立卡片（不属于任何record）时才显示
   const allCardsFromRecords: KnowledgeCard[] = [];
   filteredRecords.forEach((record) => {
     allCardsFromRecords.push(...record.cards);
   });
 
-  // 合并所有卡片
-  const allCards = [...allCardsFromRecords, ...cards];
+  // 过滤出独立的卡片（不在records中的卡片）
+  // 这些卡片可能是用户单独收藏的，不属于任何探索记录
+  const independentCards = cards.filter((card) => {
+    // 检查卡片是否属于任何record
+    return !allCardsFromRecords.some((recordCard) => recordCard.id === card.id);
+  });
+
+  // 合并独立卡片（不包含已经在records中的卡片）
+  const allCards = [...independentCards];
   const filteredCards = category === 'all' 
     ? allCards 
     : allCards.filter((card) => {
-        const record = records.find((r) => r.cards.some((c) => c.id === card.id));
-        return record?.objectCategory === category;
+        // 独立卡片应该根据其类型或关联的探索记录分类
+        // 如果卡片有explorationId，尝试找到对应的record
+        if (card.explorationId) {
+          const record = records.find((r) => r.id === card.explorationId);
+          return record?.objectCategory === category;
+        }
+        // 如果没有explorationId，根据卡片类型分类（这里简化处理，可能需要更复杂的逻辑）
+        return true; // 默认显示，或者可以根据卡片类型分类
       });
 
   const handleExport = async (cardId: string) => {
