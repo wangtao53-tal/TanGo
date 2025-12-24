@@ -3,6 +3,8 @@ package nodes
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/cloudwego/eino-ext/components/model/ark"
 	"github.com/cloudwego/eino/components/model"
@@ -63,11 +65,18 @@ func NewConversationNode(ctx context.Context, cfg config.AIConfig, logger logx.L
 	return node, nil
 }
 
-// initChatModel 初始化 ChatModel
+// initChatModel 初始化 ChatModel（使用随机选择的模型）
 func (n *ConversationNode) initChatModel(ctx context.Context) error {
-	modelName := n.config.TextGenerationModel
+	// 从配置中随机选择一个文本生成模型
+	modelName := n.selectRandomModel(n.config.TextGenerationModels)
 	if modelName == "" {
-		modelName = config.DefaultTextGenerationModel
+		models := config.GetDefaultTextGenerationModels()
+		if len(models) > 0 {
+			modelName = n.selectRandomModel(models)
+		}
+		if modelName == "" {
+			modelName = config.DefaultTextGenerationModel
+		}
 	}
 
 	cfg := &ark.ChatModelConfig{
@@ -95,7 +104,20 @@ func (n *ConversationNode) initChatModel(ctx context.Context) error {
 	}
 
 	n.chatModel = chatModel
+	n.logger.Infow("对话模型已初始化", logx.Field("model", modelName))
 	return nil
+}
+
+// selectRandomModel 从模型列表中随机选择一个模型
+func (n *ConversationNode) selectRandomModel(models []string) string {
+	if len(models) == 0 {
+		return ""
+	}
+	if len(models) == 1 {
+		return models[0]
+	}
+	rand.Seed(time.Now().UnixNano())
+	return models[rand.Intn(len(models))]
 }
 
 // initTemplate 初始化对话模板
@@ -166,7 +188,19 @@ func (n *ConversationNode) StreamConversation(
 	objectCategory string,
 	imageURL string, // 新增：图片URL参数，支持多模态输入
 ) (*schema.StreamReader[*schema.Message], error) {
-	if !n.initialized || n.chatModel == nil {
+	if !n.initialized {
+		return nil, fmt.Errorf("ChatModel未初始化，无法进行流式对话")
+	}
+
+	// 每次调用时重新初始化 ChatModel，使用随机选择的模型
+	if err := n.initChatModel(ctx); err != nil {
+		n.logger.Errorw("重新初始化ChatModel失败，使用已初始化的模型",
+			logx.Field("error", err),
+		)
+		// 如果重新初始化失败，继续使用已初始化的模型
+	}
+
+	if n.chatModel == nil {
 		return nil, fmt.Errorf("ChatModel未初始化，无法进行流式对话")
 	}
 
@@ -250,7 +284,20 @@ func (n *ConversationNode) GenerateText(
 	objectName string,
 	objectCategory string,
 ) (string, error) {
-	if !n.initialized || n.chatModel == nil {
+	if !n.initialized {
+		// Mock响应
+		return fmt.Sprintf("这是一个Mock响应。待接入真实AI模型后，将根据您的问题和识别结果（%s）生成相应的回答。", objectName), nil
+	}
+
+	// 每次调用时重新初始化 ChatModel，使用随机选择的模型
+	if err := n.initChatModel(ctx); err != nil {
+		n.logger.Errorw("重新初始化ChatModel失败，使用已初始化的模型",
+			logx.Field("error", err),
+		)
+		// 如果重新初始化失败，继续使用已初始化的模型
+	}
+
+	if n.chatModel == nil {
 		// Mock响应
 		return fmt.Sprintf("这是一个Mock响应。待接入真实AI模型后，将根据您的问题和识别结果（%s）生成相应的回答。", objectName), nil
 	}

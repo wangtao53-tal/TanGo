@@ -147,6 +147,27 @@ func loadConfigFromEnv(c *config.Config) {
 // 注意：go-zero 的 env 标签已经自动读取了字符串类型的配置
 // 这里主要处理数组类型和默认值逻辑
 func loadAIConfigFromEnv(c *config.Config) {
+	// 处理意图识别模型列表（数组类型，需要手动解析）
+	if len(c.AI.IntentModels) == 0 {
+		modelsStr := os.Getenv("INTENT_MODELS")
+		if modelsStr != "" {
+			// 解析逗号分隔的模型列表
+			models := parseCommaSeparatedList(modelsStr)
+			if len(models) > 0 {
+				c.AI.IntentModels = models
+			} else {
+				c.AI.IntentModels = configpkg.GetDefaultIntentModels()
+			}
+		} else {
+			// 兼容旧配置 INTENT_MODEL（单个模型）
+			if intentModel := os.Getenv("INTENT_MODEL"); intentModel != "" {
+				c.AI.IntentModels = []string{intentModel}
+			} else {
+				c.AI.IntentModels = configpkg.GetDefaultIntentModels()
+			}
+		}
+	}
+
 	// 处理图片识别模型列表（数组类型，需要手动解析）
 	if len(c.AI.ImageRecognitionModels) == 0 {
 		modelsStr := os.Getenv("IMAGE_RECOGNITION_MODELS")
@@ -163,15 +184,30 @@ func loadAIConfigFromEnv(c *config.Config) {
 		}
 	}
 
-	// 确保其他模型配置有默认值（如果环境变量和 YAML 都未设置）
-	if c.AI.IntentModel == "" {
-		c.AI.IntentModel = configpkg.DefaultIntentModel
+	// 处理文本生成模型列表（数组类型，需要手动解析）
+	if len(c.AI.TextGenerationModels) == 0 {
+		modelsStr := os.Getenv("TEXT_GENERATION_MODELS")
+		if modelsStr != "" {
+			// 解析逗号分隔的模型列表
+			models := parseCommaSeparatedList(modelsStr)
+			if len(models) > 0 {
+				c.AI.TextGenerationModels = models
+			} else {
+				c.AI.TextGenerationModels = configpkg.GetDefaultTextGenerationModels()
+			}
+		} else {
+			// 兼容旧配置 TEXT_GENERATION_MODEL（单个模型）
+			if textModel := os.Getenv("TEXT_GENERATION_MODEL"); textModel != "" {
+				c.AI.TextGenerationModels = []string{textModel}
+			} else {
+				c.AI.TextGenerationModels = configpkg.GetDefaultTextGenerationModels()
+			}
+		}
 	}
+
+	// 确保图片生成模型配置有默认值（如果环境变量和 YAML 都未设置）
 	if c.AI.ImageGenerationModel == "" {
 		c.AI.ImageGenerationModel = configpkg.DefaultImageGenerationModel
-	}
-	if c.AI.TextGenerationModel == "" {
-		c.AI.TextGenerationModel = configpkg.DefaultTextGenerationModel
 	}
 
 	// 处理UseAIModel配置（优先级：环境变量 > 配置文件 > 默认值true）

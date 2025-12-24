@@ -3,7 +3,9 @@ package nodes
 import (
 	"context"
 	"encoding/json"
+	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/cloudwego/eino-ext/components/model/ark"
 	"github.com/cloudwego/eino/components/model"
@@ -58,11 +60,18 @@ func NewIntentRecognitionNode(ctx context.Context, cfg config.AIConfig, logger l
 	return node, nil
 }
 
-// initChatModel 初始化 ChatModel
+// initChatModel 初始化 ChatModel（使用随机选择的模型）
 func (n *IntentRecognitionNode) initChatModel(ctx context.Context) error {
-	modelName := n.config.IntentModel
+	// 从配置中随机选择一个意图识别模型
+	modelName := n.selectRandomModel(n.config.IntentModels)
 	if modelName == "" {
-		modelName = configpkg.DefaultIntentModel
+		models := configpkg.GetDefaultIntentModels()
+		if len(models) > 0 {
+			modelName = n.selectRandomModel(models)
+		}
+		if modelName == "" {
+			modelName = configpkg.DefaultIntentModel
+		}
 	}
 
 	// 构建配置：使用 AppID 作为 APIKey（根据实际认证方式调整）
@@ -98,7 +107,20 @@ func (n *IntentRecognitionNode) initChatModel(ctx context.Context) error {
 	}
 
 	n.chatModel = chatModel
+	n.logger.Infow("意图识别模型已初始化", logx.Field("model", modelName))
 	return nil
+}
+
+// selectRandomModel 从模型列表中随机选择一个模型
+func (n *IntentRecognitionNode) selectRandomModel(models []string) string {
+	if len(models) == 0 {
+		return ""
+	}
+	if len(models) == 1 {
+		return models[0]
+	}
+	rand.Seed(time.Now().UnixNano())
+	return models[rand.Intn(len(models))]
 }
 
 // initTemplate 初始化消息模板
@@ -180,6 +202,14 @@ func (n *IntentRecognitionNode) executeMock(data *GraphData, context []interface
 
 // executeReal 真实eino实现
 func (n *IntentRecognitionNode) executeReal(data *GraphData, context []interface{}) (*IntentRecognitionResult, error) {
+	// 每次调用时重新初始化 ChatModel，使用随机选择的模型
+	if err := n.initChatModel(n.ctx); err != nil {
+		n.logger.Errorw("重新初始化ChatModel失败，使用已初始化的模型",
+			logx.Field("error", err),
+		)
+		// 如果重新初始化失败，继续使用已初始化的模型
+	}
+
 	// 转换上下文为 eino Message 格式
 	chatHistory := make([]*schema.Message, 0)
 	for _, ctxItem := range context {

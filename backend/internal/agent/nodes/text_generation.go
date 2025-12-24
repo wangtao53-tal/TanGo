@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -83,11 +84,18 @@ func NewTextGenerationNode(ctx context.Context, cfg config.AIConfig, logger logx
 	return node, nil
 }
 
-// initChatModel 初始化 ChatModel
+// initChatModel 初始化 ChatModel（使用随机选择的模型）
 func (n *TextGenerationNode) initChatModel(ctx context.Context) error {
-	modelName := n.config.TextGenerationModel
+	// 从配置中随机选择一个文本生成模型
+	modelName := n.selectRandomModel(n.config.TextGenerationModels)
 	if modelName == "" {
-		modelName = config.DefaultTextGenerationModel
+		models := config.GetDefaultTextGenerationModels()
+		if len(models) > 0 {
+			modelName = n.selectRandomModel(models)
+		}
+		if modelName == "" {
+			modelName = config.DefaultTextGenerationModel
+		}
 	}
 
 	cfg := &ark.ChatModelConfig{
@@ -126,6 +134,19 @@ func (n *TextGenerationNode) initChatModel(ctx context.Context) error {
 		logx.Field("baseURL", cfg.BaseURL),
 	)
 	return nil
+}
+
+// selectRandomModel 从模型列表中随机选择一个模型
+func (n *TextGenerationNode) selectRandomModel(models []string) string {
+	if len(models) == 0 {
+		return ""
+	}
+	if len(models) == 1 {
+		return models[0]
+	}
+	// 使用当前时间作为随机种子
+	rand.Seed(time.Now().UnixNano())
+	return models[rand.Intn(len(models))]
 }
 
 // getAgePrompt 根据年龄生成对应的prompt要求
@@ -288,8 +309,17 @@ func (n *TextGenerationNode) GenerateText(data *GraphData, context []interface{}
 		logx.Field("useRealModel", n.initialized),
 	)
 
-	if n.initialized && n.chatModel != nil {
-		return n.generateTextReal(data, context)
+	if n.initialized {
+		// 每次调用时重新初始化 ChatModel，使用随机选择的模型
+		if err := n.initChatModel(n.ctx); err != nil {
+			n.logger.Errorw("重新初始化ChatModel失败，使用已初始化的模型",
+				logx.Field("error", err),
+			)
+			// 如果重新初始化失败，继续使用已初始化的模型
+		}
+		if n.chatModel != nil {
+			return n.generateTextReal(data, context)
+		}
 	}
 
 	return n.generateTextMock(data, context)
@@ -304,23 +334,32 @@ func (n *TextGenerationNode) GenerateScienceCard(ctx context.Context, data *Grap
 		logx.Field("chatModelNil", n.chatModel == nil),
 	)
 
-	if n.initialized && n.chatModel != nil {
-		n.logger.Infow("尝试使用真实模型生成科学认知卡",
-			logx.Field("objectName", data.ObjectName),
-		)
-		card, err := n.generateScienceCardReal(ctx, data)
-		if err != nil {
-			n.logger.Errorw("真实模型生成科学认知卡失败，返回错误",
-				logx.Field("objectName", data.ObjectName),
+	if n.initialized {
+		// 每次调用时重新初始化 ChatModel，使用随机选择的模型
+		if err := n.initChatModel(ctx); err != nil {
+			n.logger.Errorw("重新初始化ChatModel失败，使用已初始化的模型",
 				logx.Field("error", err),
-				logx.Field("errorDetail", err.Error()),
 			)
-			return nil, err
+			// 如果重新初始化失败，继续使用已初始化的模型
 		}
-		n.logger.Infow("真实模型生成科学认知卡成功",
-			logx.Field("objectName", data.ObjectName),
-		)
-		return card, nil
+		if n.chatModel != nil {
+			n.logger.Infow("尝试使用真实模型生成科学认知卡",
+				logx.Field("objectName", data.ObjectName),
+			)
+			card, err := n.generateScienceCardReal(ctx, data)
+			if err != nil {
+				n.logger.Errorw("真实模型生成科学认知卡失败，返回错误",
+					logx.Field("objectName", data.ObjectName),
+					logx.Field("error", err),
+					logx.Field("errorDetail", err.Error()),
+				)
+				return nil, err
+			}
+			n.logger.Infow("真实模型生成科学认知卡成功",
+				logx.Field("objectName", data.ObjectName),
+			)
+			return card, nil
+		}
 	}
 
 	n.logger.Errorw("使用Mock模式生成科学认知卡（ChatModel未初始化）",
@@ -340,23 +379,32 @@ func (n *TextGenerationNode) GeneratePoetryCard(ctx context.Context, data *Graph
 		logx.Field("chatModelNil", n.chatModel == nil),
 	)
 
-	if n.initialized && n.chatModel != nil {
-		n.logger.Infow("尝试使用真实模型生成古诗词卡",
-			logx.Field("objectName", data.ObjectName),
-		)
-		card, err := n.generatePoetryCardReal(ctx, data)
-		if err != nil {
-			n.logger.Errorw("真实模型生成古诗词卡失败，返回错误",
-				logx.Field("objectName", data.ObjectName),
+	if n.initialized {
+		// 每次调用时重新初始化 ChatModel，使用随机选择的模型
+		if err := n.initChatModel(ctx); err != nil {
+			n.logger.Errorw("重新初始化ChatModel失败，使用已初始化的模型",
 				logx.Field("error", err),
-				logx.Field("errorDetail", err.Error()),
 			)
-			return nil, err
+			// 如果重新初始化失败，继续使用已初始化的模型
 		}
-		n.logger.Infow("真实模型生成古诗词卡成功",
-			logx.Field("objectName", data.ObjectName),
-		)
-		return card, nil
+		if n.chatModel != nil {
+			n.logger.Infow("尝试使用真实模型生成古诗词卡",
+				logx.Field("objectName", data.ObjectName),
+			)
+			card, err := n.generatePoetryCardReal(ctx, data)
+			if err != nil {
+				n.logger.Errorw("真实模型生成古诗词卡失败，返回错误",
+					logx.Field("objectName", data.ObjectName),
+					logx.Field("error", err),
+					logx.Field("errorDetail", err.Error()),
+				)
+				return nil, err
+			}
+			n.logger.Infow("真实模型生成古诗词卡成功",
+				logx.Field("objectName", data.ObjectName),
+			)
+			return card, nil
+		}
 	}
 
 	n.logger.Errorw("使用Mock模式生成古诗词卡（ChatModel未初始化）",
@@ -376,23 +424,32 @@ func (n *TextGenerationNode) GenerateEnglishCard(ctx context.Context, data *Grap
 		logx.Field("chatModelNil", n.chatModel == nil),
 	)
 
-	if n.initialized && n.chatModel != nil {
-		n.logger.Infow("尝试使用真实模型生成英语表达卡",
-			logx.Field("objectName", data.ObjectName),
-		)
-		card, err := n.generateEnglishCardReal(ctx, data)
-		if err != nil {
-			n.logger.Errorw("真实模型生成英语表达卡失败，返回错误",
-				logx.Field("objectName", data.ObjectName),
+	if n.initialized {
+		// 每次调用时重新初始化 ChatModel，使用随机选择的模型
+		if err := n.initChatModel(ctx); err != nil {
+			n.logger.Errorw("重新初始化ChatModel失败，使用已初始化的模型",
 				logx.Field("error", err),
-				logx.Field("errorDetail", err.Error()),
 			)
-			return nil, err
+			// 如果重新初始化失败，继续使用已初始化的模型
 		}
-		n.logger.Infow("真实模型生成英语表达卡成功",
-			logx.Field("objectName", data.ObjectName),
-		)
-		return card, nil
+		if n.chatModel != nil {
+			n.logger.Infow("尝试使用真实模型生成英语表达卡",
+				logx.Field("objectName", data.ObjectName),
+			)
+			card, err := n.generateEnglishCardReal(ctx, data)
+			if err != nil {
+				n.logger.Errorw("真实模型生成英语表达卡失败，返回错误",
+					logx.Field("objectName", data.ObjectName),
+					logx.Field("error", err),
+					logx.Field("errorDetail", err.Error()),
+				)
+				return nil, err
+			}
+			n.logger.Infow("真实模型生成英语表达卡成功",
+				logx.Field("objectName", data.ObjectName),
+			)
+			return card, nil
+		}
 	}
 
 	n.logger.Errorw("使用Mock模式生成英语表达卡（ChatModel未初始化）",

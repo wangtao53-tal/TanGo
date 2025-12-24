@@ -82,15 +82,18 @@ func NewImageRecognitionNode(ctx context.Context, cfg config.AIConfig, logger lo
 	return node, nil
 }
 
-// initChatModel 初始化 Vision ChatModel
+// initChatModel 初始化 Vision ChatModel（使用随机选择的模型）
 func (n *ImageRecognitionNode) initChatModel(ctx context.Context) error {
-	// 从配置中选择一个图片识别模型
-	modelName := ""
-	if len(n.config.ImageRecognitionModels) > 0 {
-		modelName = n.config.ImageRecognitionModels[0] // 使用第一个模型
-	}
+	// 从配置中随机选择一个图片识别模型
+	modelName := n.selectRandomModel(n.config.ImageRecognitionModels)
 	if modelName == "" {
-		modelName = configpkg.DefaultImageRecognitionModel1
+		models := configpkg.GetDefaultImageRecognitionModels()
+		if len(models) > 0 {
+			modelName = n.selectRandomModel(models)
+		}
+		if modelName == "" {
+			modelName = configpkg.DefaultImageRecognitionModel1
+		}
 	}
 
 	cfg := &ark.ChatModelConfig{
@@ -129,7 +132,20 @@ func (n *ImageRecognitionNode) initChatModel(ctx context.Context) error {
 	}
 
 	n.chatModel = chatModel
+	n.logger.Infow("图片识别模型已初始化", logx.Field("model", modelName))
 	return nil
+}
+
+// selectRandomModel 从模型列表中随机选择一个模型
+func (n *ImageRecognitionNode) selectRandomModel(models []string) string {
+	if len(models) == 0 {
+		return ""
+	}
+	if len(models) == 1 {
+		return models[0]
+	}
+	rand.Seed(time.Now().UnixNano())
+	return models[rand.Intn(len(models))]
 }
 
 // initTemplate 初始化消息模板
@@ -217,6 +233,14 @@ func (n *ImageRecognitionNode) executeMock(data *GraphData) (*ImageRecognitionRe
 
 // executeReal 真实eino实现
 func (n *ImageRecognitionNode) executeReal(data *GraphData) (*ImageRecognitionResult, error) {
+	// 每次调用时重新初始化 ChatModel，使用随机选择的模型
+	if err := n.initChatModel(n.ctx); err != nil {
+		n.logger.Errorw("重新初始化ChatModel失败，使用已初始化的模型",
+			logx.Field("error", err),
+		)
+		// 如果重新初始化失败，继续使用已初始化的模型
+	}
+
 	// 优化：调整超时时间到45秒（原来60秒可能过长）
 	// 如果模型调用需要更长时间，可以根据实际情况调整
 	ctx, cancel := context.WithTimeout(n.ctx, 45*time.Second)
