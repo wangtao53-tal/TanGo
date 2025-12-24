@@ -357,7 +357,7 @@ export default function Result() {
       const initMessage: ConversationMessage = {
         id: `msg-init-${Date.now()}`,
         type: 'text',
-        content: `${t('result.identifiedAs')} ${state.objectName}！置信度：${(state.confidence * 100).toFixed(0)}%`,
+        content: `${t('result.identifiedAs')} ${state.objectName}！`,
         timestamp: new Date().toISOString(),
         sender: 'assistant',
         sessionId: newSessionId,
