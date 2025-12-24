@@ -16,6 +16,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodPost,
+				Path:    "/api/badge/stats",
+				Handler: GetBadgeStatsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
 				Path:    "/api/conversation/intent",
 				Handler: IntentHandler(serverCtx),
 			},
@@ -49,15 +54,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/api/upload/image",
 				Handler: UploadHandler(serverCtx),
 			},
-		},
-	)
-
-	// 流式接口需要手动注册路由，goctl不支持stream类型
-	server.AddRoute(
-		rest.Route{
-			Method:  http.MethodPost,
-			Path:    "/api/conversation/stream",
-			Handler: StreamConversationHandler(serverCtx),
 		},
 	)
 }

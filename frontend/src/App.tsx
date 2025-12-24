@@ -7,6 +7,7 @@ import Collection from './pages/Collection';
 import Share from './pages/Share';
 import LearningReport from './pages/LearningReport';
 import Settings from './pages/Settings';
+import Badge from './pages/Badge';
 import { QuickCaptureButton } from './components/common/QuickCaptureButton';
 import { userSettingsStorage } from './services/storage';
 import './i18n'; // 初始化i18n
@@ -42,6 +43,7 @@ function App() {
           <Route path="/share/:shareId" element={<Share />} />
           <Route path="/report" element={<LearningReport />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/badge" element={<Badge />} />
         </Routes>
         {/* 全局快速拍照按钮 */}
         <QuickCaptureButton />

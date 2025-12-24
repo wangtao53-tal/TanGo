@@ -24,17 +24,23 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="w-full px-4 py-6 z-10">
       <div className="flex items-center justify-between rounded-full bg-white/80 backdrop-blur-md border border-white shadow-lg px-4 py-2 max-w-[1024px] mx-auto">
         <div className="flex items-center gap-3">
-          <div className="size-12 rounded-full border-2 border-warm-yellow overflow-hidden bg-white shadow-sm">
-            {/* 头像图标 */}
-            <img 
-              src="/icon.png" 
-              alt="TanGo" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <h2 className="hidden sm:block text-text-main text-lg font-bold tracking-tight font-display">
-            {title || t('header.title')}
-          </h2>
+          <Link 
+            to="/"
+            className="group flex items-center gap-3 hover:opacity-80 transition-opacity"
+            title={t('header.backToHome', '返回首页')}
+          >
+            <div className="size-12 rounded-full border-2 border-warm-yellow overflow-hidden bg-white shadow-sm group-hover:shadow-md transition-shadow cursor-pointer">
+              {/* 头像图标 */}
+              <img 
+                src="/icon.png" 
+                alt="TanGo" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <h2 className="hidden sm:block text-text-main text-lg font-bold tracking-tight font-display group-hover:text-primary transition-colors">
+              {title || t('header.title')}
+            </h2>
+          </Link>
         </div>
         <div className="flex items-center gap-3">
           {showFavorites && (

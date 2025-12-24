@@ -201,6 +201,44 @@ type (
 		MessageId string      `json:"messageId,optional"` // 消息ID
 		Markdown  bool        `json:"markdown,optional"` // 内容是否包含Markdown格式（仅文本消息）
 	}
+	// 勋章等级信息
+	BadgeLevel {
+		Level       int    `json:"level"` // 1-10
+		Title       string `json:"title"` // 称号，如"小小专家"、"自然大师"
+		MinScore    int    `json:"minScore"` // 最低分数要求
+		Icon        string `json:"icon"` // 图标标识
+		Color       string `json:"color"` // 主题颜色
+		Description string `json:"description"` // 等级描述
+	}
+	// 用户统计数据
+	UserStats {
+		ExplorationCount  int        `json:"explorationCount"` // 探索次数
+		CollectionCount   int        `json:"collectionCount"` // 收藏次数
+		ConversationCount int        `json:"conversationCount"` // 对话次数（会话数）
+		TotalScore        int        `json:"totalScore"` // 总分
+		CurrentLevel      int        `json:"currentLevel"` // 当前等级 1-10
+		CurrentLevelInfo  BadgeLevel `json:"currentLevelInfo"` // 当前等级信息
+		NextLevelInfo     BadgeLevel `json:"nextLevelInfo,optional"` // 下一等级信息
+		Progress          int        `json:"progress"` // 当前等级进度 0-100
+	}
+	// 最近升级信息
+	RecentUpgrade {
+		FromLevel  int    `json:"fromLevel"` // 原等级
+		ToLevel    int    `json:"toLevel"` // 新等级
+		UpgradedAt string `json:"upgradedAt"` // 升级时间
+	}
+	// 获取勋章统计请求
+	GetBadgeStatsRequest {
+		ExplorationCount  int `json:"explorationCount"` // 探索次数
+		CollectionCount   int `json:"collectionCount"` // 收藏次数
+		ConversationCount int `json:"conversationCount"` // 对话次数
+	}
+	// 勋章详情响应
+	BadgeDetailResponse {
+		Stats         UserStats     `json:"stats"` // 用户统计数据
+		AllLevels     []BadgeLevel  `json:"allLevels"` // 所有等级信息
+		RecentUpgrade RecentUpgrade `json:"recentUpgrade,optional"` // 最近升级信息
+	}
 )
 
 service explore {
@@ -231,6 +269,9 @@ service explore {
 	// post /api/conversation/stream (UnifiedStreamConversationRequest) returns (stream)
 	@handler UploadHandler
 	post /api/upload/image (UploadRequest) returns (UploadResponse)
+
+	@handler GetBadgeStatsHandler
+	post /api/badge/stats (GetBadgeStatsRequest) returns (BadgeDetailResponse)
 // 流式接口需要手动注册路由，goctl不支持stream类型
 // @handler UploadStreamHandler
 // post /api/upload/image-stream (UploadRequest) returns (stream)

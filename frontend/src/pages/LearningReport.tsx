@@ -10,6 +10,8 @@ import { Header } from '../components/common/Header';
 import { explorationStorage, cardStorage } from '../services/storage';
 import { createShareLink, copyToClipboard } from '../utils/share';
 import { isInCurrentWeek } from '../utils/week';
+import { getUserStats } from '../services/badge';
+import type { UserStats } from '../types/badge';
 
 export default function LearningReport() {
   const { t } = useTranslation();
@@ -23,10 +25,24 @@ export default function LearningReport() {
   });
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [badgeStats, setBadgeStats] = useState<UserStats | null>(null);
+  const [badgeLoading, setBadgeLoading] = useState(true);
 
   useEffect(() => {
     loadReportData();
+    loadBadgeStats();
   }, []);
+
+  const loadBadgeStats = async () => {
+    try {
+      const stats = await getUserStats();
+      setBadgeStats(stats);
+    } catch (error) {
+      console.error('加载勋章数据失败:', error);
+    } finally {
+      setBadgeLoading(false);
+    }
+  };
 
   const loadReportData = async () => {
     try {
@@ -224,20 +240,49 @@ export default function LearningReport() {
             </div>
 
             {/* 专家等级 */}
-            <div className="group relative overflow-hidden rounded-3xl bg-white p-6 transition-all hover:-translate-y-1 shadow-card border-2 border-science-green/20 hover:border-science-green">
+            <div 
+              onClick={() => navigate('/badge')}
+              className="group relative overflow-hidden rounded-3xl bg-white p-6 transition-all hover:-translate-y-1 shadow-card border-2 border-science-green/20 hover:border-science-green cursor-pointer"
+            >
               <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-science-green/10 transition-all group-hover:scale-110" />
               <div className="flex items-start justify-between relative z-10">
                 <div className="flex flex-col gap-2">
                   <p className="text-xs font-bold uppercase tracking-wider text-text-sub">{t('report.littleExpert')}</p>
-                  <p className="text-3xl font-black leading-tight text-text-main mt-1">
-                    {t('report.natureMaster')}
-                  </p>
-                  <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-science-green/20 px-3 py-1 text-xs font-bold text-science-green w-fit">
-                    {t('report.levelUp')}
-                  </div>
+                  {badgeLoading ? (
+                    <p className="text-3xl font-black leading-tight text-text-main mt-1">
+                      {t('report.loading', '加载中...')}
+                    </p>
+                  ) : badgeStats ? (
+                    <>
+                      <p 
+                        className="text-3xl font-black leading-tight text-text-main mt-1"
+                        style={{ color: badgeStats.currentLevelInfo.color }}
+                      >
+                        {badgeStats.currentLevelInfo.title}
+                      </p>
+                      {badgeStats.nextLevelInfo && (
+                        <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-science-green/20 px-3 py-1 text-xs font-bold text-science-green w-fit">
+                          {t('report.levelUp')} 🚀
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-3xl font-black leading-tight text-text-main mt-1">
+                      {t('report.natureMaster')}
+                    </p>
+                  )}
                 </div>
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-science-green text-white shadow-md rotate-3 group-hover:rotate-6 transition-transform">
-                  <span className="material-symbols-outlined text-4xl fill-1">forest</span>
+                <div 
+                  className="flex h-16 w-16 items-center justify-center rounded-2xl text-white shadow-md rotate-3 group-hover:rotate-6 transition-transform"
+                  style={{ 
+                    backgroundColor: badgeStats?.currentLevelInfo.color || '#76FF7A'
+                  }}
+                >
+                  {badgeStats?.currentLevelInfo.icon ? (
+                    <span className="text-4xl">{badgeStats.currentLevelInfo.icon}</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-4xl fill-1">forest</span>
+                  )}
                 </div>
               </div>
             </div>

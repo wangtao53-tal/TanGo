@@ -18,7 +18,9 @@ export default function Capture() {
   const [isListening, setIsListening] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null); // 拍摄的照片（base64或URL）
+  const fileInputRef = useRef<HTMLInputElement>(null); // 相册选择（不带capture）
+  const cameraInputRef = useRef<HTMLInputElement>(null); // 快门按钮（带capture）
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -173,21 +175,31 @@ export default function Capture() {
     });
   };
 
-  // 组件挂载时启动摄像头
+  // 组件挂载时启动摄像头（如果没有已拍摄的照片）
   useEffect(() => {
-    startCamera();
+    if (!capturedImage) {
+      startCamera();
+    }
     
     // 组件卸载时停止摄像头
     return () => {
       stopCamera();
     };
-  }, []);
+  }, []); // 只在组件挂载时执行一次
 
   const handleCaptureClick = async () => {
     // 如果摄像头正在运行，从视频流中捕获
     if (streamRef.current && videoRef.current) {
       try {
         const file = await captureFromVideo();
+        
+        // 停止摄像头
+        stopCamera();
+        
+        // 显示拍摄的照片
+        const base64 = await fileToBase64(file);
+        setCapturedImage(base64);
+        
         // 创建一个模拟的文件选择事件
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(file);
@@ -201,16 +213,25 @@ export default function Capture() {
       } catch (error: any) {
         console.error('从摄像头捕获图片失败:', error);
         alert(t('capture.captureError', '拍照失败，请重试'));
+        // 如果捕获失败，重新启动摄像头
+        startCamera();
       }
     } else {
-      // 如果没有摄像头，使用文件选择
-      fileInputRef.current?.click();
+      // 如果没有摄像头，使用带capture的文件选择（移动端会打开摄像头）
+      cameraInputRef.current?.click();
     }
   };
 
   const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // 停止摄像头（如果正在运行）
+    stopCamera();
+
+    // 显示选择的图片
+    const base64 = await fileToBase64(file);
+    setCapturedImage(base64);
 
     setIsProcessing(true);
     try {
@@ -228,7 +249,7 @@ export default function Capture() {
       let imageUrl: string = '';
       let imageDataForStorage: string = ''; // 用于存储的图片数据（优先使用URL）
       // 提前准备base64，用于显示和降级方案
-      const base64 = await fileToBase64(compressedFile);
+      const compressedBase64 = await fileToBase64(compressedFile);
       
       try {
         const uploadResult = await uploadImage(compressedFile, file.name);
@@ -239,13 +260,13 @@ export default function Capture() {
           console.log('图片上传成功到GitHub:', imageUrl);
         } else {
           // 如果返回的是base64，使用base64存储
-          imageDataForStorage = extractBase64Data(base64);
+          imageDataForStorage = extractBase64Data(compressedBase64);
           console.log('图片使用base64方式（未上传到GitHub）');
         }
       } catch (uploadError: any) {
         console.warn('图片上传失败，降级到 base64:', uploadError);
         // 上传失败时使用base64，继续流程
-        const imageData = extractBase64Data(base64);
+        const imageData = extractBase64Data(compressedBase64);
         imageUrl = imageData; // 使用base64作为降级方案
         imageDataForStorage = imageData; // 存储时也使用base64
       }
@@ -275,13 +296,25 @@ export default function Capture() {
       const errorMessage = error?.message || error?.detail || t('capture.identifyError');
       // 友好的错误提示
       alert(t('capture.identifyErrorDetail', { error: errorMessage }));
+      // 识别失败时，清除照片并重新启动摄像头
+      setCapturedImage(null);
+      startCamera();
     } finally {
       setIsProcessing(false);
       // 清空input，允许重复选择同一文件
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+      if (cameraInputRef.current) {
+        cameraInputRef.current.value = '';
+      }
     }
+  };
+
+  // 重新拍照：清除照片并重新启动摄像头
+  const handleRetakePhoto = () => {
+    setCapturedImage(null);
+    startCamera();
   };
 
   const handleVoiceInput = () => {
@@ -345,9 +378,9 @@ export default function Capture() {
   };
 
   return (
-    <div className="font-display antialiased overflow-hidden h-screen w-full bg-cloud-white text-text-main select-none flex flex-col">
+    <div className="font-display antialiased min-h-screen w-full bg-cloud-white text-text-main select-none flex flex-col overflow-y-auto">
       {/* 顶部栏 */}
-      <div className="relative z-30 w-full px-6 py-4 flex justify-between items-center">
+      <div className="relative z-30 w-full px-6 py-4 flex justify-between items-center flex-shrink-0">
         <div className="flex items-center gap-2 bg-white px-5 py-2 rounded-full border border-gray-100 shadow-soft">
           <span className="material-symbols-outlined text-warm-yellow text-2xl fill-1">auto_awesome</span>
           <span className="text-sm font-bold tracking-wide text-slate-600">{t('capture.aiAutoDetect')}</span>
@@ -358,7 +391,7 @@ export default function Capture() {
       </div>
 
       {/* 主要内容区域 */}
-      <div className="flex-1 flex flex-col items-center justify-center w-full px-4 relative z-10">
+      <div className="flex-1 flex flex-col items-center justify-center w-full px-4 relative z-10 py-4">
         <div className="mb-6 text-center">
           <h2 className="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight drop-shadow-sm font-display">
             {t('capture.title')}
@@ -368,25 +401,47 @@ export default function Capture() {
         {/* 相机取景框 */}
         <div className="relative w-full max-w-3xl aspect-[4/3] flex items-center justify-center">
           <div className="relative w-full h-full border-[8px] border-warm-yellow rounded-[2.5rem] shadow-glow-yellow overflow-hidden bg-slate-100 z-20 group">
+            {/* 拍摄的照片预览 */}
+            {capturedImage && (
+              <div className="absolute inset-0 w-full h-full z-30">
+                <img
+                  src={capturedImage}
+                  alt="Captured"
+                  className="w-full h-full object-cover"
+                />
+                {/* 重新拍照按钮 */}
+                {!isProcessing && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <button
+                      onClick={handleRetakePhoto}
+                      className="px-6 py-3 bg-white/90 hover:bg-white text-slate-700 rounded-full font-bold shadow-lg transition-all hover:scale-105"
+                    >
+                      {t('capture.retake', '重新拍照')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            
             {/* 视频预览 */}
             <video
               ref={videoRef}
               autoPlay
               playsInline
               muted
-              className={`w-full h-full object-cover ${isCameraActive ? 'block' : 'hidden'}`}
+              className={`w-full h-full object-cover ${isCameraActive && !capturedImage ? 'block' : 'hidden'}`}
               style={{ transform: 'scaleX(-1)' }} // 镜像翻转，让预览更自然
             />
             
             {/* 摄像头未启动时的占位符 */}
-            {!isCameraActive && !cameraError && (
+            {!isCameraActive && !cameraError && !capturedImage && (
               <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center z-10">
                 <span className="text-6xl text-gray-400">📷</span>
               </div>
             )}
             
             {/* 摄像头错误提示 */}
-            {cameraError && (
+            {cameraError && !capturedImage && (
               <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex flex-col items-center justify-center gap-4 p-4 z-10">
                 <span className="text-6xl text-gray-400">📷</span>
                 <p className="text-sm text-red-600 text-center max-w-xs">{cameraError}</p>
@@ -439,27 +494,36 @@ export default function Capture() {
       </div>
 
       {/* 底部操作栏 */}
-      <div className="relative z-20 w-full h-auto min-h-[140px] flex items-center justify-center px-10 pb-8 pt-4">
-        <div className="flex items-center justify-between w-full max-w-4xl gap-8">
-          {/* 相册按钮 */}
+      <div className="relative z-20 w-full h-auto min-h-[140px] flex items-center justify-center px-4 sm:px-10 pb-8 pt-4 flex-shrink-0">
+        <div className="flex items-center justify-between w-full max-w-4xl gap-4 sm:gap-8">
+          {/* 相册按钮 - 更明显 */}
           <div className="flex-1 flex justify-end">
             <button
               onClick={() => fileInputRef.current?.click()}
               className="flex flex-col items-center gap-2 group"
             >
-              <div className="size-16 rounded-2xl overflow-hidden border-4 border-white shadow-soft group-hover:shadow-md transition-all relative bg-gray-100 group-hover:scale-105 duration-200">
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-gray-400">photo_library</span>
+              <div className="size-16 sm:size-20 rounded-2xl overflow-hidden border-4 border-warm-yellow/30 shadow-lg group-hover:shadow-xl transition-all relative bg-gradient-to-br from-warm-yellow/20 to-orange-100 group-hover:scale-110 duration-200 group-hover:border-warm-yellow">
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="material-symbols-outlined text-warm-yellow text-3xl sm:text-4xl group-hover:scale-110 transition-transform">photo_library</span>
                 </div>
               </div>
-              <span className="text-xs font-bold text-slate-500 group-hover:text-warm-yellow transition-colors">{t('capture.selectFromAlbum')}</span>
+              <span className="text-xs sm:text-sm font-bold text-warm-yellow group-hover:text-orange-600 transition-colors whitespace-nowrap">{t('capture.selectFromAlbum')}</span>
             </button>
+            {/* 相册选择的file input（不带capture，移动端会打开相册） */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageSelect}
+            />
           </div>
 
           {/* 快门按钮 */}
-          <div className="shrink-0 mx-6">
+          <div className="shrink-0 mx-2 sm:mx-6">
+            {/* 快门按钮的file input（带capture，移动端会打开摄像头） */}
             <input
-              ref={fileInputRef}
+              ref={cameraInputRef}
               type="file"
               accept="image/*"
               capture="environment"
@@ -469,14 +533,14 @@ export default function Capture() {
             <button
               onClick={handleCaptureClick}
               disabled={isProcessing}
-              className="relative size-28 rounded-full bg-white border border-gray-100 flex items-center justify-center shadow-button transition-transform cursor-pointer group hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative size-24 sm:size-28 rounded-full bg-white border border-gray-100 flex items-center justify-center shadow-button transition-transform cursor-pointer group hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="absolute inset-1 rounded-full border-[6px] border-warm-yellow opacity-30 group-hover:opacity-100 transition-opacity"></div>
-              <div className="size-[84px] rounded-full bg-warm-yellow border-[4px] border-white shadow-inner flex items-center justify-center group-hover:scale-95 transition-all">
+              <div className="size-[72px] sm:size-[84px] rounded-full bg-warm-yellow border-[4px] border-white shadow-inner flex items-center justify-center group-hover:scale-95 transition-all">
                 {isProcessing ? (
-                  <span className="material-symbols-outlined text-white text-4xl opacity-90 animate-spin">refresh</span>
+                  <span className="material-symbols-outlined text-white text-3xl sm:text-4xl opacity-90 animate-spin">refresh</span>
                 ) : (
-                  <span className="material-symbols-outlined text-white text-4xl opacity-90">photo_camera</span>
+                  <span className="material-symbols-outlined text-white text-3xl sm:text-4xl opacity-90">photo_camera</span>
                 )}
               </div>
             </button>
@@ -488,10 +552,10 @@ export default function Capture() {
               onClick={() => navigate('/')}
               className="flex flex-col items-center gap-2 group"
             >
-              <div className="size-16 flex items-center justify-center rounded-full bg-white border-4 border-white shadow-soft group-hover:shadow-md transition-all group-hover:scale-105 duration-200">
+              <div className="size-16 sm:size-16 flex items-center justify-center rounded-full bg-white border-4 border-white shadow-soft group-hover:shadow-md transition-all group-hover:scale-105 duration-200">
                 <span className="material-symbols-outlined text-slate-400 text-3xl group-hover:text-slate-600 transition-colors">arrow_back</span>
               </div>
-              <span className="text-xs font-bold text-slate-500 group-hover:text-slate-600 transition-colors">{t('common.back')}</span>
+              <span className="text-xs font-bold text-slate-500 group-hover:text-slate-600 transition-colors whitespace-nowrap">{t('common.back')}</span>
             </button>
           </div>
         </div>

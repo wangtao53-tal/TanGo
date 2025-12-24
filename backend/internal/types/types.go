@@ -3,6 +3,21 @@
 
 package types
 
+type BadgeDetailResponse struct {
+	Stats         UserStats     `json:"stats"`                  // 用户统计数据
+	AllLevels     []BadgeLevel  `json:"allLevels"`              // 所有等级信息
+	RecentUpgrade RecentUpgrade `json:"recentUpgrade,optional"` // 最近升级信息
+}
+
+type BadgeLevel struct {
+	Level       int    `json:"level"`       // 1-10
+	Title       string `json:"title"`       // 称号，如"小小专家"、"自然大师"
+	MinScore    int    `json:"minScore"`    // 最低分数要求
+	Icon        string `json:"icon"`        // 图标标识
+	Color       string `json:"color"`       // 主题颜色
+	Description string `json:"description"` // 等级描述
+}
+
 type CardContent struct {
 	Type    string                 `json:"type"`    // 卡片类型：science/poetry/english
 	Title   string                 `json:"title"`   // 卡片标题
@@ -92,6 +107,12 @@ type GenerateReportResponse struct {
 	GeneratedAt          string          `json:"generatedAt"`          // 生成时间
 }
 
+type GetBadgeStatsRequest struct {
+	ExplorationCount  int `json:"explorationCount"`  // 探索次数
+	CollectionCount   int `json:"collectionCount"`   // 收藏次数
+	ConversationCount int `json:"conversationCount"` // 对话次数
+}
+
 type GetShareResponse struct {
 	ExplorationRecords []ExplorationRecord `json:"explorationRecords"` // 探索记录列表
 	CollectedCards     []KnowledgeCard     `json:"collectedCards"`     // 收藏的卡片列表
@@ -140,6 +161,12 @@ type KnowledgeCard struct {
 	CollectedAt   string                 `json:"collectedAt,optional"` // 收藏时间
 }
 
+type RecentUpgrade struct {
+	FromLevel  int    `json:"fromLevel"`  // 原等级
+	ToLevel    int    `json:"toLevel"`    // 新等级
+	UpgradedAt string `json:"upgradedAt"` // 升级时间
+}
+
 type StreamConversationRequest struct {
 	SessionId             string                 `json:"sessionId,optional"`             // 会话ID，如果为空则创建新会话
 	Message               string                 `json:"message"`                        // 用户消息内容（文本）
@@ -182,6 +209,17 @@ type UploadResponse struct {
 	Filename     string `json:"filename"`              // 实际存储的文件名
 	Size         int    `json:"size,optional"`         // 图片大小（字节）
 	UploadMethod string `json:"uploadMethod,optional"` // 上传方式（"github" 或 "base64"）
+}
+
+type UserStats struct {
+	ExplorationCount  int        `json:"explorationCount"`       // 探索次数
+	CollectionCount   int        `json:"collectionCount"`        // 收藏次数
+	ConversationCount int        `json:"conversationCount"`      // 对话次数（会话数）
+	TotalScore        int        `json:"totalScore"`             // 总分
+	CurrentLevel      int        `json:"currentLevel"`           // 当前等级 1-10
+	CurrentLevelInfo  BadgeLevel `json:"currentLevelInfo"`       // 当前等级信息
+	NextLevelInfo     BadgeLevel `json:"nextLevelInfo,optional"` // 下一等级信息
+	Progress          int        `json:"progress"`               // 当前等级进度 0-100
 }
 
 type VoiceRequest struct {
