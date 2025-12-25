@@ -1,0 +1,47 @@
+syntax = "v1"
+
+info (
+	title: "多Agent追问接口"
+	desc: "多Agent模式流式对话接口，支持文本、语音、图片三种输入方式"
+	version: "1.0.0"
+)
+
+type UnifiedStreamConversationRequest {
+	MessageType string `json:"messageType"` // 消息类型（必填）：text/voice/image
+	Message string `json:"message,optional"` // 文本消息，当messageType为text时必填
+	Audio string `json:"audio,optional"` // 语音数据（base64），当messageType为voice时必填
+	Image string `json:"image,optional"` // 图片数据（base64或URL），当messageType为image时必填
+	SessionId string `json:"sessionId,optional"` // 会话ID，如果为空则创建新会话
+	IdentificationContext IdentificationContext `json:"identificationContext,optional"` // 识别结果上下文（可选）
+	UserAge int `json:"userAge,optional"` // 用户年龄（3-18岁），用于内容适配
+	MaxContextRounds int `json:"maxContextRounds,optional"` // 最大上下文轮次，默认20轮
+}
+
+type IdentificationContext {
+	ObjectName string `json:"objectName"` // 对象名称
+	ObjectCategory string `json:"objectCategory"` // 对象类别
+	Confidence float64 `json:"confidence"` // 识别置信度
+	Keywords []string `json:"keywords,optional"` // 相关关键词
+	Age int `json:"age,optional"` // 用户年龄
+}
+
+type StreamEvent {
+	Type string `json:"type"` // 事件类型：connected/message/done/error
+	Content interface{} `json:"content"` // 事件内容
+	Index int `json:"index,optional"` // 文本消息的字符索引（用于打字机效果）
+	SessionId string `json:"sessionId,optional"` // 会话ID
+	MessageId string `json:"messageId,optional"` // 消息ID
+	Markdown bool `json:"markdown,optional"` // 内容是否包含Markdown格式（仅文本消息）
+}
+
+@server (
+	group: conversation
+	prefix: /api/conversation
+)
+
+service conversation {
+	@doc "多Agent模式流式对话接口，支持文本、语音、图片三种输入方式"
+	@handler AgentConversationHandler
+	post /agent (UnifiedStreamConversationRequest) returns (stream StreamEvent)
+}
+

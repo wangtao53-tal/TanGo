@@ -1,0 +1,168 @@
+/**
+ * 收藏卡片组件
+ * 基于设计稿中的卡片样式
+ */
+
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import type { ExplorationRecord } from '@/types/exploration';
+
+export interface CollectionCardProps {
+  record: ExplorationRecord;
+  isCollected?: boolean; // 收藏状态
+  onReExplore?: (recordId: string) => void;
+  onToggleCollect?: (recordId: string, collected: boolean) => void; // 切换收藏回调
+}
+
+const categoryConfig: Record<string, { icon: string; colorClasses: { bg: string; text: string; border: string }; labelKey: string }> = {
+  自然类: {
+    icon: 'forest',
+    colorClasses: {
+      bg: 'bg-green-100',
+      text: 'text-green-600',
+      border: 'border-green-100',
+    },
+    labelKey: 'collection.category.natural',
+  },
+  生活类: {
+    icon: 'house',
+    colorClasses: {
+      bg: 'bg-orange-100',
+      text: 'text-orange-600',
+      border: 'border-orange-100',
+    },
+    labelKey: 'collection.category.life',
+  },
+  人文类: {
+    icon: 'palette',
+    colorClasses: {
+      bg: 'bg-purple-100',
+      text: 'text-purple-600',
+      border: 'border-purple-100',
+    },
+    labelKey: 'collection.category.humanities',
+  },
+};
+
+export const CollectionCard: React.FC<CollectionCardProps> = ({
+  record,
+  isCollected = true, // 默认已收藏（因为收藏页面只显示已收藏的记录）
+  onReExplore,
+  onToggleCollect,
+}) => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const config = categoryConfig[record.objectCategory] || categoryConfig['自然类'];
+  const timeAgo = getTimeAgo(record.timestamp);
+
+  const handleReExplore = () => {
+    if (onReExplore) {
+      onReExplore(record.id);
+    } else {
+      // 默认行为：导航到结果页面
+      navigate(`/result?explorationId=${record.id}`);
+    }
+  };
+
+  const handleToggleCollect = (e: React.MouseEvent) => {
+    e.stopPropagation(); // 阻止事件冒泡
+    if (onToggleCollect) {
+      onToggleCollect(record.id, !isCollected);
+    }
+  };
+
+  const handleCardClick = () => {
+    // 如果未收藏，点击卡片收藏
+    if (!isCollected && onToggleCollect) {
+      onToggleCollect(record.id, true);
+    }
+  };
+
+  return (
+    <div 
+      className="group relative flex flex-col bg-white rounded-3xl p-4 border border-white shadow-card hover:shadow-card-hover-green transition-all duration-300 hover:-translate-y-2 cursor-pointer"
+      onClick={handleCardClick}
+    >
+      {/* 类别标签 */}
+      <div
+        className={`absolute top-6 right-6 z-10 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 border ${config.colorClasses.border}`}
+      >
+        <span className={`material-symbols-outlined ${config.colorClasses.text} text-sm`}>
+          {config.icon}
+        </span>
+        <span className={`text-xs font-bold ${config.colorClasses.text} font-display`}>
+          {t(config.labelKey as any)}
+        </span>
+      </div>
+
+      {/* 收藏按钮 */}
+      <button
+        onClick={handleToggleCollect}
+        className={`absolute top-6 left-6 z-10 p-2 rounded-full transition-all shadow-md ${
+          isCollected
+            ? 'bg-yellow-400 hover:bg-yellow-500 text-yellow-900'
+            : 'bg-white/90 hover:bg-white text-gray-400 hover:text-yellow-500'
+        }`}
+        title={isCollected ? t('collection.uncollect') : t('collection.collect')}
+      >
+        <span className={`material-symbols-outlined text-xl ${isCollected ? 'fill' : ''}`}>
+          {isCollected ? 'star' : 'star_border'}
+        </span>
+      </button>
+
+      {/* 缩略图 */}
+      <div className="w-full aspect-[4/3] rounded-2xl bg-gray-100 mb-4 overflow-hidden relative shadow-inner">
+        {record.imageData ? (
+          <img
+            src={record.imageData}
+            alt={record.objectName}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+            <span className="text-6xl">📷</span>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      </div>
+
+      {/* 卡片信息 */}
+      <div className="flex flex-col gap-2 px-2 pb-2">
+        <h3 className="text-text-main text-xl font-bold font-display tracking-tight group-hover:text-primary transition-colors">
+          {record.objectName}
+        </h3>
+        <div className="flex items-center justify-between mt-2">
+          <span className="text-gray-400 text-xs font-semibold bg-gray-50 px-2 py-1 rounded-lg">
+            {timeAgo}
+          </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // 阻止事件冒泡
+              handleReExplore();
+            }}
+            className="flex items-center gap-2 bg-primary hover:bg-[#5aff2b] text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-md shadow-primary/20 active:scale-95"
+          >
+            <span>{t('collection.reExplore')}</span>
+            <span className="material-symbols-outlined text-lg">rocket_launch</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+function getTimeAgo(timestamp: string): string {
+  const now = new Date();
+  const time = new Date(timestamp);
+  const diffMs = now.getTime() - time.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return '今天';
+  if (diffDays === 1) return '1天前';
+  if (diffDays < 7) return `${diffDays}天前`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}周前`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)}个月前`;
+  return `${Math.floor(diffDays / 365)}年前`;
+}
+

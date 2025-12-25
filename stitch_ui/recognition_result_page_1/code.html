@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Science Card Detail Page - Cute Style</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&amp;family=Quicksand:wght@300..700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#4cdf20",
+                        "secondary": "#a4b79e",
+                        // Updated Light Theme Palette
+                        "page-bg": "#F0FDF4", // Very light mint/sky
+                        "card-bg": "#FFFFFF",
+                        "text-main": "#2D3748",
+                        "text-muted": "#718096",
+                        // Card Specific Colors
+                        "bud-green": "#76FF7A",
+                        "bud-green-dark": "#2ea631", // For text readability
+                        "sunny-orange": "#FF9E64",
+                        "sunny-orange-dark": "#d95d11",
+                        "sky-blue": "#40C4FF",
+                        "sky-blue-dark": "#007bb5",
+                        "cream-accent": "#FFF9C4",
+                    },
+                    fontFamily: {
+                        "cute": ["Fredoka", "sans-serif"],
+                        "body": ["Quicksand", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "1.5rem", "xl": "2rem", "2xl": "2.5rem", "3xl": "3rem", "full": "9999px"},
+                    boxShadow: {
+                        'cute': '0 8px 0 0 rgba(0,0,0,0.1)',
+                        'cute-hover': '0 12px 0 0 rgba(0,0,0,0.1)',
+                        'card': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                        'inner-glow': 'inset 0 2px 4px 0 rgba(255, 255, 255, 0.3)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }.bg-pattern {
+            background-color: #f7fee7;
+            background-image: radial-gradient(#d9f99d 1px, transparent 1px), radial-gradient(#d9f99d 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
+    </style>
+</head>
+<body class="bg-pattern font-body text-text-main overflow-x-hidden min-h-screen">
+<div class="relative flex h-screen w-full flex-col overflow-hidden">
+<header class="flex items-center justify-between whitespace-nowrap px-6 md:px-10 py-4 shrink-0 bg-white/80 backdrop-blur-md border-b-4 border-bud-green/30 z-50 rounded-b-[2rem] mx-4 mt-2 shadow-sm">
+<div class="flex items-center gap-3">
+<div class="size-10 bg-bud-green rounded-2xl flex items-center justify-center shadow-md rotate-3">
+<span class="material-symbols-outlined text-white text-3xl drop-shadow-sm">local_florist</span>
+</div>
+<h2 class="text-bud-green-dark text-2xl font-cute font-bold tracking-wide">Nature<span class="text-sunny-orange-dark">Explorer</span></h2>
+</div>
+<div class="hidden md:flex flex-1 justify-center max-w-lg mx-4">
+<div class="flex w-full items-center bg-slate-100 rounded-full border-2 border-slate-200 px-4 h-12 hover:border-bud-green transition-colors focus-within:border-bud-green focus-within:ring-4 focus-within:ring-bud-green/20">
+<span class="material-symbols-outlined text-slate-400">search</span>
+<input class="w-full bg-transparent border-none focus:ring-0 text-slate-700 placeholder:text-slate-400 font-bold ml-2" placeholder="Search for butterflies, flowers..."/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="bg-yellow-100 p-2 rounded-full border-2 border-yellow-300 shadow-sm cursor-pointer hover:scale-110 transition-transform" title="My Collection">
+<span class="material-symbols-outlined text-yellow-600">backpack</span>
+</div>
+<div class="size-12 rounded-full border-4 border-white shadow-md bg-cover bg-center cursor-pointer hover:rotate-6 transition-transform" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDEKWbiUogp7NWlVgxBL0I6VYn27LZtxzU44w3QONJ4Q851j9hUmB41yPKVs3ivlCMOB7YguOaVHmhAp56FWkkSLOJMp_Grj1mp5WUsVvBQTUwLPd4ZL54neJ7gLnhV3ZXu8rbBOz17D0A0jLce1XQCHaCM4xsBpBK-C11d6tKJGxkOMrdh8LLg_uvtnvRe54jPmqRac9udNNPMDWLcq8FRPs9syCalKdI_A2tYaKrycNXPr7lclFMN_2QCp1DWOVuMAkZ1f-mSTH8");'></div>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto no-scrollbar flex flex-col items-center w-full relative z-0 pb-32">
+<div class="absolute top-10 left-10 w-64 h-64 bg-bud-green/10 rounded-full blur-3xl -z-10 animate-pulse"></div>
+<div class="absolute bottom-40 right-10 w-80 h-80 bg-sky-blue/10 rounded-full blur-3xl -z-10"></div>
+<div class="w-full max-w-7xl px-4 md:px-10 py-6 flex flex-col flex-1 h-full min-h-[600px]">
+<div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-8 shrink-0 mt-4">
+<div class="flex flex-col items-start gap-2 relative">
+<span class="absolute -top-6 -left-2 rotate-[-5deg] bg-yellow-300 text-yellow-800 px-3 py-1 rounded-lg text-xs font-cute shadow-sm border-2 border-yellow-100 transform z-10">You found a new friend!</span>
+<div class="flex items-center gap-3">
+<span class="px-4 py-1.5 rounded-full bg-bud-green/20 text-bud-green-dark border-2 border-bud-green/30 text-sm font-bold flex items-center gap-1.5 font-cute shadow-sm">
+<span class="material-symbols-outlined text-lg">psychiatry</span>
+                            Natural World
+                        </span>
+</div>
+<h1 class="text-4xl md:text-6xl font-cute font-extrabold text-slate-800 leading-tight mt-2 drop-shadow-sm">
+                        It's a <span class="text-transparent bg-clip-text bg-gradient-to-r from-bud-green-dark to-green-500 relative inline-block">
+                             Dandelion
+<svg class="absolute w-full h-3 -bottom-1 left-0 text-bud-green" preserveAspectRatio="none" viewBox="0 0 100 10">
+<path d="M0 5 Q 50 10 100 5" fill="none" stroke="currentColor" stroke-width="3"></path>
+</svg>
+</span>!
+                    </h1>
+</div>
+<div class="flex items-center gap-4 bg-white p-4 pr-8 rounded-3xl max-w-md shadow-cute border-2 border-slate-100 relative group cursor-pointer hover:scale-105 transition-all">
+<div class="size-14 rounded-full bg-bud-green/20 flex items-center justify-center border-2 border-bud-green shrink-0 text-bud-green-dark animate-bounce shadow-inner">
+<span class="material-symbols-outlined text-3xl">smart_toy</span>
+</div>
+<div>
+<p class="text-sm font-bold text-slate-500 uppercase mb-0.5 font-cute">AI Companion says:</p>
+<p class="text-base font-bold text-slate-800 leading-tight font-cute">
+                            "Wow! A Dandelion! Let's explore its secrets!"
+                        </p>
+</div>
+<button class="absolute -top-2 -right-2 size-10 rounded-full bg-sky-blue text-white shadow-md border-4 border-white flex items-center justify-center hover:bg-sky-blue-dark transition-colors">
+<span class="material-symbols-outlined text-xl">volume_up</span>
+</button>
+</div>
+</div>
+<section class="relative flex-1 flex flex-col justify-center w-full min-h-[500px] mb-12 group/carousel">
+<button class="absolute left-0 top-1/2 -translate-y-1/2 z-20 size-14 bg-white hover:bg-bud-green hover:text-white text-slate-400 border-4 border-slate-100 rounded-full flex items-center justify-center transition-all shadow-cute hover:shadow-cute-hover hidden md:flex">
+<span class="material-symbols-outlined text-3xl font-bold">arrow_back</span>
+</button>
+<div class="flex overflow-x-auto gap-8 pb-12 px-4 md:px-12 snap-x snap-mandatory no-scrollbar h-full items-stretch pt-4">
+<article class="snap-center shrink-0 w-[85vw] md:w-[380px] lg:w-[420px] flex flex-col rounded-[2.5rem] bg-white border-4 border-bud-green shadow-card relative transition-transform hover:-translate-y-2 duration-300 group overflow-hidden">
+<div class="h-[45%] w-full relative overflow-hidden rounded-t-[2.2rem]">
+<div class="absolute inset-0 bg-cover bg-center transform hover:scale-110 transition-transform duration-700" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDpwb2dAgIvDvyJviz9jf2yVQOYko_VP3haidbXE547HIzhZKy6hT_sNVT7ydDIK3-bRerMzGJU1tFPv0fdTZ49ag7qff9IqEKTaSN7gE1vz3_MITfvI2FiId7Bovss4FkU0FbjyRru7SQIbrPK4wMC6OjJnF3IzvDTz9V9IS0FcpAPNMMOIirpe8_FMnsNR1DKgEB1kh7DnZTWDkoc37mASSiFLDCc9v9A--e8m6T08Ua205Yz11lTz5SZ2lZi7g0I7lo54e2hcMA");'></div>
+<div class="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-2xl text-bud-green-dark font-cute font-bold text-sm border-2 border-bud-green shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">eco</span>
+                                What is it?
+                            </div>
+<div class="absolute bottom-0 left-0 w-full h-8 bg-white" style="clip-path: polygon(0 100%, 100% 100%, 100% 0, 0 100%);"></div>
+</div>
+<div class="h-[55%] bg-white p-6 flex flex-col justify-between relative rounded-b-[2.2rem]">
+<div class="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+<h3 class="text-3xl font-cute font-bold text-bud-green-dark mb-2">Dandelion</h3>
+<p class="text-base font-semibold text-slate-500 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100 italic">
+                                    "A bright yellow flower that turns into a fluffy white ball."
+                                </p>
+<div class="space-y-3 mb-4">
+<div class="flex gap-3 items-start group/item">
+<div class="mt-1 size-2 rounded-full bg-bud-green group-hover/item:scale-150 transition-transform"></div>
+<p class="text-sm font-bold text-slate-600 leading-snug">Grows almost anywhere with sun.</p>
+</div>
+<div class="flex gap-3 items-start group/item">
+<div class="mt-1 size-2 rounded-full bg-bud-green group-hover/item:scale-150 transition-transform"></div>
+<p class="text-sm font-bold text-slate-600 leading-snug">Leaves look like lion teeth.</p>
+</div>
+</div>
+<div class="bg-gradient-to-br from-bud-green/20 to-green-100 rounded-2xl p-4 border-2 border-bud-green/30 relative mt-2">
+<span class="absolute -top-3 -right-3 bg-bud-green text-white rounded-full p-1 border-2 border-white shadow-sm">
+<span class="material-symbols-outlined text-sm">lightbulb</span>
+</span>
+<span class="text-xs font-black text-bud-green-dark uppercase tracking-wider block mb-1">Fun Fact</span>
+<p class="text-sm font-bold text-slate-700">Every part of the dandelion is edible! Yum!</p>
+</div>
+</div>
+<div class="flex justify-between items-center mt-4 pt-2">
+<button class="flex items-center gap-2 text-sm font-bold text-bud-green-dark bg-bud-green/20 hover:bg-bud-green hover:text-white px-5 py-3 rounded-full transition-all shadow-sm hover:shadow-md">
+<span class="material-symbols-outlined text-xl">play_circle</span>
+                                    Listen
+                                </button>
+<button class="size-12 rounded-full bg-slate-100 hover:bg-yellow-300 hover:text-yellow-800 text-slate-300 flex items-center justify-center transition-all group-active:scale-90 shadow-sm border-2 border-slate-200 hover:border-yellow-400">
+<span class="material-symbols-outlined text-2xl fill-current">star</span>
+</button>
+</div>
+</div>
+</article>
+<article class="snap-center shrink-0 w-[85vw] md:w-[380px] lg:w-[420px] flex flex-col rounded-[2.5rem] bg-white border-4 border-sunny-orange shadow-card relative transition-transform hover:-translate-y-2 duration-300 group overflow-hidden">
+<div class="h-[45%] w-full relative overflow-hidden rounded-t-[2.2rem]">
+<div class="absolute inset-0 bg-cover bg-center transform hover:scale-110 transition-transform duration-700" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCLB9pBHDdvO3ayktEYLwLBQEFb2jfadIE7aH-B8xDD9CsGsJGjVU9hc1n0roldnXzLduq3ZaUzCETwg9kjRhti7PLGmaBn4Rvi5-WVqy01BY64HalH9MFig7iHMeZpXP31mh9q8ksLQJAd4A6hrMb-bLTVwMpvGghBB3IIgaKHfgz6n_LvdttMjDFYtIxJ7Z3QhZDvOTLd5x87W2qxqjiL1TELFCTahHjcKi1WHsuhfBRYTDZEKqA83vn9IpBwKRS-CCNCYeU-qXg");'></div>
+<div class="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-2xl text-sunny-orange-dark font-cute font-bold text-sm border-2 border-sunny-orange shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">history_edu</span>
+                                Story Time
+                            </div>
+<div class="absolute bottom-0 left-0 w-full h-8 bg-white" style="clip-path: polygon(0 100%, 100% 100%, 100% 0, 0 100%);"></div>
+</div>
+<div class="h-[55%] bg-white p-6 flex flex-col justify-between relative rounded-b-[2.2rem]">
+<div class="flex-1 overflow-y-auto pr-2">
+<h3 class="text-3xl font-cute font-bold text-sunny-orange-dark mb-3">Drifting Seeds</h3>
+<div class="relative pl-5 border-l-4 border-sunny-orange/40 mb-4 bg-orange-50 p-3 rounded-r-xl">
+<p class="text-slate-700 text-lg font-serif italic">"Floating lightly with the wind, traveling far away..."</p>
+</div>
+<div class="mb-4">
+<h4 class="text-xs font-black text-sunny-orange-dark uppercase mb-1 tracking-wider">What it means</h4>
+<p class="text-sm font-bold text-slate-600 leading-relaxed">Ancient people thought dandelions were brave travelers! They leave home to fly far away with just a little wind.</p>
+</div>
+<div class="flex items-center gap-3 bg-sunny-orange/10 p-3 rounded-2xl border-2 border-sunny-orange/20">
+<div class="bg-white p-1 rounded-full shadow-sm text-sunny-orange-dark">
+<span class="material-symbols-outlined text-lg">emoji_nature</span>
+</div>
+<p class="text-xs font-bold text-slate-700">Like a tiny parachute adventure!</p>
+</div>
+</div>
+<div class="flex justify-between items-center mt-4 pt-2">
+<button class="flex items-center gap-2 text-sm font-bold text-sunny-orange-dark bg-sunny-orange/20 hover:bg-sunny-orange hover:text-white px-5 py-3 rounded-full transition-all shadow-sm hover:shadow-md">
+<span class="material-symbols-outlined text-xl">play_circle</span>
+                                    Listen
+                                </button>
+<button class="size-12 rounded-full bg-slate-100 hover:bg-yellow-300 hover:text-yellow-800 text-slate-300 flex items-center justify-center transition-all group-active:scale-90 shadow-sm border-2 border-slate-200 hover:border-yellow-400">
+<span class="material-symbols-outlined text-2xl fill-current">star</span>
+</button>
+</div>
+</div>
+</article>
+<article class="snap-center shrink-0 w-[85vw] md:w-[380px] lg:w-[420px] flex flex-col rounded-[2.5rem] bg-white border-4 border-sky-blue shadow-card relative transition-transform hover:-translate-y-2 duration-300 group overflow-hidden">
+<div class="h-[45%] w-full relative overflow-hidden rounded-t-[2.2rem]">
+<div class="absolute inset-0 bg-cover bg-center transform hover:scale-110 transition-transform duration-700" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBO0CaaoB5G4gZyfnrtaqM353PZ948Fk3bnuRrBHJzArw_p81Qp6atkoVoYcJPxZgQVHIgC-_FxGdAwwG3O0rQyIJWKm7cf29HgzTlaagbaa6h3eB8rE9oLfjf4AxQWJVmitJe8rKablcTppvS8fGAXgkcC_2klXJNk4TaXrn0XrsnUCnq3aQ8Ry-5hGpVuxhuof-gipOaduOD-e4XIb3EGju6d8z6G6eUSLFHb1kgI2dNSYNTbOevrw_iORnb7r0DwHqpZwmVlvAs");'></div>
+<div class="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-2xl text-sky-blue-dark font-cute font-bold text-sm border-2 border-sky-blue shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">translate</span>
+                                Say it in English
+                            </div>
+<div class="absolute bottom-0 left-0 w-full h-8 bg-white" style="clip-path: polygon(0 100%, 100% 100%, 100% 0, 0 100%);"></div>
+</div>
+<div class="h-[55%] bg-white p-6 flex flex-col justify-between relative rounded-b-[2.2rem]">
+<div class="flex-1">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-3xl font-cute font-bold text-sky-blue-dark">Dandelion</h3>
+<button class="size-10 rounded-full bg-sky-blue/20 hover:bg-sky-blue hover:text-white flex items-center justify-center text-sky-blue-dark transition-colors shadow-sm">
+<span class="material-symbols-outlined text-xl">volume_up</span>
+</button>
+</div>
+<div class="space-y-4">
+<div>
+<h4 class="text-xs font-black text-sky-blue-dark uppercase mb-2 tracking-wider">Magic Words</h4>
+<div class="flex gap-2 flex-wrap">
+<span class="px-3 py-1.5 bg-sky-blue/10 rounded-xl text-xs font-bold text-sky-blue-dark border border-sky-blue/20 hover:bg-sky-blue hover:text-white cursor-pointer transition-colors">Flower</span>
+<span class="px-3 py-1.5 bg-sky-blue/10 rounded-xl text-xs font-bold text-sky-blue-dark border border-sky-blue/20 hover:bg-sky-blue hover:text-white cursor-pointer transition-colors">Seed</span>
+<span class="px-3 py-1.5 bg-sky-blue/10 rounded-xl text-xs font-bold text-sky-blue-dark border border-sky-blue/20 hover:bg-sky-blue hover:text-white cursor-pointer transition-colors">Blow</span>
+</div>
+</div>
+<div>
+<h4 class="text-xs font-black text-sky-blue-dark uppercase mb-2 tracking-wider">Let's Talk!</h4>
+<div class="bg-sky-50 p-4 rounded-2xl border-2 border-sky-blue/20 relative">
+<div class="absolute -top-3 right-4 bg-sky-200 text-sky-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Try saying this</div>
+<p class="text-sm text-slate-700 mb-2 font-bold">"Look at the yellow <span class="text-sky-blue-dark underline decoration-wavy">dandelion</span>!"</p>
+<p class="text-sm text-slate-700 font-bold">"Make a wish and <span class="text-sky-blue-dark underline decoration-wavy">blow</span>!"</p>
+</div>
+</div>
+</div>
+</div>
+<div class="flex justify-between items-center mt-4 pt-2">
+<button class="flex items-center gap-2 text-sm font-bold text-sky-blue-dark bg-sky-blue/20 hover:bg-sky-blue hover:text-white px-5 py-3 rounded-full transition-all shadow-sm hover:shadow-md">
+<span class="material-symbols-outlined text-xl">mic</span>
+                                    Practice
+                                </button>
+<button class="size-12 rounded-full bg-slate-100 hover:bg-yellow-300 hover:text-yellow-800 text-slate-300 flex items-center justify-center transition-all group-active:scale-90 shadow-sm border-2 border-slate-200 hover:border-yellow-400">
+<span class="material-symbols-outlined text-2xl fill-current">star</span>
+</button>
+</div>
+</div>
+</article>
+</div>
+<button class="absolute right-0 top-1/2 -translate-y-1/2 z-20 size-14 bg-white hover:bg-bud-green hover:text-white text-slate-400 border-4 border-slate-100 rounded-full flex items-center justify-center transition-all shadow-cute hover:shadow-cute-hover hidden md:flex">
+<span class="material-symbols-outlined text-3xl font-bold">arrow_forward</span>
+</button>
+</section>
+<section class="flex flex-col gap-4 mb-32 md:mb-20 animate-fade-in-up px-2">
+<div class="flex items-center gap-3 mb-2 bg-white/50 w-fit px-4 py-2 rounded-full backdrop-blur-sm border border-white">
+<div class="bg-bud-green rounded-full p-1 text-white">
+<span class="material-symbols-outlined text-lg">live_help</span>
+</div>
+<h3 class="text-xl font-cute font-bold text-slate-700">Curious Minds Want to Know...</h3>
+</div>
+<div class="flex flex-wrap gap-4 items-center">
+<button class="group flex items-center gap-3 bg-white hover:bg-orange-50 px-6 py-4 rounded-2xl transition-all shadow-sm border-2 border-slate-100 hover:border-sunny-orange hover:-translate-y-1">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-sunny-orange transition-colors bg-slate-100 group-hover:bg-white p-2 rounded-full">restaurant</span>
+<span class="text-slate-700 group-hover:text-sunny-orange-dark text-base font-bold">Can I eat it?</span>
+</button>
+<button class="group flex items-center gap-3 bg-white hover:bg-yellow-50 px-6 py-4 rounded-2xl transition-all shadow-sm border-2 border-slate-100 hover:border-yellow-400 hover:-translate-y-1">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-yellow-500 transition-colors bg-slate-100 group-hover:bg-white p-2 rounded-full">palette</span>
+<span class="text-slate-700 group-hover:text-yellow-700 text-base font-bold">Why is it yellow?</span>
+</button>
+<button class="group flex items-center gap-3 bg-white hover:bg-green-50 px-6 py-4 rounded-2xl transition-all shadow-sm border-2 border-slate-100 hover:border-bud-green hover:-translate-y-1">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-bud-green-dark transition-colors bg-slate-100 group-hover:bg-white p-2 rounded-full">landscape</span>
+<span class="text-slate-700 group-hover:text-bud-green-dark text-base font-bold">Where do they grow?</span>
+</button>
+<button class="flex items-center gap-1 text-bud-green-dark text-sm font-bold px-4 py-2 hover:bg-bud-green/10 rounded-full transition-colors ml-2 border border-transparent hover:border-bud-green/30">
+                        Ask More
+                        <span class="material-symbols-outlined text-lg">expand_more</span>
+</button>
+</div>
+</section>
+</div>
+</main>
+<footer class="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t-2 border-slate-100 p-4 z-50 rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+<div class="max-w-7xl mx-auto flex justify-between items-center gap-4">
+<button class="flex items-center gap-2 px-6 py-3 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition-all border-2 border-slate-200 group">
+<span class="material-symbols-outlined group-hover:-translate-x-1 transition-transform">undo</span>
+<span class="hidden sm:inline">Back to Map</span>
+</button>
+<div class="flex-1 flex justify-center">
+<div class="flex gap-3 bg-slate-100 px-4 py-2 rounded-full">
+<div class="w-10 h-2.5 rounded-full bg-bud-green"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
+</div>
+</div>
+<button class="flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-bud-green to-primary text-white font-cute font-extrabold text-lg transition-all shadow-lg shadow-bud-green/40 transform hover:-translate-y-1 hover:scale-105 border-b-4 border-green-600 active:border-b-0 active:translate-y-0.5">
+<span class="material-symbols-outlined text-2xl animate-bounce">style</span>
+                COLLECT CARDS!
+            </button>
+</div>
+</footer>
+</div>
+
+</body></html>

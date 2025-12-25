@@ -1,0 +1,39 @@
+# Go
+*.exe
+*.test
+*.out
+vendor/
+*.log
+backend.log
+frontend.log
+.env
+.env.local
+.env.*.local
+!.env.example
+backend/logs/*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
+bin/
+backend/explore
+backend/explore.exe
+
+# Dependencies
+go.sum
+
+# Temporary files
+*.tmp
+*.bak
+

@@ -1,0 +1,205 @@
+# 项目开发规则
+
+## Git 提交规范
+
+### 提交信息格式
+使用中文编写 commit message，格式：`<type>(<scope>): <subject>`
+
+**格式说明**：
+- `<type>`: 提交类型（必填）
+- `<scope>`: 作用域（可选），用于说明影响范围
+- `<subject>`: 简短描述（必填），不超过50个字符，使用中文
+
+### 提交类型 (type)
+
+- **feat**: 新增功能
+- **fix**: 修复 bug
+- **docs**: 文档更新（README、规范文档等）
+- **style**: 代码格式调整（不影响功能，如缩进、换行等）
+- **refactor**: 代码重构（不改变功能，优化代码结构）
+- **perf**: 性能优化
+- **test**: 测试相关（添加或修改测试）
+- **chore**: 构建工具、依赖更新、配置文件修改等
+- **revert**: 回退提交
+- **build**: 构建相关（构建脚本、CI/CD配置等）
+- **ui**: UI/UX相关（前端界面调整、样式优化等）
+
+### 作用域 (scope)
+
+作用域用于标识修改的影响范围，采用 `<area>:<module>` 格式，其中：
+
+**区域 (area)**：
+- **frontend**: 前端相关（React组件、页面、样式等）
+- **backend**: 后端相关（API、业务逻辑、服务等）
+- **shared**: 前后端共享（类型定义、工具函数等）
+- **config**: 配置文件
+- **docs**: 文档
+
+**模块 (module)** - 根据实际文件路径：
+
+**前端模块**：
+- `frontend:components` - 通用组件
+- `frontend:components/camera` - 拍照组件
+- `frontend:components/cards` - 知识卡片组件
+- `frontend:components/collection` - 收藏组件
+- `frontend:pages` - 页面组件
+- `frontend:services` - API服务
+- `frontend:hooks` - React Hooks
+- `frontend:utils` - 工具函数
+- `frontend:types` - TypeScript类型
+- `frontend:styles` - 样式相关
+
+**后端模块**：
+- `backend:api` - API定义（.api文件）
+- `backend:handler` - HTTP处理器
+- `backend:logic` - 业务逻辑
+- `backend:agent` - AI Agent实现
+- `backend:model` - 数据模型
+- `backend:config` - 配置文件
+- `backend:eino` - eino框架集成
+
+**详细格式**（可选）：
+- 简单格式：`frontend:components` 或 `backend:handler`
+- 详细格式：`backend:handler:identifyhandler.go`（当需要精确指定文件时）
+
+### 提交示例
+
+#### 前端提交示例
+```bash
+feat(frontend:pages): 实现首页拍照入口
+feat(frontend:components/cards): 添加科学认知卡组件
+fix(frontend:services): 修复API调用错误处理
+ui(frontend:pages): 优化识别结果页样式
+refactor(frontend:components): 重构通用按钮组件
+```
+
+#### 后端提交示例
+```bash
+feat(backend:handler): 实现图像识别接口
+feat(backend:logic): 添加知识卡片生成逻辑
+fix(backend:handler): 修复响应格式问题
+refactor(backend:agent): 优化ReAct Agent实现
+chore(backend:config): 更新eino配置文件
+```
+
+#### 文档和配置示例
+```bash
+docs(specs): 更新功能规范文档
+docs(README): 添加快速开始指南
+chore(config): 更新Tailwind配置
+build(frontend): 优化Vite构建配置
+```
+
+### 多要点提交格式
+
+当提交包含多个相关要点时，使用以下格式：
+
+```bash
+feat(frontend:pages): 实现识别结果页面
+
+- 添加三张知识卡片展示组件
+- 实现卡片轮播功能
+- 添加收藏按钮交互
+- 优化移动端响应式布局
+```
+
+```bash
+feat(backend:handler): 实现探索相关API接口
+
+- 添加图像识别接口 /api/explore/identify
+- 添加知识卡片生成接口 /api/explore/generate-cards
+- 实现错误处理和参数验证
+- 添加单元测试
+```
+
+### 提交信息最佳实践
+
+1. **使用中文**: 所有提交信息使用中文编写（符合项目规范）
+2. **简洁明了**: subject不超过50个字符，清晰描述做了什么
+3. **使用动词**: 使用"实现"、"添加"、"修复"、"优化"等动词开头
+4. **避免句号**: subject末尾不使用句号
+5. **原子提交**: 每次提交只做一件事，避免混合多个不相关的变更
+
+### 提交信息模板
+
+```bash
+# 功能开发
+feat(<scope>): <简短描述>
+
+# 问题修复
+fix(<scope>): <简短描述>
+
+# 文档更新
+docs(<scope>): <简短描述>
+
+# 代码重构
+refactor(<scope>): <简短描述>
+
+# UI调整
+ui(<scope>): <简短描述>
+```
+
+## 重要原则
+
+### 代码提交
+
+- **禁止自动提交**: 不要自动提交 git 代码，除非用户明确要求
+- **测试通过**: 提交前确保代码通过所有测试（前端lint、后端单元测试）
+- **原子提交**: 每次提交只做一件事，避免混合多个功能
+- **清晰描述**: 提交信息要简洁明了，描述变更目的
+- **遵循规范**: 所有提交必须遵循本规范，使用中文编写
+
+### 分支管理
+
+#### 主分支
+- **main**: 主分支，保持稳定可发布状态
+- **dev-mvp-20251218**: 当前功能分支（基于规范编号）
+
+#### 开发分支命名规范
+- **dev-功能名-日期**: 开发分支，例如 `dev-explore-20251218`
+- **feat-功能名**: 功能开发分支，例如 `feat-camera-capture`
+- **fix-问题描述**: 问题修复分支，例如 `fix-api-error-handling`
+
+#### 发布分支
+- **publish-版本号**: 发布分支，例如 `publish-v1.0.0`
+- **release-版本号**: 发布候选分支，例如 `release-v1.0.0-rc1`
+
+#### 分支策略
+1. 从 `main` 分支创建功能分支
+2. 功能开发完成后合并到 `main`
+3. 发布时从 `main` 创建发布分支
+4. 保持 `main` 分支始终可发布
+
+### 代码审查
+
+- **提交前自检**: 确保代码符合项目规范
+- **遵循规范**: 前端遵循K12教育游戏化设计规范，后端遵循go-zero最佳实践
+- **中文优先**: 代码注释和文档优先使用中文
+- **测试覆盖**: 关键功能必须有测试覆盖
+
+### 特殊说明
+
+#### 前后端分离项目
+- 前端和后端的提交应该分开，避免混合提交
+- 如果同时修改前后端，应该分别提交
+- 使用scope明确标识是前端还是后端
+
+#### Mock数据阶段
+- 当前阶段AI模型使用Mock数据，提交时在信息中说明
+- 待APP ID提供后，接入真实模型时使用 `feat(backend:agent): 接入真实AI模型` 格式
+
+#### UI实现
+- 前端UI实现必须完全遵循 `stitch_ui/` 中的设计稿
+- UI相关提交使用 `ui` 类型
+- 样式调整使用 `style` 类型
+
+## 提交检查清单
+
+提交前请确认：
+- [ ] 提交信息符合规范格式
+- [ ] 使用中文编写提交信息
+- [ ] scope正确标识了影响范围
+- [ ] 代码通过测试和lint检查
+- [ ] 遵循项目规范（中文优先、K12设计规范等）
+- [ ] 没有提交敏感信息（API密钥、密码等）
+- [ ] 没有提交临时文件和构建产物
